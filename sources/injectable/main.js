@@ -72,7 +72,7 @@ class mcsApp {
                 this.tab.appendChild(this.logo);
                 this.tabText = document.createElement('div');
                 this.tabText.setAttribute('style','position: absolute;left: 50px;width: 150px;text-align: left;bottom: 13px;')
-                this.tabText.innerHTML = 'Combat Simulator';
+                this.tabText.textContent = 'Combat Simulator';
                 this.tab.appendChild(this.tabText);
 
                 //Put Everything together, then add it to the page
@@ -270,7 +270,7 @@ class mcsPlotter {
                 for (let i = 0; i < this.bars.length; i++) {
                         this.bars[i].style.height = `${barData[i] / divMax * 100}%`;
                         this.barTooltips[i].style.top = `${(1 - barData[i] / divMax) * 100}%`;
-                        this.barTooltips[i].innerHTML = mcsFormatNum(barData[i], 2);
+                        this.barTooltips[i].textContent = mcsFormatNum(barData[i], 2);
                         if ((1 - barData[i] / divMax) * 100 > 92) {
                                 this.barTooltips[i].style.top = '92%';
                         }
@@ -291,7 +291,7 @@ class mcsPlotter {
                         if (i < (Ndivs + 1)) {
                                 this.tickText[i].style.display = 'block';
                                 this.tickText[i].style.bottom = `${i * 100 / Ndivs - 2.5}%`;
-                                this.tickText[i].innerHTML = mcsFormatNum(i * division, 2);
+                                this.tickText[i].textContent = mcsFormatNum(i * division, 2);
                         } else {
                                 this.tickText[i].style.display = 'none';
                         }
@@ -361,7 +361,7 @@ class mcsGearSelecter {
                         }
                         this.dropDownLabels.push(document.createElement('label'));
                         this.dropDownLabels[i].htmlFor = `MCS ${this.gearSlots[i]} Dropdown`;
-                        this.dropDownLabels[i].innerHTML = `${this.gearSlots[i]}:`;
+                        this.dropDownLabels[i].textContent = `${this.gearSlots[i]}:`;
                         this.dropDownLabels[i].setAttribute('style', this.labelStyle)
                         this.dropDownContainers[i].appendChild(this.dropDownLabels[i])
                         this.dropDownContainers[i].appendChild(this.dropDowns[i]);
@@ -377,7 +377,7 @@ class mcsGearSelecter {
                         this.skillContainers[i].setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + i)}px;`)
                         this.skillLabels.push(document.createElement('label'));
                         this.skillLabels[i].htmlFor = `MCS ${this.skillNames[i]} Level`;
-                        this.skillLabels[i].innerHTML = this.skillNames[i];
+                        this.skillLabels[i].textContent = this.skillNames[i];
                         this.skillLabels[i].setAttribute('style', this.labelStyle)
 
                         this.skillFields.push(document.createElement('input'))
@@ -402,7 +402,7 @@ class mcsGearSelecter {
                 this.combatStyleContainer = document.createElement('div');
                 this.combatStyleContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length)}px;`)
                 this.combatStyleLabel = document.createElement('label');
-                this.combatStyleLabel.innerHTML = 'Style:'
+                this.combatStyleLabel.textContent = 'Style:'
                 this.combatStyleLabel.setAttribute('style', this.labelStyle)
 
                 this.meleeStyleDropDown = document.createElement('select');
@@ -447,7 +447,7 @@ class mcsGearSelecter {
                 this.spellSelectContainer = document.createElement('div');
                 this.spellSelectContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length + 1)}px;`)
                 this.spellSelectLabel = document.createElement('label');
-                this.spellSelectLabel.innerHTML = 'Spell:'
+                this.spellSelectLabel.textContent = 'Spell:'
                 this.spellSelectLabel.setAttribute('style', this.labelStyle);
                 this.spellSelectDropDown = document.createElement('select');
                 this.spellSelectDropDown.setAttribute('style', this.dropDownStyle);
@@ -455,7 +455,7 @@ class mcsGearSelecter {
                 this.spellOptions = [];
                 for (let i = 0; i < SPELLS.length; i++) {
                         this.spellOptions.push(document.createElement('option'));
-                        this.spellOptions[i].innerHTML = SPELLS[i].name;
+                        this.spellOptions[i].textContent = SPELLS[i].name;
                         this.spellOptions[i].value = i;
                         this.spellOptions[i].setAttribute('style', this.optionsStyle);
                         this.spellSelectDropDown.add(this.spellOptions[i]);
@@ -470,7 +470,7 @@ class mcsGearSelecter {
                 //Import from game button
                 this.importFromGameButton = document.createElement('button');
                 this.importFromGameButton.setAttribute('style', `position: absolute;width: ${this.dropDownWidth + this.labelWidth + 2}px;height: ${this.dropDownHeight}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length + 3)}px`)
-                this.importFromGameButton.innerHTML = 'Import Gear from Game';
+                this.importFromGameButton.textContent = 'Import Gear from Game';
                 this.importFromGameButton.onclick = event => this.callBackImportFromGameButton(event);
                 this.container.appendChild(this.importFromGameButton);
         }
@@ -715,7 +715,7 @@ class mcsStatReadout {
                         this.statContainers[i].appendChild(this.statImages[i]);
                         //Label Text
                         this.statLabels.push(document.createElement('label'));
-                        this.statLabels[i].innerHTML = this.statNames[i];
+                        this.statLabels[i].textContent = this.statNames[i];
                         this.statLabels[i].style.width = `${this.labelWidth}px`;
                         this.statLabels[i].style.height = '100%';
                         this.statLabels[i].style.left = `${this.statHeight + 2}px`;
@@ -756,7 +756,7 @@ class mcsStatReadout {
                         }
                         this.combatStatLabels.push(document.createElement('label'));
                         this.combatStatLabels[i].setAttribute('style', `width: ${this.labelWidth}px;height: 100%;left: ${this.statHeight + 2}px;position: absolute;text-align: left;`);
-                        this.combatStatLabels[i].innerHTML = this.combatStatNames[i];
+                        this.combatStatLabels[i].textContent = this.combatStatNames[i];
                         this.combatStatContainers[i].appendChild(this.combatStatLabels[i]);
 
                         this.combatStatFields.push(document.createElement('div'));
@@ -771,20 +771,20 @@ class mcsStatReadout {
         updateStatFields() {
                 for (let i = 0; i < this.statFields.length; i++) {
                         if (this.statKeys[i] == 'attBon0') {
-                                this.statFields[i].innerHTML = this.parent.simulator.attBon[0];
+                                this.statFields[i].textContent = this.parent.simulator.attBon[0];
                         } else if (this.statKeys[i] == 'attBon1') {
-                                this.statFields[i].innerHTML = this.parent.simulator.attBon[1];
+                                this.statFields[i].textContent = this.parent.simulator.attBon[1];
                         } else if (this.statKeys[i] == 'attBon2') {
-                                this.statFields[i].innerHTML = this.parent.simulator.attBon[2];
+                                this.statFields[i].textContent = this.parent.simulator.attBon[2];
                         } else {
-                                this.statFields[i].innerHTML = this.parent.simulator[this.statKeys[i]];
+                                this.statFields[i].textContent = this.parent.simulator[this.statKeys[i]];
                         }
                 }
         }
 
         updateCombatStats() {
                 for (let i = 0; i < this.combatStatFields.length; i++) {
-                        this.combatStatFields[i].innerHTML = this.parent.simulator[this.combatStatKeys[i]];
+                        this.combatStatFields[i].textContent = this.parent.simulator[this.combatStatKeys[i]];
                 }
         }
 }
@@ -1241,7 +1241,7 @@ class mcsSimPlotOptions {
                 this.container.appendChild(this.maxHitCont);
                 this.maxHitLab = document.createElement('label');
                 this.maxHitLab.setAttribute('style', this.labelStyle);
-                this.maxHitLab.innerHTML = 'Max Hits:';
+                this.maxHitLab.textContent = 'Max Hits:';
                 this.maxHitInp = document.createElement('input');
                 this.maxHitInp.value = '1000';
                 this.maxHitInp.setAttribute('style', this.inputStyle)
@@ -1258,7 +1258,7 @@ class mcsSimPlotOptions {
                 this.container.appendChild(this.numTrialsCont);
                 this.numTrialsLab = document.createElement('label');
                 this.numTrialsLab.setAttribute('style', this.labelStyle);
-                this.numTrialsLab.innerHTML = '# Trials:';
+                this.numTrialsLab.textContent = '# Trials:';
                 this.numTrialsInp = document.createElement('input');
                 this.numTrialsInp.value = '1000';
                 this.numTrialsInp.setAttribute('style', this.inputStyle)
@@ -1273,7 +1273,7 @@ class mcsSimPlotOptions {
                 this.plotTypeContainer = document.createElement('div');
                 this.plotTypeContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * 2}px;`)
                 this.plotTypeLabel = document.createElement('label');
-                this.plotTypeLabel.innerHTML = 'Plot Type:'
+                this.plotTypeLabel.textContent = 'Plot Type:'
                 this.plotTypeLabel.setAttribute('style', this.labelStyle);
                 this.plotTypeDropDown = document.createElement('select');
                 this.plotTypeDropDown.setAttribute('style', this.dropDownStyle);
@@ -1281,7 +1281,7 @@ class mcsSimPlotOptions {
                 this.plotTypeOptions = [];
                 for (let i = 0; i < this.plotOptions.length; i++) {
                         this.plotTypeOptions.push(document.createElement('option'));
-                        this.plotTypeOptions[i].innerHTML = this.plotOptions[i];
+                        this.plotTypeOptions[i].textContent = this.plotOptions[i];
                         this.plotTypeOptions[i].value = this.plotKeys[i];
                         this.plotTypeOptions[i].setAttribute('style', this.optionsStyle);
                         this.plotTypeDropDown.add(this.plotTypeOptions[i]);
