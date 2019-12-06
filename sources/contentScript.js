@@ -33,7 +33,7 @@ function injectScript(scriptName) {
         document.getElementById(scriptID).remove();
     }
     //Inject script
-    var scriptPath = browser.runtime.getURL(`sources/injectable/${scriptName}.js`);
+    var scriptPath = chrome.runtime.getURL(`sources/injectable/${scriptName}.js`);
     var newScript = document.createElement('script');
     newScript.setAttribute('id',scriptID);
     newScript.src = scriptPath;
