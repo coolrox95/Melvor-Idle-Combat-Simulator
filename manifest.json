@@ -11,13 +11,13 @@
 
     "content_scripts": [
         {
-            "matches": ["http*://www.melvoridle.com/*","http*://melvoridle.com/*"],
+            "matches": ["*://www.melvoridle.com/*","*://melvoridle.com/*"],
             "js": ["sources/contentScript.js"]
         }
     ],
 
     "web_accessible_resources" : [
-        "sources/injectable/*.js",
+        "sources/injectable/*.js"
     ],
 
     "permissions" : [

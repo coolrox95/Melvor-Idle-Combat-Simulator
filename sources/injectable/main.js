@@ -25,7 +25,7 @@ class mcsApp {
                 this.container = document.createElement('div');
                 this.container.id = 'MCS Container';
                 this.container.style.position = 'fixed';
-                this.container.style.height = '650px';
+                this.container.style.height = '0px';
                 this.container.style.width = `${this.contentWidth}px`;
                 this.container.style.bottom = 0;
                 this.container.style.right = 0;
@@ -94,6 +94,7 @@ class mcsApp {
         tabOnClick() {
                 var x = document.getElementById('MCS Content');
                 var y = document.getElementById('MCS Tab Container');
+                var z = document.getElementById('MCS Container');
                 if (x.style.display === 'none') {
                         x.style.display = 'block';
                         y.style.bottom = x.style.height;
@@ -103,7 +104,6 @@ class mcsApp {
                 }
         }
 }
-
 class mcsPlotter {
         constructor(parent, width, height) {
                 this.parent = parent;
