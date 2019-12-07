@@ -18,7 +18,7 @@ Currently not available on the chrome webstore, but you can download the sources
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
 3. Hit the Simulate button.
 4. Select the Plot Type to visualize your simulation results.
- - XP/s: Experience points per second for selected styles skills.
+ - XP/s: Experience points per second for selected combat style's skills.
  - HP XP/s: Experience points per second for the Hitpoints skill.
  - HP loss/s: Average amount of HP lost per second while fighting an enemy/dungeon.
  - Damage/s: Average damage per second.
@@ -30,4 +30,4 @@ Currently not available on the chrome webstore, but you can download the sources
 
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
-Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or submit a report to this repository.
+Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or [submit a report](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/issues/new) to this repository.
