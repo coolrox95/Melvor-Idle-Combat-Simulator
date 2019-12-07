@@ -27,7 +27,7 @@ Currently not available on the chrome webstore, but you can download the sources
  5. Hide/Show the simulator by clicking the tab in the top right.
 
 ## Screenshots
-![combatSim](https://i.imgur.com/OJBYAGv.png)
+![combatSim](https://i.imgur.com/lMIQ6kM.png)
 
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
