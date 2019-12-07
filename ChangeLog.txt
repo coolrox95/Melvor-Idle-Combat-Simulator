@@ -1,0 +1,4 @@
+v0.1.1
+Fixed Elements of Melvor UI appearing on top of combat simulator.
+Added Scrolling capabilities for small windows.
+Added Additional Labels to interface.

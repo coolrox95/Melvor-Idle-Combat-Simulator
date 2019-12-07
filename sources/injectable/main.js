@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.1.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2019>  <Coolrox95>
 
@@ -26,13 +26,15 @@ class mcsApp {
                 this.container.id = 'MCS Container';
                 this.container.style.position = 'fixed';
                 this.container.style.height = '0px';
-                this.container.style.width = `${this.contentWidth}px`;
+                this.container.style.width = `100%`;
                 this.container.style.bottom = 0;
                 this.container.style.right = 0;
+                this.container.style.zIndex = 100000;
                 //Construct the content under the tab
                 this.content = document.createElement('div')
                 this.content.id = 'MCS Content';
-                this.content.setAttribute('style', `position: absolute;height: ${this.contentHeight}px;width: ${this.contentWidth}px;bottom: 0px;right: 0px;`)
+                this.content.setAttribute('style', `position: absolute;height: ${this.contentHeight}px;width: 100%;bottom: 0px;right: 0px;
+                overflow-x: auto;overflow-y: hidden;display: flex;flex-direction: row;flex-wrap: nowrap;`)
                 this.content.style.background = 'rgb(255,255,255)';
                 this.content.style.border = 'solid rgb(0,0,0)';
                 //Add plot box
@@ -45,12 +47,17 @@ class mcsApp {
                 this.simulator = new mcsSimulator(this);
                 //Add simulation options
                 this.simPlotOpts = new mcsSimPlotOptions(this);
+                //Add empty box that can resize to fit the space
+                this.bugFix = document.createElement('div');
+                this.bugFix.setAttribute('style','flex-grow: 1;order: 0;height: 0px')
+                this.content.appendChild(this.bugFix);
+
                 //Construct the Tab Container
                 this.tabContainer = document.createElement('div')
                 this.tabContainer.id = 'MCS Tab Container';
                 this.tabContainer.style.position = 'absolute';
                 this.tabContainer.style.height = '50px';
-                this.tabContainer.style.width = `${this.contentWidth}px`;
+                this.tabContainer.style.width = '100%';
                 this.tabContainer.style.bottom = this.content.style.height;
                 this.tabContainer.style.left = 0;
                 //Construct the actual Tab
@@ -77,13 +84,10 @@ class mcsApp {
 
                 //Put Everything together, then add it to the page
                 this.tabContainer.appendChild(this.tab);
-                this.container.appendChild(this.content);
+                //this.container.appendChild(this.content);
                 this.container.appendChild(this.tabContainer);
 
-                //Check if div already exists, if so delete it
-                if (document.contains(document.getElementById('MCS Container'))) {
-                        document.getElementById('MCS Container').remove();
-                }
+                this.container.appendChild(this.content);
                 document.body.appendChild(this.container);
                 //Push an update to the displays
                 this.simulator.computeGearStats();
@@ -96,7 +100,7 @@ class mcsApp {
                 var y = document.getElementById('MCS Tab Container');
                 var z = document.getElementById('MCS Container');
                 if (x.style.display === 'none') {
-                        x.style.display = 'block';
+                        x.style.display = 'flex';
                         y.style.bottom = x.style.height;
                 } else {
                         x.style.display = 'none';
@@ -137,7 +141,8 @@ class mcsPlotter {
                 }
 
                 this.plotContainer = document.createElement('div');
-                this.plotContainer.setAttribute('style', `position: absolute;height: ${height}px;width: ${width}px;right: 0;`);
+                this.plotContainer.setAttribute('style', `position: relative;height: ${height}px;width: ${width}px;order: 4;min-width: ${width}px;background: white;`);
+                this.plotContainer.id = 'MCS Plotter';
                 this.plotBox = document.createElement('div');
                 this.plotBox.setAttribute('style', `position: absolute;height: ${this.plotBoxHeight}px;width: ${this.barGap * 2 + this.barWidth * totBars}px;bottom: ${this.xAxisHeight}px;right: 5px;border: thin solid black;`);
                 this.plotContainer.appendChild(this.plotBox);
@@ -314,8 +319,10 @@ class mcsGearSelecter {
                 //Construct user interface
                 this.parent = parent;
                 this.container = document.createElement('div');
+                this.container.id = 'MCS Gear Selecter';
                 this.fontSize = 16;
-                this.container.setAttribute('style', `position: absolute;height: ${this.parent.contentHeight - 5}px;width: ${this.width}px;left: 5px;top: 5px;font-size: ${this.fontSize}px;line-height: ${this.dropDownHeight}px`);
+                this.container.setAttribute('style', `height: 100%;font-size: ${this.fontSize}px;line-height: ${this.dropDownHeight}px;margin-right: 5px;margin-left: 5px;
+                order: 1;display: flex;flex-direction: column;flex-wrap: nowrap;justify-content: flex-start;min-width: ${this.width}px;background: white;`);
                 this.selectedGear = {};
                 //Obtain gear
                 this.gearSlots = Object.keys(CONSTANTS.equipmentSlot);
@@ -324,6 +331,9 @@ class mcsGearSelecter {
                         //Sets up the gear selected
                         this.selectedGear[this.gearSlots[i]] = 0;
                 }
+                //Add section title
+                this.sectionStyle = `height: ${20}px;font-size: 18px;margin-top: 2px;margin-bottom: 2px;width: ${this.width}px;text-align: center;`;
+                this.createSection('Equipment');
                 //Construct dropdowns
                 this.dropDownContainers = [];
                 this.dropDowns = [];
@@ -331,16 +341,14 @@ class mcsGearSelecter {
                 this.dropDownsOpts = [];
                 //Styles:
 
-                this.labelStyle = `position: absolute;width: ${this.labelWidth}px;height: 100%;left: 0px;text-align: right;vertical-align: text-top;`;
-                this.dropDownStyle = `position: absolute;width: ${this.dropDownWidth}px;height: 100%;right: 0px;text-align: left;vertical-align: middle;`;
-                this.optionsStyle = `height: 100%;vertical-align: text-top;text-align: right;`;
+                this.labelStyle = `width: ${this.labelWidth}px;height: ${this.dropDownHeight}px;text-align: right;vertical-align: text-top;margin-right: 2px`;
+                this.dropDownStyle = `width: ${this.dropDownWidth}px;height: ${this.dropDownHeight}px;text-align: left;`;
+                this.optionsStyle = `height: ${this.dropDownHeight};vertical-align: text-top;text-align: right;`;
 
                 for (let i = 0; i < this.gearSlots.length; i++) {
                         this.dropDownContainers.push(document.createElement('div'))
                         this.dropDownContainers[i].style.height = `${this.dropDownHeight}px`;
-                        this.dropDownContainers[i].style.position = 'absolute';
-                        this.dropDownContainers[i].style.top = `${this.dropDownHeight * i}px`;
-                        this.dropDownContainers[i].style.width = '100%';
+                        this.dropDownContainers[i].style.width = `${this.width}px`;
 
                         this.dropDowns.push(document.createElement('select'));
                         this.dropDowns[i].setAttribute('style', this.dropDownStyle)
@@ -368,20 +376,21 @@ class mcsGearSelecter {
                         this.container.appendChild(this.dropDownContainers[i]);
                 }
                 //Add level input fields
+                this.createSection('Levels')
                 this.skillNames = ['Attack:', 'Strength:', 'Defence:', 'Ranged:', 'Magic:'];
                 this.skillContainers = [];
                 this.skillLabels = [];
                 this.skillFields = [];
                 for (let i = 0; i < this.skillNames.length; i++) {
                         this.skillContainers.push(document.createElement('div'));
-                        this.skillContainers[i].setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + i)}px;`)
+                        this.skillContainers[i].setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;`)
                         this.skillLabels.push(document.createElement('label'));
                         this.skillLabels[i].htmlFor = `MCS ${this.skillNames[i]} Level`;
                         this.skillLabels[i].textContent = this.skillNames[i];
                         this.skillLabels[i].setAttribute('style', this.labelStyle)
 
                         this.skillFields.push(document.createElement('input'))
-                        this.skillFields[i].setAttribute('style', `position: absolute;height: 100%;width: ${this.fieldWidth}px;right: 0px;top: 0px;text-align: right`)
+                        this.skillFields[i].setAttribute('style', `width: ${this.fieldWidth}px;text-align: right;`)
                         this.skillFields[i].value = '1';
                         this.skillFields[i].setAttribute('type', 'number');
                         this.skillFields[i].setAttribute('min', '1');
@@ -389,24 +398,28 @@ class mcsGearSelecter {
                         this.skillFields[i].id = `MCS ${this.skillNames[i]} Level`;
                         this.skillFields[i].addEventListener('change', event => this.callBackLevel(event, i));
 
-                        this.skillContainers[i].appendChild(this.skillFields[i])
                         this.skillContainers[i].appendChild(this.skillLabels[i])
+                        this.skillContainers[i].appendChild(this.skillFields[i])
                         this.container.appendChild(this.skillContainers[i]);
                 }
                 this.parent.content.appendChild(this.container);
                 //Add attack style fields
+                this.createSection('Combat Style')
                 //Combat Styles
                 this.meleeStyles = ['Stab', 'Slash', 'Block'];
                 this.rangedStyles = ['Accurate', 'Rapid', 'Longrange'];
                 this.magicStyles = ['Magic', 'Defensive'];
                 this.combatStyleContainer = document.createElement('div');
-                this.combatStyleContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length)}px;`)
+                this.combatStyleContainer.setAttribute('style', `position: relative;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;`)
                 this.combatStyleLabel = document.createElement('label');
                 this.combatStyleLabel.textContent = 'Style:'
                 this.combatStyleLabel.setAttribute('style', this.labelStyle)
+                this.combatStyleLabel.position = 'absolute';
+                this.combatStyleLabel.left = '0px';
 
+                var combatStyleDropdownStyle = `position: absolute;right: 0px;top: 0px;width: ${this.dropDownWidth}px;height: ${this.dropDownHeight}px;text-align: left;vertical-align: middle;`;
                 this.meleeStyleDropDown = document.createElement('select');
-                this.meleeStyleDropDown.setAttribute('style', this.dropDownStyle);
+                this.meleeStyleDropDown.setAttribute('style', combatStyleDropdownStyle);
                 this.meleeOptions = [];
                 for (let i = 0; i < this.meleeStyles.length; i++) {
                         this.meleeOptions.push(document.createElement('option'));
@@ -416,7 +429,7 @@ class mcsGearSelecter {
                         this.meleeStyleDropDown.add(this.meleeOptions[i]);
                 }
                 this.rangedStyleDropDown = document.createElement('select');
-                this.rangedStyleDropDown.setAttribute('style', this.dropDownStyle);
+                this.rangedStyleDropDown.setAttribute('style', combatStyleDropdownStyle);
                 this.rangedOptions = [];
                 for (let i = 0; i < this.rangedStyles.length; i++) {
                         this.rangedOptions.push(document.createElement('option'));
@@ -426,7 +439,7 @@ class mcsGearSelecter {
                         this.rangedStyleDropDown.add(this.rangedOptions[i]);
                 }
                 this.magicStyleDropDown = document.createElement('select');
-                this.magicStyleDropDown.setAttribute('style', this.dropDownStyle);
+                this.magicStyleDropDown.setAttribute('style', combatStyleDropdownStyle);
                 this.magicOptions = [];
                 for (let i = 0; i < this.magicStyles.length; i++) {
                         this.magicOptions.push(document.createElement('option'));
@@ -445,7 +458,7 @@ class mcsGearSelecter {
                 this.container.appendChild(this.combatStyleContainer);
                 //Spell Selection UI
                 this.spellSelectContainer = document.createElement('div');
-                this.spellSelectContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length + 1)}px;`)
+                this.spellSelectContainer.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;`)
                 this.spellSelectLabel = document.createElement('label');
                 this.spellSelectLabel.textContent = 'Spell:'
                 this.spellSelectLabel.setAttribute('style', this.labelStyle);
@@ -469,10 +482,16 @@ class mcsGearSelecter {
                 this.disableRangedStyle();
                 //Import from game button
                 this.importFromGameButton = document.createElement('button');
-                this.importFromGameButton.setAttribute('style', `position: absolute;width: ${this.dropDownWidth + this.labelWidth + 2}px;height: ${this.dropDownHeight}px;left: 0px;top: ${this.dropDownHeight * (this.gearSlots.length + this.skillNames.length + 3)}px`)
+                this.importFromGameButton.setAttribute('style', `width: ${this.dropDownWidth + this.labelWidth + 2}px;height: ${this.dropDownHeight}px;margin-top: 20px`)
                 this.importFromGameButton.textContent = 'Import Gear from Game';
                 this.importFromGameButton.onclick = event => this.callBackImportFromGameButton(event);
                 this.container.appendChild(this.importFromGameButton);
+        }
+        createSection(sectionTitle) {
+                var newSection = document.createElement('div');
+                newSection.setAttribute('style',this.sectionStyle)
+                newSection.textContent = sectionTitle;
+                this.container.appendChild(newSection);
         }
         /**
          * @description Callback for import from game button on click. Finds the gear you have in game and sets the sim values to it
@@ -674,6 +693,7 @@ class mcsStatReadout {
          * @param {mcsApp} parent 
          */
         constructor(parent) {
+                
                 this.statNames = ['Attack Speed', 'Strength Bonus', 'Stab Bonus', 'Slash Bonus', 'Block Bonus', 'Attack Bonus', 'Strength Bonus', 'Attack Bonus', '% Damage Bonus', 'Defence Bonus', 'Damage Reduction', 'Defence Bonus', 'Defence Bonus', 'Level Required', 'Level Required', 'Level Required', 'Level Required'];
                 this.statIcons = ['combat', 'strength', 'attack', 'strength', 'defence', 'ranged', 'ranged', 'magic', 'magic', 'defence', 'defence', 'ranged', 'magic', 'attack', 'defence', 'ranged', 'magic']
                 this.iconSources = {
@@ -689,21 +709,22 @@ class mcsStatReadout {
                 this.labelWidth = 150;
                 this.fieldWidth = 50;
                 this.statWidth = this.statHeight + this.labelWidth + this.fieldWidth + 4;
-
+                this.sectionStyle = `height: ${20}px;font-size: 18px;margin-top: 2px;margin-bottom: 2px;width: ${this.statWidth}px;text-align: center;`;
                 this.parent = parent;
                 this.container = document.createElement('div');
-                this.container.setAttribute('style', `position: absolute;top: 5px;width: ${this.statWidth}px;left: ${10 + this.parent.gearSelecter.width}px;font-size: 16px;line-height: ${this.statHeight}px;`)
-
+                this.container.setAttribute('style', `height: 100%;font-size: 16px;line-height: ${this.statHeight}px;order: 2;min-width: ${this.statWidth}px;margin-right: 5px;
+                display: flex;flex-direction: column;flex-wrap: nowrap;justify-content: flex-start;background: white;`);
+                this.container.id = 'MCS Stat Readout';
+                this.createSection('Gear Stats')
                 this.statContainers = [];
                 this.statImages = [];
                 this.statLabels = [];
                 this.statFields = [];
                 for (let i = 0; i < this.statNames.length; i++) {
                         this.statContainers.push(document.createElement('div'));
-                        this.statContainers[i].style.position = 'absolute';
                         this.statContainers[i].style.width = `${this.statWidth}px`;
                         this.statContainers[i].style.height = `${this.statHeight}px`;
-                        this.statContainers[i].style.top = `${this.statHeight * i}px`;
+                        this.statContainers[i].style.position = 'relative';
                         this.container.appendChild(this.statContainers[i]);
                         //Images before labels
                         this.statImages.push(document.createElement('img'));
@@ -733,6 +754,7 @@ class mcsStatReadout {
                         this.statFields[i].style.border = 'thin solid black';
                         this.statContainers[i].appendChild(this.statFields[i]);
                 }
+                this.createSection('Combat Stats')
                 //Create elements for combatstats
                 this.combatStatKeys = ['attackSpeed', 'maxHit', 'maxAttackRoll', 'maxDefRoll', 'maxRngDefRoll', 'maxMagDefRoll', 'dmgRed'];
                 this.combatStatNames = ['Attack Speed', 'Max Hit', 'Accuracy Rating', 'Evasion Rating', 'Evasion Rating', 'Evasion Rating', 'Damage Reduction'];
@@ -743,7 +765,7 @@ class mcsStatReadout {
                 this.combatStatFields = [];
                 for (let i = 0; i < this.combatStatKeys.length; i++) {
                         this.combatStatContainers.push(document.createElement('div'));
-                        this.combatStatContainers[i].setAttribute('style', `position: absolute;width: ${this.statWidth}px;height: ${this.statHeight}px;top: ${this.statHeight * (this.statKeys.length + i + 1)}px;`)
+                        this.combatStatContainers[i].setAttribute('style', `position: relative;width: ${this.statWidth}px;height: ${this.statHeight}px;`)
                         this.container.appendChild(this.combatStatContainers[i]);
 
                         if (this.combatStatIcons[i] != '') {
@@ -786,6 +808,13 @@ class mcsStatReadout {
                 for (let i = 0; i < this.combatStatFields.length; i++) {
                         this.combatStatFields[i].textContent = this.parent.simulator[this.combatStatKeys[i]];
                 }
+        }
+
+        createSection(sectionTitle) {
+                var newSection = document.createElement('div');
+                newSection.setAttribute('style',this.sectionStyle)
+                newSection.textContent = sectionTitle;
+                this.container.appendChild(newSection);
         }
 }
 
@@ -1225,19 +1254,26 @@ class mcsSimPlotOptions {
 
                 this.width = this.labelWidth + this.dropDownWidth + 2;
                 //Styles
-                this.labelStyle = `position: absolute;width: ${this.labelWidth}px;height: 100%;left: 0px;text-align: right;vertical-align: text-top;`;
-                this.dropDownStyle = `position: absolute;width: ${this.dropDownWidth}px;height: 100%;right: 0px;text-align: left;vertical-align: middle;`;
-                this.optionsStyle = `height: 100%;vertical-align: text-top;text-align: right;`;
-                this.inputStyle = `position: absolute;height: 100%;width: ${this.fieldWidth}px;right: 0px;top: 0px;text-align: right`;
+                this.labelStyle = `height: ${this.dropDownHeight}px;width: ${this.labelWidth}px;text-align: right;vertical-align: text-top;margin-right: 2px;`;
+                this.dropDownStyle = `width: ${this.dropDownWidth}px;height: ${this.dropDownHeight}px;text-align: left;`;
+                this.optionsStyle = `height: ${this.dropDownHeight}px;vertical-align: text-top;text-align: right;`;
+                this.inputStyle = `height: ${this.dropDownHeight}px;width: ${this.fieldWidth}px;text-align: right`;
+                this.sectionStyle = `height: ${20}px;font-size: 18px;margin-top: 2px;margin-bottom: 2px;width: ${this.width}px;text-align: center;`;
                 //Construct user interface
                 this.container = document.createElement('div');
                 this.fontSize = 16;
-                this.container.setAttribute('style', `position: absolute;height: ${this.parent.contentHeight - 5}px;width: ${this.width}px;left: ${15 + this.parent.statDisplay.statWidth + this.parent.gearSelecter.width}px;top: 5px;font-size: ${this.fontSize}px;line-height: ${this.dropDownHeight}px`);
+                this.container.setAttribute('style', `height: 100%;width: ${this.width}px;font-size: ${this.fontSize}px;line-height: ${this.dropDownHeight}px;margin-right: 5px;
+                order: 3;display: flex;flex-direction: column;flex-wrap: nowrap;justify-content; flex-start;min-width: ${this.width}px;background: white;`);
+                this.container.id = 'MCS Sim Plot Opts';
                 this.parent.content.appendChild(this.container);
 
+                var newSection = document.createElement('div');
+                newSection.setAttribute('style',this.sectionStyle)
+                newSection.textContent = 'Simulation Options';
+                this.container.appendChild(newSection);
                 //Max Hits Edit
                 this.maxHitCont = document.createElement('div');
-                this.maxHitCont.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;left: 0px;top: 0px;`)
+                this.maxHitCont.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;`)
                 this.container.appendChild(this.maxHitCont);
                 this.maxHitLab = document.createElement('label');
                 this.maxHitLab.setAttribute('style', this.labelStyle);
@@ -1249,12 +1285,12 @@ class mcsSimPlotOptions {
                 this.maxHitInp.setAttribute('min', '1');
                 this.maxHitInp.setAttribute('max', '10000');
                 this.maxHitInp.addEventListener('change', event => this.callBackMaxHits(event));
-                this.maxHitCont.appendChild(this.maxHitInp);
                 this.maxHitCont.appendChild(this.maxHitLab);
+                this.maxHitCont.appendChild(this.maxHitInp);
 
                 //Number of trials edit
                 this.numTrialsCont = document.createElement('div');
-                this.numTrialsCont.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;left: 0px;top: ${this.dropDownHeight}px;`)
+                this.numTrialsCont.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;`)
                 this.container.appendChild(this.numTrialsCont);
                 this.numTrialsLab = document.createElement('label');
                 this.numTrialsLab.setAttribute('style', this.labelStyle);
@@ -1266,12 +1302,12 @@ class mcsSimPlotOptions {
                 this.numTrialsInp.setAttribute('min', '1');
                 this.numTrialsInp.setAttribute('max', '10000');
                 this.numTrialsInp.addEventListener('change', event => this.callBacknumTrials(event));
-                this.numTrialsCont.appendChild(this.numTrialsInp);
                 this.numTrialsCont.appendChild(this.numTrialsLab);
+                this.numTrialsCont.appendChild(this.numTrialsInp);
 
                 //Plot type dropdown
                 this.plotTypeContainer = document.createElement('div');
-                this.plotTypeContainer.setAttribute('style', `position: absolute;height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * 2}px;`)
+                this.plotTypeContainer.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;`)
                 this.plotTypeLabel = document.createElement('label');
                 this.plotTypeLabel.textContent = 'Plot Type:'
                 this.plotTypeLabel.setAttribute('style', this.labelStyle);
@@ -1293,7 +1329,7 @@ class mcsSimPlotOptions {
 
                 //Simulate Button
                 this.simulateButton = document.createElement('button');
-                this.simulateButton.setAttribute('style', `position: absolute;height ${this.dropDownHeight * 2}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;left: 0px;top: ${this.dropDownHeight * 3}px;`)
+                this.simulateButton.setAttribute('style', `height ${this.dropDownHeight * 2}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;margin-top: 20px`)
                 this.simulateButton.appendChild(document.createTextNode('Simulate'));
                 this.simulateButton.addEventListener('click', event => this.callBackSimulate(event));
                 this.container.appendChild(this.simulateButton);
