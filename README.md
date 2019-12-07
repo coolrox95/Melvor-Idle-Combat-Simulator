@@ -24,6 +24,7 @@ Currently not available on the chrome webstore, but you can download the sources
  - Damage/s: Average damage per second.
  - Average Kill Time: The time it takes in seconds to kill a singly enemy for Combat Areas or the time to clear a Dungeon.
  - Average Hit Damage: The average amount of damage done per hit attempt.
+ 5. Hide/Show the simulator by clicking the tab in the top right.
 
 ## Screenshots
 ![combatSim](https://i.imgur.com/OJBYAGv.png)
