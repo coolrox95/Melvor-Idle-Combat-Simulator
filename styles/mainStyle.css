@@ -1,0 +1,131 @@
+.mcsContainer {
+    position: fixed;
+    height: 0px;
+    width: 100%;
+    bottom: 0;
+    right: 0;
+    z-index: 1000000;
+}
+
+.mcsTab {
+    position: absolute;
+    height: 50px;
+    width: 200px;
+    background: white;
+    border: solid black;
+    border-bottom: none;
+    right: 0px;
+}
+
+.mcsTabContent {
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
+    right: 0px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    background: white;
+    border: solid medium black;
+}
+
+.mcsCardContainer {
+    border: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    background: white;
+    font-size: 16px;
+    margin-right: 5px;
+    height: 100%;
+}
+
+.mcsPlotContainer {
+    border: none;
+    position: relative;
+    background: white;
+    font-size: 16px;
+    margin-right: 5px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.mcsPlotTopContainer {
+    position: relative;
+    width: 100%;
+    margin-top: 5px;
+    flex-grow: 1;
+}
+
+.mcsXAxis {
+    position: relative;
+    min-height: 80px;
+    flex-grow: 0;
+}
+
+.mcsYAxis {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    height: 90%;
+}
+
+.mcsPlotBox {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    height: 90%;
+    border: thin solid black;
+}
+
+.mcsButton {
+    background: lightgray;
+    margin-top: 10px;   
+}
+.mcsButton:hover {
+    background: gray;
+}
+/*Card Container Container */
+.mcsCCContainer {
+    position: relative;
+    width: 100%;
+
+}
+/* Label */
+.mcsLabel {
+    text-align: right;
+    margin-right: 2px;
+    height: 100%;
+}
+
+.mcsDropdown {
+    text-align: right;
+    height: 100%;
+}
+
+.mcsNumberOutput {
+    text-align: right;
+    height: 100%;
+    border: thin solid black;
+}
+
+.mcsSectionTitle {
+    text-align: center;
+    font-size: 18px;
+}
+
+.mcsLabImgCont {
+    display: flex;
+    flex-direction: row;
+}
+
+.mcsNumberInput {
+    text-align: right;
+    height: 100%;
+}

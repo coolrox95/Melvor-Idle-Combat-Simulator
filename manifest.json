@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Melvor Combat Simulator",
-    "version": "0.1.1",
+    "version": "0.1.2",
 
     "description": "Adds a combat simulation tab to Melvor Idle",
 
@@ -12,7 +12,8 @@
     "content_scripts": [
         {
             "matches": ["*://www.melvoridle.com/*","*://melvoridle.com/*"],
-            "js": ["sources/contentScript.js"]
+            "js": ["sources/contentScript.js"],
+            "css": ["styles/mainStyle.css"]
         }
     ],
 
