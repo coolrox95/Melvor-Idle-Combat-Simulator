@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.1.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.2.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2019>  <Coolrox95>
 
@@ -23,11 +23,6 @@ class mcsApp {
                 this.contentWidth = 1500;
                 //Start by constructing the container
                 this.container = document.createElement('div');
-                if (darkMode) {
-                        this.container.className = 'mcsContainer mcsDarkMode';
-                } else {
-                        this.container.className = 'mcsContainer';
-                }
                 
                 this.container.id = 'MCS Container';
                 //Construct the content under the tab
@@ -164,8 +159,14 @@ class mcsApp {
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
                 //Add hooks into darkmode buttons
+                if (darkMode) {
+                        this.darkModeSwitch(true);
+                } else {
+                        this.darkModeSwitch(false);
+                }
                 document.getElementById('setting-darkmode-enable').addEventListener('click',event=>this.darkModeSwitch(true,event));
                 document.getElementById('setting-darkmode-disable').addEventListener('click',event=>this.darkModeSwitch(false,event));
+                
         }
         tabOnClick() {
                 var x = document.getElementById('MCS Content');
@@ -335,7 +336,7 @@ class mcsApp {
         enableStyleDropdown(combatType) {
                 document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'inline';
                 if (combatType == 'Magic') {
-                        document.getElementById('MCS Spell Dropdown Container').style.display = 'block';
+                        document.getElementById('MCS Spell Dropdown Container').style.display = 'flex';
                 }
         }
         updateSpellOptions(magicLevel) {
@@ -1153,6 +1154,9 @@ class mcsCard {
                 var newCCContainer = document.createElement('div');
                 newCCContainer.className = 'mcsCCContainer';
                 newCCContainer.style.height = `${height}px`;
+                var fillerDiv = document.createElement('div');
+                fillerDiv.className = 'mcsFlexFiller';
+                newCCContainer.appendChild(fillerDiv);
                 return newCCContainer;
         }
 

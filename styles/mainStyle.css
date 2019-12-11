@@ -9,6 +9,11 @@
     border-color: black;
 }
 
+.mcsFlexFiller {
+    flex-grow: 1;
+    height: 0px;
+}
+
 .mcsDarkMode {
     background-color: #2c343f !important;
     color: whitesmoke !important;
@@ -116,7 +121,6 @@
     width: 100%;
     display: flex;
     flex-direction: row;
-    justify-content: right;
     align-items: center;
     background-color: inherit;
     border-color: inherit;
