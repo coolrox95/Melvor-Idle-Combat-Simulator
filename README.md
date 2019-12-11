@@ -4,6 +4,7 @@ This extension was built for version: Alpha v0.10 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
+After installing the extension, a refresh of the game is required.
 
 ### Firefox:
 Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/addon/melvor-idle-combat-simulator/).
@@ -27,8 +28,10 @@ Currently not available on the chrome webstore, but you can download the sources
  5. Hide/Show the simulator by clicking the tab in the top right.
 
 ## Screenshots
-![combatSim](https://i.imgur.com/lMIQ6kM.png)
-
+### Darkmode
+![combatSim](https://i.imgur.com/dH7ooW9.png)
+### Lightmode
+![combatSim](https://i.imgur.com/35wXXE5.png)
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
 Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or [submit a report](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/issues/new) to this repository.
