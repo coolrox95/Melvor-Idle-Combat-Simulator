@@ -23,7 +23,12 @@ class mcsApp {
                 this.contentWidth = 1500;
                 //Start by constructing the container
                 this.container = document.createElement('div');
-                this.container.className = 'mcsContainer';
+                if (darkMode) {
+                        this.container.className = 'mcsContainer mcsDarkMode';
+                } else {
+                        this.container.className = 'mcsContainer';
+                }
+                
                 this.container.id = 'MCS Container';
                 //Construct the content under the tab
                 this.content = document.createElement('div')
@@ -33,65 +38,101 @@ class mcsApp {
                 this.cardFiller = document.createElement('div');
                 this.cardFiller.setAttribute('style', 'flex-grow: 1;order: 0;height: 0px')
                 this.content.appendChild(this.cardFiller);
+
                 //Generate gear subsets
                 this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
                 this.gearSubsets = [];
                 this.gearSelected = [];
                 for (let j = 0; j < this.slotKeys.length; j++) {
-                        this.gearSubsets.push([{name: 'None',itemID: 0}]);
+                        this.gearSubsets.push([{ name: 'None', itemID: 0 }]);
                         this.gearSelected.push(0);
                         for (let i = 0; i < items.length; i++) {
                                 if (items[i].equipmentSlot == CONSTANTS.equipmentSlot[this.slotKeys[j]]) {
                                         this.gearSubsets[j].push(items[i]);
-                                        this.gearSubsets[j][this.gearSubsets[j].length-1].itemID = i;
+                                        this.gearSubsets[j][this.gearSubsets[j].length - 1].itemID = i;
                                 }
                                 //Insert Sorting of subsets here
                         }
                 }
-                this.skillKeys = ['Attack','Strength','Defence','Ranged','Magic'];
-
+                this.skillKeys = ['Attack', 'Strength', 'Defence', 'Ranged', 'Magic'];
                 //Gear/Level/Style/Spell Selection Card:
-                this.gearSelecter = new mcsCard(this.content, '345px', '100%', '120px', '220px');
-                this.gearSelecter.addSectionTitle('Equipment');
-                for (let i=0;i<this.gearSubsets.length;i++) {
-                        let optionNames = [];
-                        let optionValues = [];
-                        this.gearSubsets[i].forEach(item => {optionNames.push(item.name);optionValues.push(item.itemID);});
-                        this.gearSelecter.addDropdown(this.slotKeys[i],optionNames,optionValues,25,event=>this.gearDropdownOnChange(event,i));
-                }
-                this.gearSelecter.addSectionTitle('Player Levels');
-                this.skillKeys.forEach(element => {
-                        this.gearSelecter.addNumberInput(element,'1',25,1,99,event=>this.levelInputOnChange(event,element))
-                });
-                this.gearSelecter.addSectionTitle('Combat Style')
-                //Style dropdown (Specially Coded)
-                var combatStyleCCContainer = this.gearSelecter.createCCContainer(25);
-                var combatStyleLabel = this.gearSelecter.createLabel('Style: ','');
-                var meleeStyleDropdown = this.gearSelecter.createDropdown(['Stab', 'Slash', 'Block'],[0,1,2],'MCS Melee Style Dropdown',event=>this.styleDropdownOnChange(event,'Melee'));
-                var rangedStyleDropdown = this.gearSelecter.createDropdown(['Accurate', 'Rapid', 'Longrange'],[0,1,2],'MCS Ranged Style Dropdown',event=>this.styleDropdownOnChange(event,'Ranged'));
-                var magicStyleDropdown = this.gearSelecter.createDropdown(['Magic', 'Defensive'],[0,1],'MCS Magic Style Dropdown',event=>this.styleDropdownOnChange(event,'Magic'));
-                rangedStyleDropdown.style.display = 'none';
-                magicStyleDropdown.style.display = 'none';
-                combatStyleCCContainer.appendChild(combatStyleLabel);
-                combatStyleCCContainer.appendChild(meleeStyleDropdown);
-                combatStyleCCContainer.appendChild(rangedStyleDropdown);
-                combatStyleCCContainer.appendChild(magicStyleDropdown);
-                this.gearSelecter.container.appendChild(combatStyleCCContainer);
-                //Spell dropdown
-                var spellOpts = [];
-                var spellVals = [];
-                for (let i=0;i<SPELLS.length;i++) {
-                        spellOpts.push(SPELLS[i].name);
-                        spellVals.push(i);
-                }
-                this.gearSelecter.addDropdown('Spell',spellOpts,spellVals,25,event=>this.spellDropdownOnChange(event));
-                this.gearSelecter.addButton('Import from Game',event=>this.importButtonOnClick(event), 280, 25)
+                {
 
+                        this.gearSelecter = new mcsCard(this.content, '345px', '100%', '120px', '220px');
+                        this.gearSelecter.addSectionTitle('Equipment');
+                        for (let i = 0; i < this.gearSubsets.length; i++) {
+                                let optionNames = [];
+                                let optionValues = [];
+                                this.gearSubsets[i].forEach(item => { optionNames.push(item.name); optionValues.push(item.itemID); });
+                                this.gearSelecter.addDropdown(this.slotKeys[i], optionNames, optionValues, 25, event => this.gearDropdownOnChange(event, i));
+                        }
+                        this.gearSelecter.addSectionTitle('Player Levels');
+                        this.skillKeys.forEach(element => {
+                                this.gearSelecter.addNumberInput(element, '1', 25, 1, 99, event => this.levelInputOnChange(event, element))
+                        });
+                        this.gearSelecter.addSectionTitle('Combat Style')
+                        //Style dropdown (Specially Coded)
+                        var combatStyleCCContainer = this.gearSelecter.createCCContainer(25);
+                        var combatStyleLabel = this.gearSelecter.createLabel('Style: ', '');
+                        var meleeStyleDropdown = this.gearSelecter.createDropdown(['Stab', 'Slash', 'Block'], [0, 1, 2], 'MCS Melee Style Dropdown', event => this.styleDropdownOnChange(event, 'Melee'));
+                        var rangedStyleDropdown = this.gearSelecter.createDropdown(['Accurate', 'Rapid', 'Longrange'], [0, 1, 2], 'MCS Ranged Style Dropdown', event => this.styleDropdownOnChange(event, 'Ranged'));
+                        var magicStyleDropdown = this.gearSelecter.createDropdown(['Magic', 'Defensive'], [0, 1], 'MCS Magic Style Dropdown', event => this.styleDropdownOnChange(event, 'Magic'));
+                        rangedStyleDropdown.style.display = 'none';
+                        magicStyleDropdown.style.display = 'none';
+                        combatStyleCCContainer.appendChild(combatStyleLabel);
+                        combatStyleCCContainer.appendChild(meleeStyleDropdown);
+                        combatStyleCCContainer.appendChild(rangedStyleDropdown);
+                        combatStyleCCContainer.appendChild(magicStyleDropdown);
+                        this.gearSelecter.container.appendChild(combatStyleCCContainer);
+                        //Spell dropdown
+                        var spellOpts = [];
+                        var spellVals = [];
+                        for (let i = 0; i < SPELLS.length; i++) {
+                                spellOpts.push(SPELLS[i].name);
+                                spellVals.push(i);
+                        }
+                        this.gearSelecter.addDropdown('Spell', spellOpts, spellVals, 25, event => this.spellDropdownOnChange(event));
+                        this.gearSelecter.addButton('Import from Game', event => this.importButtonOnClick(event), 280, 25)
+                }
 
                 //Gear Stats/Player Stats Display Card
-                this.statDisplay = new mcsStatReadout(this);
+                {
+                        this.statDisplay = new mcsCard(this.content, '220px', '100%', '150px', '50px');
+                        this.statDisplay.addSectionTitle('Equipment Stats');
+                        this.equipStatKeys = ['eqpAttSpd', 'strBon', 'attBon0', 'attBon1', 'attBon2', 'rngAttBon', 'rngStrBon', 'magAttBon', 'magDmgBon', 'defBon', 'eqpDmgRed', 'rngDefBon', 'magDefBon', 'attReq', 'defReq', 'rngReq', 'magReq'];
+                        var equipStatNames = ['Attack Speed', 'Strength Bonus', 'Stab Bonus', 'Slash Bonus', 'Block Bonus', 'Attack Bonus', 'Strength Bonus', 'Attack Bonus', '% Damage Bonus', 'Defence Bonus', 'Damage Reduction', 'Defence Bonus', 'Defence Bonus', 'Level Required', 'Level Required', 'Level Required', 'Level Required'];
+                        var equipStatIcons = ['combat', 'strength', 'attack', 'strength', 'defence', 'ranged', 'ranged', 'magic', 'magic', 'defence', 'defence', 'ranged', 'magic', 'attack', 'defence', 'ranged', 'magic']
+                        var iconSources = {
+                                combat: 'assets/media/skills/combat/combat.svg',
+                                attack: 'assets/media/skills/combat/attack.svg',
+                                strength: 'assets/media/skills/combat/strength.svg',
+                                ranged: 'assets/media/skills/ranged/ranged.svg',
+                                magic: 'assets/media/skills/magic/magic.svg',
+                                defence: 'assets/media/skills/defence/defence.svg'
+                        };
+                        for (let i = 0; i < equipStatNames.length; i++) {
+                                this.statDisplay.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]],`MCS ${this.equipStatKeys[i]} Output`);
+                        }
+                        this.statDisplay.addSectionTitle('Combat Stats');
+                        var combatStatNames = ['Attack Speed','Max Hit','Accuracy Rating','Evasion Rating','Evasion Rating','Evasion Rating','Damage Reduction'];
+                        var combatStatIcons = ['','','','combat','ranged','magic','']
+                        this.combatStatKeys = ['attackSpeed', 'maxHit', 'maxAttackRoll', 'maxDefRoll', 'maxRngDefRoll', 'maxMagDefRoll', 'dmgRed'];
+                        for (let i = 0;i < combatStatNames.length;i++) {
+                                this.statDisplay.addNumberOutput(combatStatNames[i],0,20,(combatStatIcons[i] != '')?iconSources[combatStatIcons[i]]:'',`MCS ${this.combatStatKeys[i]} Output`);
+                        }
+                }
+
                 //Simulation/Plot Options Card
-                this.simPlotOpts = new mcsSimPlotOptions(this);
+                {
+                        this.simPlotOpts2 = new mcsCard(this.content,'275px','100%','100px','175px');
+                        this.simPlotOpts2.addSectionTitle('Simulation Options');
+                        this.simPlotOpts2.addNumberInput('Max Hits',1000,25,1,10000,event=>this.maxhitsInputOnChange(event));
+                        this.simPlotOpts2.addNumberInput('# Trials',1000,25,1,100000,event=>this.numtrialsInputOnChange(event));
+                        var plotTypeDropdownOptions = ['XP/s', 'HP XP/s', 'HP loss/s', 'Damage/s', 'Average Kill Time', 'Average Hit Damage'];
+                        var plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg'];
+                        this.simPlotOpts2.addDropdown('Plot Type',plotTypeDropdownOptions,plotTypeDropdownValues,25,event=>this.plottypeDropdownOnChange(event));
+                        this.simPlotOpts2.addButton('Simulate',event=>this.simulateButtonOnClick(event),250,25);
+                }
                 //Bar Chart Card
                 this.plotter = new mcsPlotter(this, 670, this.contentHeight);
                 //Simulation Object
@@ -119,9 +160,12 @@ class mcsApp {
                 //Push an update to the displays
                 document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
                 this.simulator.computeGearStats();
-                this.statDisplay.updateStatFields();
+                this.updateEquipStats();
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
+                //Add hooks into darkmode buttons
+                document.getElementById('setting-darkmode-enable').addEventListener('click',event=>this.darkModeSwitch(true,event));
+                document.getElementById('setting-darkmode-disable').addEventListener('click',event=>this.darkModeSwitch(false,event));
         }
         tabOnClick() {
                 var x = document.getElementById('MCS Content');
@@ -134,7 +178,8 @@ class mcsApp {
                         y.style.bottom = '0px';
                 }
         }
-        gearDropdownOnChange(event,gearID) {
+        //Callback Functions for Gear select Card
+        gearDropdownOnChange(event, gearID) {
                 var itemID = parseInt(event.currentTarget.selectedOptions[0].value);
                 this.gearSelected[gearID] = itemID;
                 if (gearID == CONSTANTS.equipmentSlot.Weapon) {
@@ -163,11 +208,11 @@ class mcsApp {
                         }
                 }
                 this.simulator.computeGearStats();
-                this.statDisplay.updateStatFields();
+                this.updateEquipStats();
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
         }
-        levelInputOnChange(event,skillName) {
+        levelInputOnChange(event, skillName) {
                 var newLevel = parseInt(event.currentTarget.value);
                 if (newLevel <= 99 && newLevel >= 1) {
                         this.simulator.playerLevels[skillName] = newLevel;
@@ -177,19 +222,19 @@ class mcsApp {
                         }
                 }
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
         }
-        styleDropdownOnChange(event,combatType) {
+        styleDropdownOnChange(event, combatType) {
                 var styleID = parseInt(event.currentTarget.selectedOptions[0].value);
                 this.simulator.styles[combatType] = styleID;
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
         }
         spellDropdownOnChange(event) {
                 var spellID = parseInt(event.currentTarget.selectedOptions[0].value);
                 this.simulator.selectedSpell = spellID;
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
         }
         importButtonOnClick(event) {
                 var gearID;
@@ -244,20 +289,43 @@ class mcsApp {
                         document.getElementById('MCS Melee Style Dropdown').selectedIndex = attackStyle;
                 } else if (attackStyle <= 5) {
                         this.simulator.styles.Ranged = attackStyle - 3;
-                        document.getElementById('MCS Ranged Style Dropdown').selectedIndex = attackStyle-3;
+                        document.getElementById('MCS Ranged Style Dropdown').selectedIndex = attackStyle - 3;
                 } else {
                         this.simulator.styles.Magic = attackStyle - 6;
-                        document.getElementById('MCS Magic Style Dropdown').selectedIndex = attackStyle-6;
+                        document.getElementById('MCS Magic Style Dropdown').selectedIndex = attackStyle - 6;
                 }
                 //Update spells
                 document.getElementById('MCS Spell Dropdown').selectedIndex = selectedSpell;
                 this.simulator.selectedSpell = selectedSpell;
                 this.updateSpellOptions(skillLevel[CONSTANTS.skill.Magic])
                 this.simulator.computeGearStats();
-                this.statDisplay.updateStatFields();
+                this.updateEquipStats();
                 this.simulator.computeCombatStats();
-                this.statDisplay.updateCombatStats();
+                this.updateCombatStats();
         }
+        //Callback Functions for the Sim Options Card
+        maxhitsInputOnChange(event) {
+                var newMaxHit = parseInt(event.currentTarget.value);
+                if (newMaxHit > 0 && newMaxHit <= 10000) {
+                        this.simulator.Nhitmax = newMaxHit;
+                }
+        }
+        numtrialsInputOnChange(event) {
+                var newNumTrials = parseInt(event.currentTarget.value);
+                if (newNumTrials > 0 && newNumTrials <= 100000) {
+                        this.simulator.Ntrials = newNumTrials;
+                }
+        }
+
+        plottypeDropdownOnChange(event) {
+                this.plotter.updateBars(this.simulator.getDataSet(event.currentTarget.value));
+        }
+        simulateButtonOnClick(event) {
+                this.simulator.simulateCombat();
+                this.plotter.updateBars(this.simulator.getDataSet(document.getElementById('MCS Plot Type Dropdown').selectedOptions[0].value));
+        }
+        
+        //Functions that manipulate the UI
         disableStyleDropdown(combatType) {
                 document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'none';
                 if (combatType == 'Magic') {
@@ -280,8 +348,49 @@ class mcsApp {
                         }
                 })
         }
+        updateEquipStats() {
+                var newStatValue;
+                for (let i = 0; i < this.equipStatKeys.length; i++) {
+                        if (this.equipStatKeys[i] == 'attBon0') {
+                                newStatValue = this.simulator.attBon[0];
+                        } else if (this.equipStatKeys[i] == 'attBon1') {
+                                newStatValue = this.simulator.attBon[1];
+                        } else if (this.equipStatKeys[i] == 'attBon2') {
+                                newStatValue = this.simulator.attBon[2];
+                        } else {
+                                newStatValue = this.simulator[this.equipStatKeys[i]];
+                        }
+                        document.getElementById(`MCS ${this.equipStatKeys[i]} Output`).textContent = newStatValue;
+                }
+        }
+        updateCombatStats() {
+                this.combatStatKeys.forEach(element => {
+                        document.getElementById(`MCS ${element} Output`).textContent = this.simulator[element];
+                })
+        }
+        //Callback to add to games darkmode settings
+        darkModeSwitch(mode) {
+                if (mode) {
+                        this.container.className = 'mcsContainer mcsDarkMode';
+                        this.setDropdownOptionsColor('#2c343f');
+                        this.plotter.bars.forEach(bar=>{bar.style.color = 'steelblue'});
+                        this.plotter.gridLine.forEach(line=>{line.style.borderColor = 'lightslategray'})
+                } else {
+                        this.container.className = 'mcsContainer';
+                        this.setDropdownOptionsColor('white');
+                        this.plotter.bars.forEach(bar=>{bar.style.color = '#0072BD'});
+                        this.plotter.gridLine.forEach(line=>{line.style.borderColor = 'lightgray'})
+                }
+        }
+        setDropdownOptionsColor(color) {
+                document.getElementsByClassName('mcsOption').forEach(option => {option.style.backgroundColor = color})
+        }
+
 
 }
+/**
+ * @description Class for the Bar chart card
+ */
 class mcsPlotter {
         constructor(parent, width, height) {
                 this.parent = parent;
@@ -314,8 +423,7 @@ class mcsPlotter {
                         this.barImageSrc.push(DUNGEONS[i].media);
                 }
 
-                this.width = this.barWidth*totBars+this.barGap*2+this.yAxisWidth;
-
+                this.width = this.barWidth * totBars + this.barGap * 2 + this.yAxisWidth;
                 this.plotContainer = document.createElement('div');
                 this.plotContainer.className = 'mcsPlotContainer';
                 this.plotContainer.setAttribute('style', `width: ${this.width}px;min-width: ${this.width}px;`);
@@ -325,7 +433,7 @@ class mcsPlotter {
                 this.plotTopContainer.className = 'mcsPlotTopContainer';
                 this.plotTopContainer.id = 'MCS Plotter Top Container';
                 this.plotContainer.appendChild(this.plotTopContainer);
-                
+
                 this.plotBox = document.createElement('div');
                 this.plotBox.className = 'mcsPlotBox';
                 this.plotBox.setAttribute('style', `width: ${this.barGap * 2 + this.barWidth * totBars}px;`);
@@ -342,26 +450,24 @@ class mcsPlotter {
                 this.xAxis.setAttribute('style', `width: ${this.barWidth * totBars}px;margin-right: ${this.barGap}px;`)
                 this.plotContainer.appendChild(this.xAxis);
 
-
-
                 //Do Gridlines
                 this.gridLine = [];
-                this.gridLineStyle = `position: absolute;width: 100%;height: 5%;left: 0px;border-bottom: thin solid #E4E4E4;`
                 for (let i = 0; i < 20; i++) {
                         this.gridLine.push(document.createElement('div'));
-                        this.gridLine[i].setAttribute('style', this.gridLineStyle);
-                        this.gridLine[i].style.bottom = `${(i + 1) * 5}%`;
+                        this.gridLine[i].className = 'mcsGridline';
+                        this.gridLine[i].setAttribute('style', `bottom: ${(i + 1) * 5}%;height: 5%;`);
                         this.plotBox.appendChild(this.gridLine[i]);
                 }
 
                 //Do Bars and images
                 var barColor = '#0072BD'
-                this.barStyle = `position: absolute;width: ${this.barWidth - this.barGap * 2}px;height: 100%;bottom: 0px;background: ${barColor};`;
+                this.barStyle = `width: ${this.barWidth - this.barGap * 2}px;height: 0%;`;
                 this.xAxisImages = [];
                 this.xAxisImageStyle = `position: absolute;width: ${this.barWidth}px;height ${this.barWidth}px;top: 0px;`;
                 this.bars = [];
                 for (let i = 0; i < totBars; i++) {
                         this.bars.push(document.createElement('div'));
+                        this.bars[i].className = 'mcsBar';
                         this.bars[i].setAttribute('style', this.barStyle);
                         this.bars[i].style.left = `${this.barGap + i * this.barWidth}px`;
                         this.plotBox.appendChild(this.bars[i]);
@@ -387,30 +493,29 @@ class mcsPlotter {
                 }
                 //Do tickmarks
                 this.tickMarks = [];
-                this.tickStyle = `position: absolute;width: 2.5%;height: 5%;left: 0px;border-bottom: thin solid black;`
                 for (let i = 0; i < 20; i++) {
                         this.tickMarks.push(document.createElement('div'));
-                        this.tickMarks[i].setAttribute('style', this.tickStyle);
+                        this.tickMarks[i].className = 'mcsTickmark';
+                        this.tickMarks[i].style.height = '5%';
                         this.tickMarks[i].style.bottom = `${(i + 1) * 5}%`;
                         this.plotBox.appendChild(this.tickMarks[i]);
 
                 }
                 //Do ticktext
                 this.tickText = [];
-                this.tickTextStyle = `position: absolute;width: 100%;height: 5%;right: 0px;text-align: right;`;
                 for (let i = 0; i < 21; i++) {
                         this.tickText.push(document.createElement('div'));
-                        this.tickText[i].setAttribute('style', this.tickTextStyle);
-                        this.tickText[i].style.bottom = `${i * 5 - 2.5}%`;
+                        this.tickText[i].className = 'mcsTicktext';
+                        this.tickText[i].setAttribute('style', `height: 5%; bottom: ${i * 5 - 2.5}%;`);
                         this.tickText[i].appendChild(document.createTextNode(mcsFormatNum(i * 0.05, 2)));
                         this.yAxis.appendChild(this.tickText[i]);
                 }
                 //Do Tooltips
                 this.barTooltips = [];
-                this.toolTipStyle = `position: absolute;width: 60px;height: 25px;border: thin solid black;background: #FFFFFF;display: none;text-align: center`;
                 for (let i = 0; i < this.bars.length; i++) {
                         this.barTooltips.push(document.createElement('div'));
-                        this.barTooltips[i].setAttribute('style', this.toolTipStyle)
+                        this.barTooltips[i].className = 'mcsBarTooltip';
+                        this.barTooltips[i].setAttribute('style', 'top: 0%;display: none;')
                         this.barTooltips[i].style.top = '0%';
                         if (i < (this.bars.length - 3)) {
                                 this.barTooltips[i].style.left = `${i * this.barWidth + 11}px`;
@@ -494,137 +599,9 @@ class mcsPlotter {
         }
 }
 
-class mcsStatReadout {
-        /**
-         * 
-         * @param {mcsApp} parent 
-         */
-        constructor(parent) {
-
-                this.statNames = ['Attack Speed', 'Strength Bonus', 'Stab Bonus', 'Slash Bonus', 'Block Bonus', 'Attack Bonus', 'Strength Bonus', 'Attack Bonus', '% Damage Bonus', 'Defence Bonus', 'Damage Reduction', 'Defence Bonus', 'Defence Bonus', 'Level Required', 'Level Required', 'Level Required', 'Level Required'];
-                this.statIcons = ['combat', 'strength', 'attack', 'strength', 'defence', 'ranged', 'ranged', 'magic', 'magic', 'defence', 'defence', 'ranged', 'magic', 'attack', 'defence', 'ranged', 'magic']
-                this.iconSources = {
-                        combat: 'assets/media/skills/combat/combat.svg',
-                        attack: 'assets/media/skills/combat/attack.svg',
-                        strength: 'assets/media/skills/combat/strength.svg',
-                        ranged: 'assets/media/skills/ranged/ranged.svg',
-                        magic: 'assets/media/skills/magic/magic.svg',
-                        defence: 'assets/media/skills/defence/defence.svg'
-                };
-                this.statKeys = ['eqpAttSpd', 'strBon', 'attBon0', 'attBon1', 'attBon2', 'rngAttBon', 'rngStrBon', 'magAttBon', 'magDmgBon', 'defBon', 'dmgRed', 'rngDefBon', 'magDefBon', 'attReq', 'defReq', 'rngReq', 'magReq'];
-                this.statHeight = 20;
-                this.labelWidth = 150;
-                this.fieldWidth = 50;
-                this.statWidth = this.statHeight + this.labelWidth + this.fieldWidth + 4;
-                this.sectionStyle = `height: ${20}px;font-size: 18px;margin-top: 2px;margin-bottom: 2px;width: ${this.statWidth}px;text-align: center;`;
-                this.parent = parent;
-                this.container = document.createElement('div');
-                this.container.setAttribute('style', `height: 100%;font-size: 16px;line-height: ${this.statHeight}px;min-width: ${this.statWidth}px;margin-right: 5px;
-                display: flex;flex-direction: column;flex-wrap: nowrap;justify-content: flex-start;background: white;`);
-                this.container.id = 'MCS Stat Readout';
-                this.createSection('Gear Stats')
-                this.statContainers = [];
-                this.statImages = [];
-                this.statLabels = [];
-                this.statFields = [];
-                for (let i = 0; i < this.statNames.length; i++) {
-                        this.statContainers.push(document.createElement('div'));
-                        this.statContainers[i].style.width = `${this.statWidth}px`;
-                        this.statContainers[i].style.height = `${this.statHeight}px`;
-                        this.statContainers[i].style.position = 'relative';
-                        this.container.appendChild(this.statContainers[i]);
-                        //Images before labels
-                        this.statImages.push(document.createElement('img'));
-                        this.statImages[i].src = this.iconSources[this.statIcons[i]];
-                        this.statImages[i].style.width = `${this.statHeight}px`;
-                        this.statImages[i].style.height = `${this.statHeight}px`;
-                        this.statImages[i].style.position = 'absolute';
-                        this.statImages[i].style.left = 0;
-                        this.statContainers[i].appendChild(this.statImages[i]);
-                        //Label Text
-                        this.statLabels.push(document.createElement('label'));
-                        this.statLabels[i].textContent = this.statNames[i];
-                        this.statLabels[i].style.width = `${this.labelWidth}px`;
-                        this.statLabels[i].style.height = '100%';
-                        this.statLabels[i].style.left = `${this.statHeight + 2}px`;
-                        this.statLabels[i].style.position = 'absolute';
-                        this.statLabels[i].style.textAlign = 'left';
-                        this.statContainers[i].appendChild(this.statLabels[i]);
-                        //Actual Data
-                        this.statFields.push(document.createElement('div'));
-                        this.statFields[i].style.right = 0;
-                        this.statFields[i].style.width = `${this.fieldWidth}px`;
-                        this.statFields[i].style.height = '100%';
-                        this.statFields[i].style.position = 'absolute';
-                        this.statFields[i].appendChild(document.createTextNode('0'));
-                        this.statFields[i].style.textAlign = 'right';
-                        this.statFields[i].style.border = 'thin solid black';
-                        this.statContainers[i].appendChild(this.statFields[i]);
-                }
-                this.createSection('Combat Stats')
-                //Create elements for combatstats
-                this.combatStatKeys = ['attackSpeed', 'maxHit', 'maxAttackRoll', 'maxDefRoll', 'maxRngDefRoll', 'maxMagDefRoll', 'dmgRed'];
-                this.combatStatNames = ['Attack Speed', 'Max Hit', 'Accuracy Rating', 'Evasion Rating', 'Evasion Rating', 'Evasion Rating', 'Damage Reduction'];
-                this.combatStatIcons = ['', '', '', 'combat', 'ranged', 'magic', ''];
-                this.combatStatContainers = [];
-                this.combatStatImages = [];
-                this.combatStatLabels = [];
-                this.combatStatFields = [];
-                for (let i = 0; i < this.combatStatKeys.length; i++) {
-                        this.combatStatContainers.push(document.createElement('div'));
-                        this.combatStatContainers[i].setAttribute('style', `position: relative;width: ${this.statWidth}px;height: ${this.statHeight}px;`)
-                        this.container.appendChild(this.combatStatContainers[i]);
-
-                        if (this.combatStatIcons[i] != '') {
-                                this.combatStatImages.push(document.createElement('img'));
-                                this.combatStatImages[i].src = this.iconSources[this.combatStatIcons[i]];
-                                this.combatStatImages[i].setAttribute('style', `width: ${this.statHeight}px;height: ${this.statHeight}px;position: absolute;left: 0px;`)
-                                this.combatStatContainers[i].appendChild(this.combatStatImages[i]);
-                        } else {
-                                this.combatStatImages.push(0)
-                        }
-                        this.combatStatLabels.push(document.createElement('label'));
-                        this.combatStatLabels[i].setAttribute('style', `width: ${this.labelWidth}px;height: 100%;left: ${this.statHeight + 2}px;position: absolute;text-align: left;`);
-                        this.combatStatLabels[i].textContent = this.combatStatNames[i];
-                        this.combatStatContainers[i].appendChild(this.combatStatLabels[i]);
-
-                        this.combatStatFields.push(document.createElement('div'));
-                        this.combatStatFields[i].setAttribute('style', `position: absolute;height: 100%;right: 0px;width: ${this.fieldWidth}px;text-align: right;border: thin solid black;`)
-                        this.combatStatFields[i].appendChild(document.createTextNode('0'));
-                        this.combatStatContainers[i].appendChild(this.combatStatFields[i]);
-                }
-
-
-                this.parent.content.appendChild(this.container);
-        }
-        updateStatFields() {
-                for (let i = 0; i < this.statFields.length; i++) {
-                        if (this.statKeys[i] == 'attBon0') {
-                                this.statFields[i].textContent = this.parent.simulator.attBon[0];
-                        } else if (this.statKeys[i] == 'attBon1') {
-                                this.statFields[i].textContent = this.parent.simulator.attBon[1];
-                        } else if (this.statKeys[i] == 'attBon2') {
-                                this.statFields[i].textContent = this.parent.simulator.attBon[2];
-                        } else {
-                                this.statFields[i].textContent = this.parent.simulator[this.statKeys[i]];
-                        }
-                }
-        }
-
-        updateCombatStats() {
-                for (let i = 0; i < this.combatStatFields.length; i++) {
-                        this.combatStatFields[i].textContent = this.parent.simulator[this.combatStatKeys[i]];
-                }
-        }
-
-        createSection(sectionTitle) {
-                var newSection = document.createElement('div');
-                newSection.setAttribute('style', this.sectionStyle)
-                newSection.textContent = sectionTitle;
-                this.container.appendChild(newSection);
-        }
-}
-
+/**
+ * @description Simulator, Pure number crunching
+ */
 class mcsSimulator {
         /**
          * 
@@ -649,7 +626,7 @@ class mcsSimulator {
                 this.magAttBon = 0;
                 this.magDmgBon = 0;
                 this.defBon = 0;
-                this.dmgRed = 0;
+                this.eqpDmgRed = 0;
                 this.rngDefBon = 0;
                 this.magDefBon = 0;
                 this.attReq = 1;
@@ -663,6 +640,7 @@ class mcsSimulator {
                         Ranged: 0,
                         Magic: 0
                 };
+                this.dmgRed = 0;
                 this.attackSpeed = 4000;
                 this.attackType = 0;
                 this.maxAttackRoll = 0;
@@ -728,7 +706,7 @@ class mcsSimulator {
                         this.magAttBon += (curItem.magicAttackBonus) ? curItem.magicAttackBonus : 0;
                         this.magDmgBon += (curItem.magicDamageBonus) ? curItem.magicDamageBonus : 0;
                         this.defBon += (curItem.defenceBonus) ? curItem.defenceBonus : 0;
-                        this.dmgRed += (curItem.damageReduction) ? curItem.damageReduction : 0;
+                        this.eqpDmgRed += (curItem.damageReduction) ? curItem.damageReduction : 0;
                         this.rngDefBon += (curItem.rangedDefenceBonus) ? curItem.rangedDefenceBonus : 0;
                         this.magDefBon += (curItem.magicDefenceBonus) ? curItem.magicDefenceBonus : 0;
 
@@ -795,6 +773,7 @@ class mcsSimulator {
                 this.maxRngDefRoll = effectiveRngDefenceLevel * (this.rngDefBon + 64);
                 var effectiveMagicDefenceLevel = Math.floor(Math.floor(this.playerLevels.Magic * 0.7) + Math.floor(this.playerLevels.Defence * 0.3) + 8 + 1);
                 this.maxMagDefRoll = effectiveMagicDefenceLevel * (this.magDefBon + 64);
+                this.dmgRed = this.eqpDmgRed;
         }
         resetGearStats() {
                 this.eqpAttSpd = 4000;
@@ -805,7 +784,7 @@ class mcsSimulator {
                 this.magAttBon = 0;
                 this.magDmgBon = 0;
                 this.defBon = 0;
-                this.dmgRed = 0;
+                this.eqpDmgRed = 0;
                 this.rngDefBon = 0;
                 this.magDefBon = 0;
                 this.attReq = 1;
@@ -1047,130 +1026,8 @@ class mcsSimulator {
         }
 }
 
-class mcsSimPlotOptions {
-        /**
-         * 
-         * @param {mcsApp} parent 
-         */
-        constructor(parent) {
-                this.parent = parent;
-
-                this.plotOptions = ['XP/s', 'HP XP/s', 'HP loss/s', 'Damage/s', 'Average Kill Time', 'Average Hit Damage'];
-                this.plotKeys = ['xpPerSecond', 'hpxpPerSecond', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg'];
-
-                this.labelWidth = 100;
-                this.dropDownWidth = 175;
-                this.editWidth = 120;
-                this.dropDownHeight = 25;
-                this.fieldWidth = 120;
-
-                this.width = this.labelWidth + this.dropDownWidth + 2;
-                //Styles
-                this.labelStyle = `height: ${this.dropDownHeight}px;width: ${this.labelWidth}px;text-align: right;vertical-align: text-top;margin-right: 2px;`;
-                this.dropDownStyle = `width: ${this.dropDownWidth}px;height: ${this.dropDownHeight}px;text-align: left;`;
-                this.optionsStyle = `height: ${this.dropDownHeight}px;vertical-align: text-top;text-align: right;`;
-                this.inputStyle = `height: ${this.dropDownHeight}px;width: ${this.fieldWidth}px;text-align: right`;
-                this.sectionStyle = `height: ${20}px;font-size: 18px;margin-top: 2px;margin-bottom: 2px;width: ${this.width}px;text-align: center;`;
-                //Construct user interface
-                this.container = document.createElement('div');
-                this.fontSize = 16;
-                this.container.setAttribute('style', `height: 100%;width: ${this.width}px;font-size: ${this.fontSize}px;line-height: ${this.dropDownHeight}px;margin-right: 5px;
-                display: flex;flex-direction: column;flex-wrap: nowrap;justify-content; flex-start;min-width: ${this.width}px;background: white;`);
-                this.container.id = 'MCS Sim Plot Opts';
-                this.parent.content.appendChild(this.container);
-
-                var newSection = document.createElement('div');
-                newSection.setAttribute('style', this.sectionStyle)
-                newSection.textContent = 'Simulation Options';
-                this.container.appendChild(newSection);
-                //Max Hits Edit
-                this.maxHitCont = document.createElement('div');
-                this.maxHitCont.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;`)
-                this.container.appendChild(this.maxHitCont);
-                this.maxHitLab = document.createElement('label');
-                this.maxHitLab.setAttribute('style', this.labelStyle);
-                this.maxHitLab.textContent = 'Max Hits:';
-                this.maxHitInp = document.createElement('input');
-                this.maxHitInp.value = '1000';
-                this.maxHitInp.setAttribute('style', this.inputStyle)
-                this.maxHitInp.setAttribute('type', 'number');
-                this.maxHitInp.setAttribute('min', '1');
-                this.maxHitInp.setAttribute('max', '10000');
-                this.maxHitInp.addEventListener('change', event => this.callBackMaxHits(event));
-                this.maxHitCont.appendChild(this.maxHitLab);
-                this.maxHitCont.appendChild(this.maxHitInp);
-
-                //Number of trials edit
-                this.numTrialsCont = document.createElement('div');
-                this.numTrialsCont.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.labelWidth + this.fieldWidth + 2}px;`)
-                this.container.appendChild(this.numTrialsCont);
-                this.numTrialsLab = document.createElement('label');
-                this.numTrialsLab.setAttribute('style', this.labelStyle);
-                this.numTrialsLab.textContent = '# Trials:';
-                this.numTrialsInp = document.createElement('input');
-                this.numTrialsInp.value = '1000';
-                this.numTrialsInp.setAttribute('style', this.inputStyle)
-                this.numTrialsInp.setAttribute('type', 'number');
-                this.numTrialsInp.setAttribute('min', '1');
-                this.numTrialsInp.setAttribute('max', '10000');
-                this.numTrialsInp.addEventListener('change', event => this.callBacknumTrials(event));
-                this.numTrialsCont.appendChild(this.numTrialsLab);
-                this.numTrialsCont.appendChild(this.numTrialsInp);
-
-                //Plot type dropdown
-                this.plotTypeContainer = document.createElement('div');
-                this.plotTypeContainer.setAttribute('style', `height: ${this.dropDownHeight}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;`)
-                this.plotTypeLabel = document.createElement('label');
-                this.plotTypeLabel.textContent = 'Plot Type:'
-                this.plotTypeLabel.setAttribute('style', this.labelStyle);
-                this.plotTypeDropDown = document.createElement('select');
-                this.plotTypeDropDown.setAttribute('style', this.dropDownStyle);
-                this.plotTypeDropDown.addEventListener('change', event => this.callBackPlotType(event));
-                this.plotTypeOptions = [];
-                for (let i = 0; i < this.plotOptions.length; i++) {
-                        this.plotTypeOptions.push(document.createElement('option'));
-                        this.plotTypeOptions[i].textContent = this.plotOptions[i];
-                        this.plotTypeOptions[i].value = this.plotKeys[i];
-                        this.plotTypeOptions[i].setAttribute('style', this.optionsStyle);
-                        this.plotTypeDropDown.add(this.plotTypeOptions[i]);
-                }
-
-                this.plotTypeContainer.appendChild(this.plotTypeLabel);
-                this.plotTypeContainer.appendChild(this.plotTypeDropDown);
-                this.container.appendChild(this.plotTypeContainer);
-
-                //Simulate Button
-                this.simulateButton = document.createElement('button');
-                this.simulateButton.setAttribute('style', `height ${this.dropDownHeight * 2}px;width: ${this.dropDownWidth + this.labelWidth + 2}px;margin-top: 20px`)
-                this.simulateButton.appendChild(document.createTextNode('Simulate'));
-                this.simulateButton.addEventListener('click', event => this.callBackSimulate(event));
-                this.container.appendChild(this.simulateButton);
-
-        }
-
-        callBackMaxHits(event) {
-                var newMaxHit = parseInt(event.currentTarget.value);
-                if (newMaxHit > 0 && newMaxHit <= 10000) {
-                        this.parent.simulator.Nhitmax = newMaxHit;
-                }
-        }
-        callBacknumTrials(event) {
-                var newNumTrials = parseInt(event.currentTarget.value);
-                if (newNumTrials > 0 && newNumTrials <= 10000) {
-                        this.parent.simulator.Ntrials = newNumTrials;
-                }
-        }
-        callBackPlotType(event) {
-                this.parent.plotter.updateBars(this.parent.simulator.getDataSet(event.currentTarget.value));
-        }
-        callBackSimulate(event) {
-                this.parent.simulator.simulateCombat();
-                this.parent.plotter.updateBars(this.parent.simulator.getDataSet(this.plotTypeDropDown.selectedOptions[0].value));
-        }
-}
-
 /**
- * @description Baseclass for the cards in the bottom of the ui
+ * @description Class for the cards in the bottom of the ui
  */
 class mcsCard {
         /**
@@ -1217,17 +1074,17 @@ class mcsCard {
          * @param {any[]} optionValues 
          * @param {number} height 
          */
-        addDropdown(labelText, optionText, optionValues, height,onChangeCallback) {
+        addDropdown(labelText, optionText, optionValues, height, onChangeCallback) {
                 var dropDownID = `MCS ${labelText} Dropdown`;
                 var newCCContainer = this.createCCContainer(height);
                 newCCContainer.id = `${dropDownID} Container`;
                 newCCContainer.appendChild(this.createLabel(labelText, dropDownID));
-                var newDropdown = this.createDropdown(optionText,optionValues,dropDownID,onChangeCallback)
+                var newDropdown = this.createDropdown(optionText, optionValues, dropDownID, onChangeCallback)
                 newCCContainer.appendChild(newDropdown);
                 this.container.appendChild(newCCContainer);
         }
 
-        createDropdown(optionText,optionValues,dropDownID,onChangeCallback) {
+        createDropdown(optionText, optionValues, dropDownID, onChangeCallback) {
                 var newDropdown = document.createElement('select');
                 newDropdown.className = 'mcsDropdown';
                 newDropdown.style.width = this.inputWidth;
@@ -1236,18 +1093,18 @@ class mcsCard {
                         let newOption = document.createElement('option');
                         newOption.text = optionText[i];
                         newOption.value = optionValues[i];
+                        newOption.className = 'mcsOption';
                         newDropdown.add(newOption);
                 }
-                newDropdown.addEventListener('change',onChangeCallback);
+                newDropdown.addEventListener('change', onChangeCallback);
                 this.dropDowns.push(newDropdown);
                 return newDropdown
         }
 
-        addNumberInput(labelText, startValue, height,min,max,onChangeCallback) {
+        addNumberInput(labelText, startValue, height, min, max, onChangeCallback) {
                 var inputID = `MCS ${labelText} Input`;
                 var newCCContainer = this.createCCContainer(height);
-                newCCContainer.appendChild(this.createLabel(labelText,inputID));
-
+                newCCContainer.appendChild(this.createLabel(labelText, inputID));
                 var newInput = document.createElement('input');
                 newInput.id = inputID;
                 newInput.type = 'number';
@@ -1256,14 +1113,20 @@ class mcsCard {
                 newInput.value = startValue;
                 newInput.className = 'mcsNumberInput';
                 newInput.style.width = this.inputWidth;
-                newInput.addEventListener('change',onChangeCallback);
+                newInput.addEventListener('change', onChangeCallback);
                 newCCContainer.appendChild(newInput);
                 this.container.appendChild(newCCContainer);
         }
 
-        addNumberOutput(labelText, initialValue, height) {
-                var outputID = `MCS ${labelText} Output`;
+        addNumberOutput(labelText, initialValue, height, imageSrc,outputID) {
+                if (!outputID) {
+                        var outputID = `MCS ${labelText} Output`;
+                }
                 var newCCContainer = this.createCCContainer(height);
+                if (imageSrc && imageSrc != '') {
+                        newCCContainer.appendChild(this.createImage(imageSrc, height));
+                }
+
                 newCCContainer.appendChild(this.createLabel(labelText, outputID));
 
                 var newOutput = document.createElement('div');
@@ -1296,12 +1159,22 @@ class mcsCard {
         createLabel(labelText, referenceID) {
                 var newLabel = document.createElement('label');
                 newLabel.className = 'mcsLabel';
-                newLabel.style.width = this.labelWidth;
+                // newLabel.style.width = this.labelWidth;
                 newLabel.textContent = labelText;
                 newLabel.for = referenceID;
                 return newLabel;
         }
-
+        /**
+         * 
+         * @param {string} imageSrc source of image
+         * @param {number} height in pixels 
+         */
+        createImage(imageSrc, height) {
+                var newImage = document.createElement('img');
+                newImage.style.height = `${height}px`;
+                newImage.src = imageSrc;
+                return newImage;
+        }
 }
 /**
  * @description Formats a number with the specified number of decimals, padding with 0s
@@ -1310,74 +1183,64 @@ class mcsCard {
  * @returns {string}
  */
 function mcsFormatNum(number, numDecimals) {
-        var frontStr = Math.trunc(number).toString(10);
         var outStr = number.toString(10);
-
-        if ((number - Math.trunc(number)) == 0) {
-                //No decimals
-                if (numDecimals > 0) {
-                        outStr += '.';
-                        outStr = outStr.padEnd(frontStr.length + 1 + numDecimals, '0')
-                }
-        } else {
-                var outStrDec = outStr.length - frontStr.length - 1;
-
-                if (outStrDec > numDecimals) {
-                        //Too many decimals remove from string
-
-                        if (numDecimals == 0) {
-                                //Determine if we need to round up
-                                var roundDigit = outStr.charCodeAt(frontStr.length + 1);
-                                if (roundDigit > 52) {
-                                        if (outStr.charCodeAt(frontStr.length - 1) == 57) {
-                                                //Case when rounding up from a 9
-                                                if (frontStr.length < 2) {
-                                                        //Case when we need to round to 10
-                                                        outStr = '10';
-                                                } else {
-                                                        outStr = outStr.slice(0, frontStr.length - 2) + String.fromCharCode(outStr.charCodeAt(frontStr.length - 2) + 1) + '0';
-                                                }
-                                        } else {
-                                                outStr = outStr.slice(0, frontStr.length - 1) + String.fromCharCode(outStr.charCodeAt(frontStr.length - 1) + 1);
-                                        }
-                                } else {
-                                        outStr = outStr.slice(0, frontStr.length);
+        var lengthFront = Math.trunc(number).toString(10).length;
+        var lengthEnd = outStr.length - lengthFront - ((outStr.length == lengthFront) ? 1 : 0);
+        var expectedLength = lengthFront + numDecimals + ((numDecimals == 0) ? 0 : 1);
+        if (outStr.length == lengthFront && numDecimals > 0) {
+                //String has no decimal and is expected to
+                outStr += '.';
+        } else if (lengthEnd > numDecimals) {
+                //String has too many decimals and needs to be rounded
+                var roundPos = lengthFront + numDecimals + 1;
+                if (outStr.charCodeAt(roundPos) > 52) {
+                        //Round up
+                        roundPos--;
+                        var isRounded = false;
+                        while (!isRounded) {
+                                //Hit the decimal decrease round position
+                                if (outStr.charCodeAt(roundPos) == 46) {
+                                        roundPos--;
                                 }
-                        } else {
-                                //Determine if we need to round up
-                                var roundDigit = outStr.charCodeAt(frontStr.length + numDecimals + 1);
-                                if (roundDigit > 52) {
-                                        if (outStr.charCodeAt(frontStr.length + numDecimals) == 57) {
-                                                //Case when rounding up from a 9
-                                                outStr = outStr.slice(0, frontStr.length + numDecimals - 1) + String.fromCharCode(outStr.charCodeAt(frontStr.length + numDecimals - 1) + 1) + '0';
-                                        } else {
-                                                outStr = outStr.slice(0, frontStr.length + numDecimals) + String.fromCharCode(outStr.charCodeAt(frontStr.length + numDecimals) + 1);
+                                if (outStr.charCodeAt(roundPos) == 57) {
+                                        //Case for rounding up a 9
+                                        outStr = outStr.substring(0, roundPos) + '0' + outStr.substring(roundPos + 1);
+                                        if (roundPos == 0) {
+                                                outStr = '1' + outStr;
+                                                expectedLength++;
+                                                isRounded = true;
                                         }
+                                        roundPos--;
                                 } else {
-                                        outStr = outStr.slice(0, frontStr.length + 1 + numDecimals);
+                                        outStr = outStr.substring(0, roundPos) + String.fromCharCode(outStr.charCodeAt(roundPos) + 1) + outStr.substring(roundPos + 1);
+                                        isRounded = true;
                                 }
                         }
-                } else if (outStrDec < numDecimals) {
-                        //Not enough decimals pad with zeros
-                        outStr = outStr.padEnd(frontStr.length + 1 + numDecimals, '0')
                 }
+                //Truncate string
+                outStr = outStr.substr(0, expectedLength);
         }
-        return outStr;
+        return outStr.padEnd(expectedLength, '0')
 }
-var melvorCombatSim = new mcsApp();
+
+//Define Variable
+//var melvorCombatSim = new mcsApp();
+
+// Wait for page to finish loading, then create an instance of the combat sim after 1 second
+var melvorCombatSim;
+window.addEventListener('load',() => {
+        setTimeout(()=>{melvorCombatSim = new mcsApp();console.log('Melvor Combat Sim v0.2.0 Loaded...');},1000)
+});
+
 //Todo list:
-//Fix spell list not updating on import from game
 //Add reflect damage
-//
 //UI Elements Missing:
 //Plot Title
-//Indicators for bad data values
 //Simple Log box to display the optimal xp/s enemy and zone, with the other relevant stats
-
+//Compute GP/s for monsters/dungeons
 
 //Maybe list:
 //Ability to save and load gear sets
 //Ability to optimize a leveling path
 //No spoiler mode (Use item completion)
 //Better sorting on equipment dropdowns
-//Dark mode (Oof ouch Owie my retinas)

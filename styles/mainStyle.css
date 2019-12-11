@@ -4,17 +4,27 @@
     width: 100%;
     bottom: 0;
     right: 0;
-    z-index: 1000000;
+    z-index: 999997;
+    background-color: white;
+    border-color: black;
+}
+
+.mcsDarkMode {
+    background-color: #2c343f !important;
+    color: whitesmoke !important;
+    border-color: whitesmoke !important;
 }
 
 .mcsTab {
     position: absolute;
     height: 50px;
     width: 200px;
-    background: white;
-    border: solid black;
-    border-bottom: none;
+    background-color: inherit;
     right: 0px;
+    border-style: solid;
+    border-width: thin;
+    border-color: inherit;
+    border-bottom: none;
 }
 
 .mcsTabContent {
@@ -27,8 +37,11 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    background: white;
-    border: solid medium black;
+    background-color: inherit;
+    border-style: solid;
+    border-width: thin;
+    border-color: inherit;
+    border-bottom-style: none;
 }
 
 .mcsCardContainer {
@@ -38,22 +51,23 @@
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: center;
-    background: white;
     font-size: 16px;
     margin-right: 5px;
     height: 100%;
+    border-color: inherit;
 }
 
 .mcsPlotContainer {
     border: none;
     position: relative;
-    background: white;
     font-size: 16px;
     margin-right: 5px;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    border-color: inherit;
+    background-color: inherit;
 }
 
 .mcsPlotTopContainer {
@@ -61,6 +75,8 @@
     width: 100%;
     margin-top: 5px;
     flex-grow: 1;
+    border-color: inherit;
+    background-color: inherit;
 }
 
 .mcsXAxis {
@@ -81,7 +97,10 @@
     bottom: 0px;
     right: 0px;
     height: 90%;
-    border: thin solid black;
+    border-width: thin;
+    border-style: solid;
+    border-color: inherit;
+    background-color: inherit;
 }
 
 .mcsButton {
@@ -95,24 +114,34 @@
 .mcsCCContainer {
     position: relative;
     width: 100%;
-
+    display: flex;
+    flex-direction: row;
+    justify-content: right;
+    align-items: center;
+    background-color: inherit;
+    border-color: inherit;
 }
 /* Label */
 .mcsLabel {
     text-align: right;
     margin-right: 2px;
-    height: 100%;
+    margin-bottom: 0px;
 }
 
 .mcsDropdown {
     text-align: right;
     height: 100%;
+    background-color: inherit;
+    color: inherit;
 }
 
 .mcsNumberOutput {
     text-align: right;
     height: 100%;
-    border: thin solid black;
+    border-width: thin;
+    border-style: solid;
+    border-color: inherit;
+    right: 0px;
 }
 
 .mcsSectionTitle {
@@ -120,12 +149,58 @@
     font-size: 18px;
 }
 
-.mcsLabImgCont {
-    display: flex;
-    flex-direction: row;
-}
-
 .mcsNumberInput {
     text-align: right;
     height: 100%;
+    color: inherit;
+    background-color: inherit;
+}
+
+.mcsOption {
+    background-color: inherit;
+}
+
+.mcsTickmark {
+    position: absolute;
+    width: 2.5%;
+    left: 0px;
+    border-bottom-style: solid;
+    border-bottom-width: thin;
+    border-color: inherit;
+}
+
+.mcsTicktext {
+    position: absolute;
+    width: 100%;
+    right: 0px;
+    text-align: right;
+    margin-right: 2px;
+}
+
+.mcsGridline {
+    position: absolute;
+    width: 100%;
+    left: 0px;
+    border-bottom-style: solid;
+    border-bottom-width: thin;
+    border-color: lightslategray;
+
+}
+
+.mcsBarTooltip {
+    position: absolute;
+    width: 60px;
+    height: 25px;
+    border-width: thin;
+    border-style: solid;
+    border-color: inherit;
+    background-color: inherit;
+    text-align: center;
+}
+
+.mcsBar {
+    position: absolute;
+    background-color: #0072BD;
+    bottom: 0px;
+
 }
