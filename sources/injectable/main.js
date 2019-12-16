@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.2.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.3.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2019>  <Coolrox95>
 
@@ -18,22 +18,6 @@
 
 class mcsApp {
         constructor() {
-                //Parameters for dimensions
-                this.contentHeight = 600;
-                this.contentWidth = 1500;
-                //Start by constructing the container
-                this.container = document.createElement('div');
-                
-                this.container.id = 'MCS Container';
-                //Construct the content under the tab
-                this.content = document.createElement('div')
-                this.content.className = 'mcsTabContent'
-                this.content.id = 'MCS Content';
-                this.content.style.height = '600px';
-                this.cardFiller = document.createElement('div');
-                this.cardFiller.setAttribute('style', 'flex-grow: 1;order: 0;height: 0px')
-                this.content.appendChild(this.cardFiller);
-
                 //Generate gear subsets
                 this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
                 this.gearSubsets = [];
@@ -46,10 +30,50 @@ class mcsApp {
                                         this.gearSubsets[j].push(items[i]);
                                         this.gearSubsets[j][this.gearSubsets[j].length - 1].itemID = i;
                                 }
-                                //Insert Sorting of subsets here
                         }
+                        //Insert Sorting of subsets here
+                        this.gearSubsets[j].sort((a, b) => { return ((a.attackLevelRequired) ? a.attackLevelRequired : 0) - ((b.attackLevelRequired) ? b.attackLevelRequired : 0) });
+                        this.gearSubsets[j].sort((a, b) => { return ((a.defenceLevelRequired) ? a.defenceLevelRequired : 0) - ((b.defenceLevelRequired) ? b.defenceLevelRequired : 0) });
+                        this.gearSubsets[j].sort((a, b) => { return ((a.rangedLevelRequired) ? a.rangedLevelRequired : 0) - ((b.rangedLevelRequired) ? b.rangedLevelRequired : 0) });
+                        this.gearSubsets[j].sort((a, b) => { return ((a.magicLevelRequired) ? a.magicLevelRequired : 0) - ((b.magicLevelRequired) ? b.magicLevelRequired : 0) });
                 }
                 this.skillKeys = ['Attack', 'Strength', 'Defence', 'Ranged', 'Magic'];
+                //Simulation Object
+                this.simulator = new mcsSimulator(this);
+                //Temporary GP/s settings variable
+                this.itemSubsetTemp = [];
+
+                //Create container for the tab and main content
+                this.container = document.createElement('div');
+                this.container.id = 'MCS Container';
+                //Create the container for the main content
+                this.content = document.createElement('div')
+                this.content.className = 'mcsTabContent'
+                this.content.style.height = '600px';
+                this.content.id = 'MCS Content';
+                this.container.appendChild(this.content);
+                //Create the tab to minimize/maximize the simulator
+                this.tab = document.createElement('div')
+                this.tab.id = 'MCS Tab';
+                this.tab.className = 'mcsTab';
+                this.tab.style.bottom = this.content.style.height;
+                this.tab.onclick = this.tabOnClick;
+                //Add Icon to tab
+                var tabLogo = document.createElement('img');
+                tabLogo.className = 'mcsTabLogo';
+                tabLogo.src = 'assets/media/skills/combat/combat.svg';
+                this.tab.appendChild(tabLogo);
+                //Add Text to tab
+                var tabText = document.createElement('div');
+                tabText.className = 'mcsTabText';
+                tabText.textContent = 'Combat Simulator';
+                this.tab.appendChild(tabText);
+                this.container.appendChild(this.tab);
+                //Add Cards to the container
+                //Add Filler Card
+                this.cardFiller = document.createElement('div');
+                this.cardFiller.className = 'mcsFlexFiller';
+                this.content.appendChild(this.cardFiller);
                 //Gear/Level/Style/Spell Selection Card:
                 {
 
@@ -89,7 +113,6 @@ class mcsApp {
                         this.gearSelecter.addDropdown('Spell', spellOpts, spellVals, 25, event => this.spellDropdownOnChange(event));
                         this.gearSelecter.addButton('Import from Game', event => this.importButtonOnClick(event), 280, 25)
                 }
-
                 //Gear Stats/Player Stats Display Card
                 {
                         this.statDisplay = new mcsCard(this.content, '220px', '100%', '150px', '50px');
@@ -106,67 +129,88 @@ class mcsApp {
                                 defence: 'assets/media/skills/defence/defence.svg'
                         };
                         for (let i = 0; i < equipStatNames.length; i++) {
-                                this.statDisplay.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]],`MCS ${this.equipStatKeys[i]} Output`);
+                                this.statDisplay.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]], `MCS ${this.equipStatKeys[i]} Output`);
                         }
                         this.statDisplay.addSectionTitle('Combat Stats');
-                        var combatStatNames = ['Attack Speed','Max Hit','Accuracy Rating','Evasion Rating','Evasion Rating','Evasion Rating','Damage Reduction'];
-                        var combatStatIcons = ['','','','combat','ranged','magic','']
+                        var combatStatNames = ['Attack Speed', 'Max Hit', 'Accuracy Rating', 'Evasion Rating', 'Evasion Rating', 'Evasion Rating', 'Damage Reduction'];
+                        var combatStatIcons = ['', '', '', 'combat', 'ranged', 'magic', '']
                         this.combatStatKeys = ['attackSpeed', 'maxHit', 'maxAttackRoll', 'maxDefRoll', 'maxRngDefRoll', 'maxMagDefRoll', 'dmgRed'];
-                        for (let i = 0;i < combatStatNames.length;i++) {
-                                this.statDisplay.addNumberOutput(combatStatNames[i],0,20,(combatStatIcons[i] != '')?iconSources[combatStatIcons[i]]:'',`MCS ${this.combatStatKeys[i]} Output`);
+                        for (let i = 0; i < combatStatNames.length; i++) {
+                                this.statDisplay.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} Output`);
                         }
                 }
-
                 //Simulation/Plot Options Card
                 {
-                        this.simPlotOpts2 = new mcsCard(this.content,'275px','100%','100px','175px');
+                        this.simPlotOpts2 = new mcsCard(this.content, '275px', '100%', '100px', '175px');
                         this.simPlotOpts2.addSectionTitle('Simulation Options');
-                        this.simPlotOpts2.addNumberInput('Max Hits',1000,25,1,10000,event=>this.maxhitsInputOnChange(event));
-                        this.simPlotOpts2.addNumberInput('# Trials',1000,25,1,100000,event=>this.numtrialsInputOnChange(event));
-                        var plotTypeDropdownOptions = ['XP/s', 'HP XP/s', 'HP loss/s', 'Damage/s', 'Average Kill Time', 'Average Hit Damage'];
-                        var plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg'];
-                        this.simPlotOpts2.addDropdown('Plot Type',plotTypeDropdownOptions,plotTypeDropdownValues,25,event=>this.plottypeDropdownOnChange(event));
-                        this.simPlotOpts2.addButton('Simulate',event=>this.simulateButtonOnClick(event),250,25);
+                        this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, event => this.maxhitsInputOnChange(event));
+                        this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, event => this.numtrialsInputOnChange(event));
+                        var plotTypeDropdownOptions = ['XP per second', 'HP XP per second','XP per Attack', 'HP Loss per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second'];
+                        var plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond','xpPerHit', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond'];
+                        this.simPlotOpts2.addDropdown('Plot Type', plotTypeDropdownOptions, plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
+                        this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
+                        this.simPlotOpts2.addSectionTitle('GP/s Options');
+                        this.simPlotOpts2.addRadio('Sell Bones', 25, 'sellBones', ['Yes', 'No'], [e => this.sellBonesRadioOnChange(e, true), e => this.sellBonesRadioOnChange(e, false)], 1);
+                        this.simPlotOpts2.addDropdown('Sell Loot', ['All', 'Subset', 'None'], ['All', 'Subset', 'None'], 25, e => this.sellLootDropdownOnChange(e));
+                        this.simPlotOpts2.addButton('Edit Subset', e => this.editSubsetButtonOnClick(e), 250, 25);
+                }
+                //GP/s options card
+                {
+                        this.gpOptionsCard = new mcsCard(this.content, '320px', '100%', '100px', '200px');
+                        this.gpOptionsCard.addSectionTitle('Item Subset Selection');
+                        this.gpOptionsCard.addMultiButton(['Set Default','Set Discovered'],25,150,[e=>this.setDefaultOnClick(e),e=>this.setDiscoveredOnClick(e)]);
+                        this.gpOptionsCard.addMultiButton(['Cancel','Save'],25,150,[e=>this.cancelSubsetOnClick(e),e=>this.saveSubsetOnClick(e)]);
+                        this.gpOptionsCard.addTextInput('Search:', '', 25, e => this.searchInputOnInput(e));
+                        //Top labels
+                        var labelCont = document.createElement('div');
+                        labelCont.className = 'mcsMultiButtonContainer';
+                        labelCont.style.borderBottom = 'solid thin';
+                        var lab1 = document.createElement('div');
+                        lab1.className = 'mcsMultiHeader';
+                        lab1.style.borderRight = 'solid thin';
+                        lab1.textContent = 'Item';
+                        lab1.style.width = '220px';
+                        labelCont.appendChild(lab1);
+                        var lab2 = document.createElement('div');
+                        lab2.className = 'mcsMultiHeader';
+                        lab2.textContent = 'Sell?';
+                        lab2.style.width = '100px';
+                        lab2.style.marginRight = '17px';
+                        labelCont.appendChild(lab2);
+                        this.gpOptionsCard.container.appendChild(labelCont);
+                        this.gpSearchResults = new mcsCard(this.gpOptionsCard.container, '100%', '', '', '100px');
+                        for (let i=0;i<this.simulator.lootList.length;i++) {
+                                this.gpSearchResults.addRadio(this.simulator.lootList[i].name, 20, `${this.simulator.lootList[i].name}-radio`, ['Yes', 'No'], [e=>this.lootListRadioOnChange(e,i,true),e=>this.lootListRadioOnChange(e,i,false)], 1);
+                        }
+                        this.gpSearchResults.container.style.overflowY = 'scroll';
+                        this.gpSearchResults.container.style.overflowX = 'hidden';
+                        this.gpSearchResults.container.style.marginRight = '0px';
+                        this.gpSearchResults.container.style.marginBottom = '5px';
+
+                        this.gpOptionsCard.container.style.display = 'none';
                 }
                 //Bar Chart Card
-                this.plotter = new mcsPlotter(this, 670, this.contentHeight);
-                //Simulation Object
-                this.simulator = new mcsSimulator(this);
-
-                //Construct the actual Tab
-                this.tab = document.createElement('div')
-                this.tab.id = 'MCS Tab';
-                this.tab.className = 'mcsTab';
-                this.tab.style.bottom = this.content.style.height;
-                this.tab.onclick = this.tabOnClick;
-                //Add Icon to tab
-                this.logo = document.createElement('img');
-                this.logo.setAttribute('style', `position: absolute;left: 3px;width: 44px;bottom: 3px`)
-                this.logo.src = 'assets/media/skills/combat/combat.svg';
-                this.tab.appendChild(this.logo);
-                this.tabText = document.createElement('div');
-                this.tabText.setAttribute('style', 'position: absolute;left: 50px;width: 150px;text-align: left;bottom: 13px;')
-                this.tabText.textContent = 'Combat Simulator';
-                this.tab.appendChild(this.tabText);
-
-                this.container.appendChild(this.tab);
-                this.container.appendChild(this.content);
+                this.plotter = new mcsPlotter(this);
+                //Now that everything is done we add it to the document
                 document.body.appendChild(this.container);
                 //Push an update to the displays
                 document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
+                document.getElementById('MCS Edit Subset Button').style.display = 'none';
                 this.simulator.computeGearStats();
                 this.updateEquipStats();
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
-                //Add hooks into darkmode buttons
                 if (darkMode) {
                         this.darkModeSwitch(true);
                 } else {
                         this.darkModeSwitch(false);
                 }
-                document.getElementById('setting-darkmode-enable').addEventListener('click',event=>this.darkModeSwitch(true,event));
-                document.getElementById('setting-darkmode-disable').addEventListener('click',event=>this.darkModeSwitch(false,event));
-                
+                //Add hooks into darkmode buttons
+                document.getElementById('setting-darkmode-enable').addEventListener('click', event => this.darkModeSwitch(true, event));
+                document.getElementById('setting-darkmode-disable').addEventListener('click', event => this.darkModeSwitch(false, event));
+
+                //Saving and loading of Gear Sets
+                this.gearSets = [];
         }
         tabOnClick() {
                 var x = document.getElementById('MCS Content');
@@ -317,15 +361,55 @@ class mcsApp {
                         this.simulator.Ntrials = newNumTrials;
                 }
         }
-
         plottypeDropdownOnChange(event) {
+                this.plotter.plotType = event.currentTarget.value;
                 this.plotter.updateBars(this.simulator.getDataSet(event.currentTarget.value));
         }
         simulateButtonOnClick(event) {
                 this.simulator.simulateCombat();
                 this.plotter.updateBars(this.simulator.getDataSet(document.getElementById('MCS Plot Type Dropdown').selectedOptions[0].value));
         }
-        
+        sellBonesRadioOnChange(event, newState) {
+                this.simulator.sellBones = newState;
+                this.updatePlotForGP();
+        }
+        sellLootDropdownOnChange(event) {
+                this.simulator.sellLoot = event.currentTarget.value;
+                if (this.simulator.sellLoot == 'Subset') {
+                        document.getElementById('MCS Edit Subset Button').style.display = 'block';
+                } else {
+                        document.getElementById('MCS Edit Subset Button').style.display = 'none';
+                }
+                this.updatePlotForGP();
+        }
+        editSubsetButtonOnClick(event) {
+                this.simulator.setLootListToSaleList();
+                this.updateLootListRadios();
+                this.gpOptionsCard.container.style.display = 'flex';
+        }
+        //Callback Functions for the GP Options Card
+        setDefaultOnClick(event) {
+                this.simulator.setLootListToDefault();
+                this.updateLootListRadios();
+        }
+        setDiscoveredOnClick(event) {
+                this.simulator.setLootListToDiscovered();
+                this.updateLootListRadios();
+        }
+        cancelSubsetOnClick(event) {
+                this.gpOptionsCard.container.style.display = 'none';
+        }
+        saveSubsetOnClick(event) {
+                this.simulator.setSaleListToLootList();
+                this.updatePlotForGP();
+                this.gpOptionsCard.container.style.display = 'none';
+        }
+        searchInputOnInput(event) {
+                this.updateGPSubset(event.currentTarget.value);
+        }
+        lootListRadioOnChange(event,llID,newState) {
+                this.simulator.lootList[llID].sell = newState;
+        }
         //Functions that manipulate the UI
         disableStyleDropdown(combatType) {
                 document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'none';
@@ -369,42 +453,141 @@ class mcsApp {
                         document.getElementById(`MCS ${element} Output`).textContent = this.simulator[element];
                 })
         }
+        updatePlotForGP() {
+                if (this.plotter.plotType == 'gpPerKill') {
+                        this.plotter.updateBars(this.simulator.getDataSet('gpPerKill'))
+                } else if (this.plotter.plotType == 'gpPerSecond') {
+                        this.plotter.updateBars(this.simulator.getDataSet('gpPerSecond'))
+                }
+        }
+        /**
+         * 
+         * @param {string} searchString
+         */
+        updateGPSubset(searchString) {
+                searchString = searchString.toLowerCase();
+                var lootname;
+                this.simulator.lootList.forEach(loot => {
+                        lootname = loot.name.toLowerCase();
+                        if (lootname.includes(searchString)) {
+                                document.getElementById(`MCS ${loot.name} Radio Container`).style.display = 'flex';
+                        } else {
+                                document.getElementById(`MCS ${loot.name} Radio Container`).style.display = 'none';
+                        }
+                })
+        }
+        updateLootListRadios() {
+                this.simulator.lootList.forEach(item => {
+                        if (item.sell) {
+                                document.getElementById(`MCS ${item.name} Radio Yes`).checked = true;
+                                document.getElementById(`MCS ${item.name} Radio No`).checked = false;
+                        } else {
+                                document.getElementById(`MCS ${item.name} Radio Yes`).checked = false;
+                                document.getElementById(`MCS ${item.name} Radio No`).checked = true;
+                        }
+                })
+        }
         //Callback to add to games darkmode settings
         darkModeSwitch(mode) {
                 if (mode) {
                         this.container.className = 'mcsContainer mcsDarkMode';
                         this.setDropdownOptionsColor('#2c343f');
-                        this.plotter.bars.forEach(bar=>{bar.style.color = 'steelblue'});
-                        this.plotter.gridLine.forEach(line=>{line.style.borderColor = 'lightslategray'})
+                        this.plotter.bars.forEach(bar => { bar.style.color = 'steelblue' });
+                        this.plotter.gridLine.forEach(line => { line.style.borderColor = 'lightslategray' })
                 } else {
                         this.container.className = 'mcsContainer';
                         this.setDropdownOptionsColor('white');
-                        this.plotter.bars.forEach(bar=>{bar.style.color = '#0072BD'});
-                        this.plotter.gridLine.forEach(line=>{line.style.borderColor = 'lightgray'})
+                        this.plotter.bars.forEach(bar => { bar.style.color = '#0072BD' });
+                        this.plotter.gridLine.forEach(line => { line.style.borderColor = 'lightgray' })
                 }
         }
         setDropdownOptionsColor(color) {
-                document.getElementsByClassName('mcsOption').forEach(option => {option.style.backgroundColor = color})
+                document.getElementsByClassName('mcsOption').forEach(option => { option.style.backgroundColor = color })
         }
+        //WIP Stuff for gear sets
+        /**
+         * @description WIP Function for gear set saving/loading. 
+         * @param {string} setName 
+         */
+        appendGearSet(setName) {
+                this.gearSets.push({
+                        setName: setName,
+                        setData: this.gearSelected
+                })
+                //Update gear set dropdown
 
+                //Save gear sets to local storage
+        }
+        /**
+         * @description WIP Function for removing a gear set
+         * @param {number} setID 
+         */
+        removeGearSet(setID) {
+                //Remove set from array
 
+                //Save gear sets to local storage
+        }
+        setGearToSet(setID) {
+                //Set Gearselected to data
+                this.gearSelected = this.gearSets[setID].setData;
+                //Update dropdowns to proper value
+                for (let i = 0; i < this.gearSelected.length; i++) {
+                        for (let j = 0; j < this.gearSubsets[i].length; j++) {
+                                if (this.gearSubsets[i][j].itemID == this.gearSelected[i]) {
+                                        this.gearSelecter.dropDowns[i].selectedIndex = j;
+                                        break;
+                                }
+                        }
+                        //Do check for weapon type
+                        if (i == CONSTANTS.equipmentSlot.Weapon) {
+                                if (items[gearID].isTwoHanded) {
+                                        this.gearSelecter.dropDowns[CONSTANTS.equipmentSlot.Shield].selectedIndex = 0;
+                                        this.gearSelected[CONSTANTS.equipmentSlot.Shield] = 0;
+                                        this.gearSelecter.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = true;
+                                } else {
+                                        this.gearSelecter.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = false;
+                                }
+                                //Change to the correct combat style selector
+                                if ((items[gearID].type === 'Ranged Weapon') || items[gearID].isRanged) {
+                                        this.disableStyleDropdown('Magic');
+                                        this.disableStyleDropdown('Melee');
+                                        this.enableStyleDropdown('Ranged');
+                                        //Magic
+                                } else if (items[gearID].isMagic) {
+                                        this.disableStyleDropdown('Ranged');
+                                        this.disableStyleDropdown('Melee');
+                                        this.enableStyleDropdown('Magic');
+                                        //Melee
+                                } else {
+                                        this.disableStyleDropdown('Magic');
+                                        this.disableStyleDropdown('Ranged');
+                                        this.enableStyleDropdown('Melee');
+                                }
+                        }
+                }
+                //Update gear stats and combat stats
+                this.simulator.computeGearStats();
+                this.updateEquipStats();
+                this.simulator.computeCombatStats();
+                this.updateCombatStats();
+        }
 }
 /**
  * @description Class for the Bar chart card
  */
 class mcsPlotter {
-        constructor(parent, width, height) {
+        constructor(parent) {
                 this.parent = parent;
                 this.barWidth = 20;
                 this.barGap = 1;
                 this.plotBoxHeight = 500;
                 this.yAxisWidth = 80;
                 this.xAxisHeight = 80;
-                this.titleHeight = height - this.plotBoxHeight - this.xAxisHeight;
                 this.barNames = [];
                 this.barImageSrc = [];
                 this.barBottomNames = [];
                 this.barBottomLength = [];
+                this.plotType = 'Null';
                 var totBars = 0;
 
                 for (let i = 0; i < combatAreas.length; i++) {
@@ -553,20 +736,26 @@ class mcsPlotter {
                                 barMax = barData[i];
                         }
                 }
-                var divRatio = barMax / Math.pow(10, Math.floor(Math.log10(barMax)) + 1);
-                var closestRatio;
-                if (divRatio >= 0.5) {
-                        closestRatio = 0.5;
-                } else if (divRatio >= 0.25) {
-                        closestRatio = 0.25;
-                } else if (divRatio >= 0.2) {
-                        closestRatio = 0.2;
-                } else if (divRatio >= 0.1) {
-                        closestRatio = 0.1;
+                if (barMax != 0) {
+                        var divRatio = barMax / Math.pow(10, Math.floor(Math.log10(barMax)) + 1);
+                        var closestRatio;
+                        if (divRatio >= 0.5) {
+                                closestRatio = 0.5;
+                        } else if (divRatio >= 0.25) {
+                                closestRatio = 0.25;
+                        } else if (divRatio >= 0.2) {
+                                closestRatio = 0.2;
+                        } else if (divRatio >= 0.1) {
+                                closestRatio = 0.1;
+                        }
+                        var division = closestRatio * Math.pow(10, Math.floor(Math.log10(barMax)));
+                        var Ndivs = Math.ceil(barMax / division);
+                        var divMax = Ndivs * division;
+                } else {
+                        var divMax = 1;
+                        var Ndivs = 10;
+                        var division = 0.1;
                 }
-                var division = closestRatio * Math.pow(10, Math.floor(Math.log10(barMax)));
-                var Ndivs = Math.ceil(barMax / division);
-                var divMax = Ndivs * division;
 
                 for (let i = 0; i < this.bars.length; i++) {
                         this.bars[i].style.height = `${barData[i] / divMax * 100}%`;
@@ -660,6 +849,7 @@ class mcsSimulator {
                                 simSuccess: false,
                                 xpPerEnemy: 0,
                                 xpPerSecond: 0,
+                                xpPerHit: 0,
                                 hpxpPerEnemy: 0,
                                 hpxpPerSecond: 0,
                                 hpPerEnemy: 0,
@@ -676,6 +866,7 @@ class mcsSimulator {
                         this.dungeonSimData.push({
                                 simSuccess: false,
                                 xpPerSecond: 0,
+                                xpPerHit: 0,
                                 hpxpPerSecond: 0,
                                 hpPerEnemy: 0,
                                 hpPerSecond: 0,
@@ -686,7 +877,18 @@ class mcsSimulator {
                                 killTimeS: 0
                         })
                 }
+                this.simGpBonus = 1;
+                //Options for GP/s calculations
+                this.sellBones = false; //True or false
+                this.sellLoot = 'All'; //Options 'All','Subset','None'
+                this.saleList = this.getSaleList();
+                this.lootList = this.getLootList(); //List of items with id: X and sell: true/false
+                this.defaultSaleKeep = [403, 247, 248, 366, 249, 383, 368, 246, 367, 348, 443, 350, 349, 351, 347, 430, 429, 427, 428, 137, 136, 139, 314, 313, 312, 134, 296, 138, 141, 140, 434, 142, 135, 426, 425, 423, 424, 418, 417, 415, 416, 340, 405, 344, 406, 361, 414, 413, 411, 412, 372, 378, 371, 374, 369, 373, 380, 376, 375, 377, 379, 370, 407, 341, 365, 364, 422, 421, 419, 420, 120, 404];
+                this.setSaleListToDefault();
         }
+        /**
+         * @description Computes the stats of the players equipped items and stores them on this properties
+         */
         computeGearStats() {
                 this.resetGearStats();
                 for (let i = 0; i < this.parent.slotKeys.length; i++) {
@@ -728,6 +930,9 @@ class mcsSimulator {
                         }
                 }
         }
+        /**
+         * @description Computes the combat stats from Equipment stats, combat style, spell selection and player levels and stores them on this properties
+         */
         computeCombatStats() {
                 // ['Attack','Strength','Defence','Ranged','Magic']
                 this.attackSpeed = 4000;
@@ -776,6 +981,9 @@ class mcsSimulator {
                 this.maxMagDefRoll = effectiveMagicDefenceLevel * (this.magDefBon + 64);
                 this.dmgRed = this.eqpDmgRed;
         }
+        /**
+         * @description Resets the properties of this that refer to equipment stats to their default values
+         */
         resetGearStats() {
                 this.eqpAttSpd = 4000;
                 this.strBon = 0;
@@ -793,6 +1001,9 @@ class mcsSimulator {
                 this.magReq = 1;
                 this.defReq = 1;
         }
+        /**
+         * @description Iterate through all the combatAreas and DUNGEONS to create a set of monsterSimData and dungeonSimData
+         */
         simulateCombat() {
                 //Start by grabbing the player stats
                 var playerStats = {
@@ -803,10 +1014,22 @@ class mcsSimulator {
                         maxDefRoll: this.maxDefRoll,
                         maxMagDefRoll: this.maxMagDefRoll,
                         maxRngDefRoll: this.maxRngDefRoll,
-                        xpBonus: 0
+                        xpBonus: 0,
+                        avgHPRegen: 1
                 }
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Emerald_Ring) {
                         playerStats.xpBonus = 0.1;
+                }
+                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
+                        this.simGpBonus = 1.15;
+                } else {
+                        this.simGpBonus = 1;
+                }
+                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Ruby_Ring) {
+                        playerStats.avgHPRegen = 2;
+                }
+                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Hitpoints_Skillcape) {
+                        playerStats.avgHPRegen += 5;
                 }
                 var Ntrials = this.Ntrials;
                 var Nhitmax = this.Nhitmax;
@@ -855,6 +1078,7 @@ class mcsSimulator {
                         }
                         if (this.dungeonSimData[i].simSuccess) {
                                 this.dungeonSimData[i].xpPerSecond = totXp / totTime * 1000;
+                                this.dungeonSimData[i].xpPerHit = totXp / totHits;
                                 this.dungeonSimData[i].hpxpPerSecond = totHpXp / totTime * 1000;
                                 this.dungeonSimData[i].hpPerSecond = totHP / totTime * 1000;
                                 this.dungeonSimData[i].dmgPerSecond = totEnemyHP / totTime * 1000;
@@ -865,7 +1089,13 @@ class mcsSimulator {
                         }
                 }
         }
-
+        /**
+         * @description Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
+         * @param {number} monsterID The index of the monster in MONSTERS
+         * @param {object} playerStats The stats of the player
+         * @param {number} Ntrials The number of times to simulate combat
+         * @param {number} Nhitmax The maximum number of player hits before timeout
+         */
         simulateMonster(monsterID, playerStats, Ntrials, Nhitmax) {
                 //Check if already simulated
                 if (this.monsterSimData[monsterID].simDone) {
@@ -976,9 +1206,13 @@ class mcsSimulator {
                         this.monsterSimData[monsterID].avgKillTime = enemySpawnTimer + playerStats.attackSpeed * this.monsterSimData[monsterID].avgNumHits;
 
                         this.monsterSimData[monsterID].hpPerEnemy = damageToPlayer / Ntrials;
-                        this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000;
+                        this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000 - playerStats.avgHPRegen/60;
+                        if (this.monsterSimData[monsterID].hpPerSecond < 0) {
+                                this.monsterSimData[monsterID].hpPerSecond = 0;
+                        }
                         this.monsterSimData[monsterID].dmgPerSecond = enemyStats.hitpoints / this.monsterSimData[monsterID].avgKillTime * 1000;
                         this.monsterSimData[monsterID].xpPerEnemy = totalXP / Ntrials;
+                        this.monsterSimData[monsterID].xpPerHit = totalXP / totalHits;
                         this.monsterSimData[monsterID].xpPerSecond = totalXP / Ntrials / this.monsterSimData[monsterID].avgKillTime * 1000;
                         this.monsterSimData[monsterID].hpxpPerEnemy = totalHpXp / Ntrials;
                         this.monsterSimData[monsterID].hpxpPerSecond = totalHpXp / Ntrials / this.monsterSimData[monsterID].avgKillTime * 1000;
@@ -986,13 +1220,19 @@ class mcsSimulator {
                 }
                 this.monsterSimData[monsterID].simDone = true;
         }
-
+        /**
+         * @description Resets the simulation status for each monster
+         */
         resetSimDone() {
                 for (let i = 0; i < MONSTERS.length; i++) {
                         this.monsterSimData[i].simDone = false;
                 }
         }
-
+        /**
+         * @description Computes the accuracy of attacker vs target
+         * @param {object} attacker 
+         * @param {object} target 
+         */
         calculateAccuracy(attacker, target) {
                 var targetDefRoll = 0;
                 if (attacker.attackType == 0) {
@@ -1010,8 +1250,17 @@ class mcsSimulator {
                 }
                 return accuracy;
         }
-
+        /**
+         * @description Extracts a set of data for plotting that matches the keyValue in monsterSimData and dungeonSimData
+         * @param {string} keyValue 
+         */
         getDataSet(keyValue) {
+                if (keyValue == 'gpPerKill') {
+                        return this.getGPperKillDataSet();
+                }
+                if (keyValue == 'gpPerSecond') {
+                        return this.getGPperSecondDataSet();
+                }
                 var dataSet = [];
                 //Compile data from monsters in combat zones
                 for (let i = 0; i < combatAreas.length; i++) {
@@ -1022,6 +1271,353 @@ class mcsSimulator {
                 //Perform simulation of monsters in dungeons
                 for (let i = 0; i < DUNGEONS.length; i++) {
                         dataSet.push((this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][keyValue] : 0)
+                }
+                return dataSet;
+        }
+        /**
+         * @description Computes the average number of coins that a monster drops
+         * @param {number} monsterID 
+         */
+        computeAverageCoins(monsterID) {
+                return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1)*this.simGpBonus / 2;
+        }
+        /**
+         * @description Computes the chance that a monster will drop loot when it dies
+         * @param {number} monsterID 
+         */
+        computeLootChance(monsterID) {
+                return ((MONSTERS[monsterID].lootChance != undefined) ? MONSTERS[monsterID].lootChance / 100 : 1);
+        }
+        /**
+         * @description Computes the average number of loot rolls to perform when a monster drops loot
+         * @param {number} monsterID 
+         */
+        computeAverageLootQty(monsterID) {
+                if (MONSTERS[monsterID].lootQty != undefined || monsterID == 37 || monsterID == 38) {
+                        return 1;
+                } else {
+                        return 0.5;
+                }
+        }
+        /**
+         * @description Computes the average number of items that drop per loot roll
+         * @param {number} monsterID 
+         */
+        computeAverageItemQty(monsterID) {
+                var itemQty = 1;
+                if (MONSTERS[monsterID].lootQty != undefined) {
+                        itemQty = (MONSTERS[monsterID].lootQty[0] + 1) / 2;
+                }
+                if (monsterID == 37) {
+                        itemQty = (15 + 44) / 2;
+                }
+                if (monsterID == 38) {
+                        itemQty = (2 + 1) / 2;
+                }
+                return itemQty;
+        }
+        /**
+         * @description Computes the value of a monsters drop table respecting the loot sell settings
+         * @param {number} monsterID 
+         */
+        computeDropTableValue(monsterID) {
+                if (MONSTERS[monsterID].lootTable && this.sellLoot != 'None') {
+                        var gpWeight = 0;
+                        var totWeight = 0;
+                        if (this.sellLoot == 'All') {
+                                MONSTERS[monsterID].lootTable.forEach(x => {
+                                        if (items[x[0]].canOpen) {
+                                                gpWeight += this.computeChestOpenValue(x[0]);
+                                        } else {
+                                                gpWeight += items[x[0]].sellsFor * x[1];
+
+                                        }
+                                        totWeight += x[1];
+                                })
+                        } else {
+                                MONSTERS[monsterID].lootTable.forEach(x => {
+                                        if (items[x[0]].canOpen) {
+                                                gpWeight += this.computeChestOpenValue(x[0]);
+                                        } else {
+                                                gpWeight += ((this.shouldSell(x[0])) ? items[x[0]].sellsFor : 0) * x[1];
+                                        }
+                                        totWeight += x[1];
+                                })
+                        }
+                        return gpWeight / totWeight;
+                } else {
+                        return 0;
+                }
+        }
+        /**
+         * @description determines if an itemID should be sold and turns true/false
+         * @param {number} itemID 
+         */
+        shouldSell(itemID) {
+                return this.saleList[itemID].sell;
+        }
+        /**
+         * @description Gets an object array equal in length to the items array that determines if a particular item should be sold or kept
+         */
+        getSaleList() {
+                var saleList = [];
+                for (let i = 0; i < items.length; i++) {
+                        saleList.push({
+                                id: i,
+                                name: items[i].name,
+                                sell: true,
+                                onLootList: false,
+                                lootlistID: -1
+                        });
+                }
+                return saleList;
+        }
+        /**
+         * @description Gets an object array containing only items that are obtainable from combatAreas/Dungeons
+         */
+        getLootList() {
+                var lootList = [];
+                combatAreas.forEach(area => {
+                        area.monsters.forEach(mID => {
+                                MONSTERS[mID].lootTable.forEach(loot => {
+                                        if (items[loot[0]].canOpen) {
+                                                items[loot[0]].dropTable.forEach(loot2 => {
+                                                        if (!this.saleList[loot2[0]].onLootList) {
+                                                                lootList.push({
+                                                                        id: loot2[0],
+                                                                        name: items[loot2[0]].name,
+                                                                        sell: false
+                                                                })
+                                                                this.saleList[loot2[0]].onLootList = true;
+                                                        }
+                                                })
+                                        } else {
+                                                if (!this.saleList[loot[0]].onLootList) {
+                                                        lootList.push({
+                                                                id: loot[0],
+                                                                name: items[loot[0]].name,
+                                                                sell: false
+                                                        })
+                                                        this.saleList[loot[0]].onLootList = true;
+                                                }
+                                        }
+                                })
+                        })
+                })
+                DUNGEONS.forEach(dungeon => {
+                        dungeon.rewards.forEach(item => {
+                                if (items[item].canOpen) {
+                                        items[item].dropTable.forEach(loot => {
+                                                if (!this.saleList[loot[0]].onLootList) {
+                                                        lootList.push({
+                                                                id: loot[0],
+                                                                name: items[loot[0]].name,
+                                                                sell: false
+                                                        })
+                                                        this.saleList[loot[0]].onLootList = true;
+                                                }
+                                        })
+                                } else {
+                                        if (!this.saleList[item].onLootList) {
+                                                lootList.push({
+                                                        id: item,
+                                                        name: items[item].name,
+                                                        sell: false
+                                                })
+                                                this.saleList[item].onLootList = true;
+                                        }
+                                }
+                        })
+                })
+                //Alphabetize loot list
+                lootList.sort((a, b) => {
+                        var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+                        var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+                        if (nameA < nameB) {
+                                return -1;
+                        }
+                        if (nameA > nameB) {
+                                return 1;
+                        }
+                        // names must be equal
+                        return 0;
+                })
+                //Set Salelist IDs
+                for (let i=0;i<lootList.length;i++) {
+                        this.saleList[lootList[i].id].lootlistID = i;
+                }
+                return lootList;
+        }
+        /**
+         * @description Sets the lootlist to the current sale list
+         */
+        setLootListToSaleList() {
+                this.saleList.forEach(item=>{
+                        if (item.lootlistID != -1) {
+                                this.lootList[item.lootlistID].sell = item.sell;
+                        }
+                })
+        }
+        /**
+         * @description Sets the salelist to the loot list
+         */
+        setSaleListToLootList() {
+                this.lootList.forEach(item=>{
+                        this.saleList[item.id].sell = item.sell;
+                })
+        }
+        /**
+         * @description Prints out the current loot list to the console
+         */
+        printLootList() {
+                var outStr = 'ID\tName\tSell\n';
+                this.lootList.forEach(item => {
+                        outStr += `${item.id}\t${item.name}\t${item.sell}\n`;
+                })
+                console.log(outStr);
+        }
+        /**
+         * @description Sets the sale list to the default setting of combat uniques
+         */
+        setSaleListToDefault() {
+                for (let i = 0; i < this.saleList.length; i++) {
+                        this.saleList[i].sell = true;
+                }
+                this.defaultSaleKeep.forEach(itemID=>{
+                        this.saleList[itemID].sell = false;
+                })
+        }
+        /**
+         * @description sets the loot list to sell only items that have been discovered by the player
+         */
+        setLootListToDiscovered() {
+                for (let i = 0; i < itemLog.length; i++) {
+                        if (this.saleList[i].onLootList) {
+                                this.lootList[this.saleList[i].lootlistID].sell = itemLog[i];
+                        }
+                }
+        }
+        /**
+         * @description Sets the loot list to default settings
+         */
+        setLootListToDefault() {
+                for (let i=0;i<this.lootList.length;i++) {
+                        this.lootList[i].sell = true;
+                }
+                this.defaultSaleKeep.forEach(itemID=>{
+                        if (this.saleList[itemID].onLootList) {
+                                this.lootList[this.saleList[itemID].lootlistID].sell = false;
+                        }
+                })
+        }
+        /**
+         * @description Computes the value of the contents of a chest respecting the loot sell settings
+         * @param {number} chestID 
+         */
+        computeChestOpenValue(chestID) {
+                if (this.sellLoot != 'None') {
+                        var gpWeight = 0;
+                        var totWeight = 0;
+                        var avgQty;
+                        if (this.sellLoot == 'All') {
+                                for (let i = 0; i < items[chestID].dropTable.length; i++) {
+                                        if ((items[chestID].dropQty != undefined) && (items[chestID].dropQty[i] != undefined)) {
+                                                avgQty = (items[chestID].dropQty[i] + 1) / 2;
+                                        } else {
+                                                avgQty = 1;
+                                        }
+                                        gpWeight += avgQty * items[items[chestID].dropTable[i][0]].sellsFor * items[chestID].dropTable[i][1];
+                                        totWeight += items[chestID].dropTable[i][1];
+                                }
+                        } else {
+                                for (let i = 0; i < items[chestID].dropTable.length; i++) {
+                                        if (items[chestID].dropQty) {
+                                                avgQty = (items[chestID].dropQty[i] + 1) / 2;
+                                        } else {
+                                                avgQty = 1;
+                                        }
+                                        gpWeight += ((this.shouldSell(items[chestID].dropTable[i][0])) ? items[items[chestID].dropTable[i][0]].sellsFor : 0) * avgQty * items[chestID].dropTable[i][1];
+                                        totWeight += items[chestID].dropTable[i][1];
+                                }
+                        }
+                        return gpWeight / totWeight;
+                } else {
+                        return 0;
+                }
+        }
+        /**
+         * @description Computes the average amount of GP earned when killing a monster, respecting the loot sell settings
+         * @param {number} monsterID 
+         */
+        computeMonsterValue(monsterID) {
+                var monsterValue = 0;
+                monsterValue += this.computeAverageCoins(monsterID);
+                monsterValue += this.computeDropTableValue(monsterID) * this.computeLootChance(monsterID) * this.computeAverageLootQty(monsterID) * this.computeAverageItemQty(monsterID);
+                if (this.sellBones) {
+                        monsterValue += items[MONSTERS[monsterID].bones].sellsFor;
+                }
+                return monsterValue;
+        }
+        /**
+         * @description Computes the average amount of GP earned when completing a dungeon, respecting the loot sell settings
+         * @param {number} dungeonID 
+         */
+        computeDungeonValue(dungeonID) {
+                var dungeonValue = 0;
+                if (this.sellLoot != 'None') {
+                        DUNGEONS[dungeonID].rewards.forEach(reward => {
+                                if (items[reward].canOpen) {
+                                        dungeonValue += this.computeChestOpenValue(reward);
+                                } else {
+                                        if (this.sellLoot == 'All') {
+                                                dungeonValue += items[reward].sellsFor;
+                                        } else {
+                                                dungeonValue += ((this.shouldSell(reward)) ? items[reward].sellsFor : 0);
+                                        }
+                                }
+                        })
+                }
+                dungeonValue += this.computeAverageCoins(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]);
+                return dungeonValue;
+        }
+        /**
+         * @description Returns a dataset containing the GP per kill/completion of a monster/dungeon
+         */
+        getGPperKillDataSet() {
+                var dataSet = [];
+                //Compile data from monsters in combat zones
+                for (let i = 0; i < combatAreas.length; i++) {
+                        for (let j = 0; j < combatAreas[i].monsters.length; j++) {
+                                dataSet.push(this.computeMonsterValue(combatAreas[i].monsters[j]))
+                        }
+                }
+                //Perform simulation of monsters in dungeons
+                for (let i = 0; i < DUNGEONS.length; i++) {
+                        dataSet.push(this.computeDungeonValue(i))
+                }
+                return dataSet;
+        }
+        /**
+         * @description Returns a dataset containing the GP/s of each monster/dungeon
+         */
+        getGPperSecondDataSet() {
+                var gpDataSet = this.getGPperKillDataSet();
+                var dataSet = [];
+                var i = 0;
+                //Compile data from monsters in combat zones
+                combatAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                dataSet.push(
+                                        gpDataSet[i] / ((this.monsterSimData[monster].simSuccess) ? this.monsterSimData[monster].killTimeS : Infinity)
+                                );
+                                i++;
+                        })
+                })
+                for (let j = 0; j < DUNGEONS.length; j++) {
+                        dataSet.push(
+                                gpDataSet[i] / ((this.dungeonSimData[j].simSuccess) ? this.dungeonSimData[j].killTimeS : Infinity)
+                        )
+                        i++;
                 }
                 return dataSet;
         }
@@ -1060,6 +1656,7 @@ class mcsCard {
          */
         addButton(buttonText, onclickCallback, width, height) {
                 var newButton = document.createElement('button');
+                newButton.id = `MCS ${buttonText} Button`;
                 newButton.className = 'mcsButton';
                 newButton.style.width = `${width}px`;
                 newButton.style.height = `${height}px`;
@@ -1119,7 +1716,22 @@ class mcsCard {
                 this.container.appendChild(newCCContainer);
         }
 
-        addNumberOutput(labelText, initialValue, height, imageSrc,outputID) {
+        addTextInput(labelText, startValue, height, onInputCallback) {
+                var inputID = `MCS ${labelText} TextInput`;
+                var newCCContainer = this.createCCContainer(height);
+                newCCContainer.appendChild(this.createLabel(labelText, inputID));
+                var newInput = document.createElement('input');
+                newInput.id = inputID;
+                newInput.type = 'text';
+                newInput.value = startValue;
+                newInput.className = 'mcsTextInput';
+                newInput.style.width = this.inputWidth;
+                newInput.addEventListener('input', onInputCallback);
+                newCCContainer.appendChild(newInput);
+                this.container.appendChild(newCCContainer);
+        }
+
+        addNumberOutput(labelText, initialValue, height, imageSrc, outputID) {
                 if (!outputID) {
                         var outputID = `MCS ${labelText} Output`;
                 }
@@ -1141,6 +1753,7 @@ class mcsCard {
                 this.numOutputs.push(newOutput)
         }
 
+
         addSectionTitle(titleText) {
                 var newSectionTitle = document.createElement('div');
                 newSectionTitle.textContent = titleText;
@@ -1148,6 +1761,58 @@ class mcsCard {
                 newSectionTitle.style.width = this.width;
 
                 this.container.appendChild(newSectionTitle);
+        }
+
+        addMultiButton(buttonText,height,width,buttonCallbacks) {
+                var newButton;
+                var newCCContainer = document.createElement('div');
+                newCCContainer.className = 'mcsMultiButtonContainer';
+                newCCContainer.style.height = `${height}px`;
+                for (let i=0;i<buttonText.length;i++) {
+                        var newButton = document.createElement('button');
+                        newButton.id = `MCS ${buttonText[i]} Button`;
+                        newButton.className = 'mcsNoMargin mcsButton';
+                        newButton.style.width = `${width}px`;
+                        newButton.style.height = '100%';
+                        newButton.textContent = buttonText[i];
+                        newButton.onclick = buttonCallbacks[i];
+                        this.buttons.push(newButton);
+                        newCCContainer.appendChild(newButton);
+                }
+                this.container.appendChild(newCCContainer);
+        }
+
+        addRadio(labelText, height, radioName, radioLabels, radioCallbacks, radioDef, imageSrc) {
+                var newCCContainer = this.createCCContainer(height);
+                if (imageSrc && imageSrc != '') {
+                        newCCContainer.appendChild(this.createImage(imageSrc, height));
+                }
+                newCCContainer.appendChild(this.createLabel(labelText, ''));
+                newCCContainer.id = `MCS ${labelText} Radio Container`;
+                var radioContainer = document.createElement('div');
+                radioContainer.className = 'mcsRadioContainer';
+                radioContainer.style.width = this.inputWidth;
+                newCCContainer.appendChild(radioContainer);
+                //Create Radio elements with labels
+                for (let i = 0; i < radioLabels.length; i++) {
+                        radioContainer.appendChild(this.createRadio(radioName, radioLabels[i], `MCS ${labelText} Radio ${radioLabels[i]}`, radioDef == i, radioCallbacks[i]));
+                }
+                this.container.appendChild(newCCContainer);
+        }
+
+        createRadio(radioName, radioLabel, radioID, checked, radioCallback) {
+                var newDiv = document.createElement('div');
+                newDiv.appendChild(this.createLabel(radioLabel, radioID));
+                var newRadio = document.createElement('input');
+                newRadio.type = 'radio';
+                newRadio.id = radioID;
+                newRadio.name = radioName;
+                if (checked) {
+                        newRadio.checked = true;
+                }
+                newRadio.addEventListener('change', radioCallback);
+                newDiv.appendChild(newRadio);
+                return newDiv
         }
 
         createCCContainer(height) {
@@ -1232,19 +1897,23 @@ function mcsFormatNum(number, numDecimals) {
 
 // Wait for page to finish loading, then create an instance of the combat sim after 1 second
 var melvorCombatSim;
-window.addEventListener('load',() => {
-        setTimeout(()=>{melvorCombatSim = new mcsApp();console.log('Melvor Combat Sim v0.2.0 Loaded...');},1000)
-});
+const melvorCombatSimLoader = setInterval(() => {
+        if (isLoaded) {
+                clearInterval(melvorCombatSimLoader);
+                melvorCombatSim = new mcsApp();
+                console.log('Melvor Combat Sim v0.3.0 Loaded')
+        }
+}, 200);
 
 //Todo list:
 //Add reflect damage
 //UI Elements Missing:
 //Plot Title
 //Simple Log box to display the optimal xp/s enemy and zone, with the other relevant stats
-//Compute GP/s for monsters/dungeons
+//Note on saving the sale list: will need to transfer it over everytime we load the game since it could change with updates
+//Save and load functions for combat sim data in localstorage
 
 //Maybe list:
-//Ability to save and load gear sets
+//Ability to save and load gear sets, some initial work is done
 //Ability to optimize a leveling path
 //No spoiler mode (Use item completion)
-//Better sorting on equipment dropdowns

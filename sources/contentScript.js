@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.2.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.3.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2019>  <Coolrox95>
 
