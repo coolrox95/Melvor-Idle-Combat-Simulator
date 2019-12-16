@@ -1,3 +1,55 @@
+v0.3.0:
+Patch Notes:
+New: Added GP/s and GP/kill options as simulation outputs
+	-Additional Options have been added for these calculations:
+	-Sell Bones: Sell or keep bone drops
+	-Sell Loot: All (Sells all loot), Subset (Sells the selected subset of loot), None (Keeps all items)
+	-Loot Subset Editing:
+		-Set Default sets to not selling items that are unique to combat
+		-Set Discovered sets to selling items that you have discovered in the item log
+		-Cancel, aborts changing the item subset
+		-Save, confirms changing the item subset
+		-You can also manually select whether to sell or keep each item that can be looted
+New: Added Xp per Attack calculation for predicting arrow/rune costs
+Change: Avg Hit Damage is now Damage per Attack.
+Change: Gear dropdowns are now sorted by level requirements
+Change: Combat sim will now load without a refresh
+Change: HP loss per second is now reduced by passive HP regeneration.
+Fixed: Bar Chart no longer bugs out when there is no simulation data
+Fixed: Issue where combat sim wouldn't load.
+
+v0.2.1:
+Patch Notes:
+Fixed: Spell Dropdown displaying in wrong place
+Fixed: Wavy menus
+Fixed: Darkmode not setting properly on load
+
+v0.2.0
+Patch Notes:
+New: Added Darkmode. Darkmode uses the darkmode setting in game.
+Fixed: Bar plot tooltips no longer display : when rounding.
+Fixed: Combat Sim no longer displays on top of loading screen.
+
+Dev Notes:
+Removed mcsStatReadout class in favour of mcsCard
+Removed mcsSimPlotOptions class in favour of mcsCard
+Most HTML elements now have a class assigned from mainStyle.css
+mcsCCContainer now uses flex to align its contents
+
+v0.1.2
+Patch Notes:
+Fixed combat styles not importing from game
+Fixed spells not updating correctly when importing from game.
+Fixed attack speed not updating with ranged styles.
+Fixed combat tab container preventing interaction with game.
+Fixed y-axis labels displaying on top of bar chart.
+
+Dev Notes:
+Created mcsCard class to serve as baseclass for other cards
+Added mainStyle.css to contain classes for HTML elements
+Removed mcsGearSelecter class in favour of mcsCard
+Removed tab container element as it was not needed
+
 v0.1.1
 Fixed Elements of Melvor UI appearing on top of combat simulator.
 Added Scrolling capabilities for small windows.
