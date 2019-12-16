@@ -1,4 +1,4 @@
-# Melvor-Idle-Combat-Simulator v0.1
+# Melvor-Idle-Combat-Simulator v0.3.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
 This extension was built for version: Alpha v0.10 of Melvor Idle.
 
