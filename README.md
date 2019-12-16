@@ -17,21 +17,32 @@ Currently not available on the chrome webstore, but you can download the sources
 2. Select simulation options:
  - Max Hits: Controls the maximum number of attempts to hit an enemy before the simulation times out.
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
+ - Sell Bones: Whether or not to sell bones. Used in GP calculations.
+ - Sell Loot: Whether or not to sell all loot, a subset of loot or none of it.
+   - When subset is selected you may edit which items to sell, by clicking Edit Subset.
+   - Selecting Set Default will change the subset to keep combat unique items.
+   - Selecting Set Discovered will change the subset to keep undiscovered items.
+   - Hitting Cancel will prevent the subset from changing
+   - Hitting Save will confirm the current settings.
 3. Hit the Simulate button.
 4. Select the Plot Type to visualize your simulation results.
- - XP/s: Experience points per second for selected combat style's skills.
- - HP XP/s: Experience points per second for the Hitpoints skill.
- - HP loss/s: Average amount of HP lost per second while fighting an enemy/dungeon.
- - Damage/s: Average damage per second.
- - Average Kill Time: The time it takes in seconds to kill a singly enemy for Combat Areas or the time to clear a Dungeon.
- - Average Hit Damage: The average amount of damage done per hit attempt.
+ - XP per second: Experience points per second for selected combat style's skills.
+ - HP XP per second: Experience points per second for the Hitpoints skill.
+ - XP per Attack: Average amount of experience points per attack
+ - HP loss per second: Average amount of HP lost per second while fighting an enemy/dungeon. Includes passive regen.
+ - Damage per second: Average damage per second.
+ - Average Kill Time (s): The time it takes in seconds to kill a singly enemy for Combat Areas or the time to clear a Dungeon in seconds.
+ - Damage per Attack: The average amount of damage done per attack.
+ - GP per Kill: The average amount of GP earned when killing a monster/completing a dungeon.
+ - GP per second: The average amount of GP earned per second.
  5. Hide/Show the simulator by clicking the tab in the top right.
-
+## Limitations:
+Reflect damage is currently not simulated.
 ## Screenshots
 ### Darkmode
-![combatSim](https://i.imgur.com/dH7ooW9.png)
+![combatSim](https://imgur.com/MBq2h33.png)
 ### Lightmode
-![combatSim](https://i.imgur.com/35wXXE5.png)
+![combatSim](https://imgur.com/pRutjlt.png)
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
 Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or [submit a report](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/issues/new) to this repository.
