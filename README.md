@@ -4,7 +4,7 @@ This extension was built for version: Alpha v0.10.2 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
-After installing the extension, a refresh of the game is required.
+After installing the extension, a refresh of the game may be required.
 
 ### Firefox:
 Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/addon/melvor-idle-combat-simulator/).
