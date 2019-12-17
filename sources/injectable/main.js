@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.3.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.3.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2019>  <Coolrox95>
 
@@ -43,32 +43,38 @@ class mcsApp {
                 //Temporary GP/s settings variable
                 this.itemSubsetTemp = [];
 
-                //Create container for the tab and main content
-                this.container = document.createElement('div');
-                this.container.id = 'MCS Container';
                 //Create the container for the main content
                 this.content = document.createElement('div')
                 this.content.className = 'mcsTabContent'
-                this.content.style.height = '600px';
                 this.content.id = 'MCS Content';
-                this.container.appendChild(this.content);
-                //Create the tab to minimize/maximize the simulator
-                this.tab = document.createElement('div')
-                this.tab.id = 'MCS Tab';
-                this.tab.className = 'mcsTab';
-                this.tab.style.bottom = this.content.style.height;
-                this.tab.onclick = this.tabOnClick;
-                //Add Icon to tab
-                var tabLogo = document.createElement('img');
-                tabLogo.className = 'mcsTabLogo';
-                tabLogo.src = 'assets/media/skills/combat/combat.svg';
-                this.tab.appendChild(tabLogo);
-                //Add Text to tab
-                var tabText = document.createElement('div');
-                tabText.className = 'mcsTabText';
-                tabText.textContent = 'Combat Simulator';
-                this.tab.appendChild(tabText);
-                this.container.appendChild(this.tab);
+                this.content.style.display = 'none';
+
+                //This code will insert a tab into the actual sidebar
+                var newHeading = document.createElement('li');
+                newHeading.className = 'nav-main-heading';
+                newHeading.textContent = 'Tools';
+                var elem1 = document.createElement('li');
+                elem1.className = 'nav-main-item';
+
+                document.getElementsByClassName('nav-main-heading').forEach(heading => {
+                        if (heading.textContent == 'Skills') {
+                                heading.parentElement.insertBefore(newHeading, heading);
+                                heading.parentElement.insertBefore(elem1, heading);
+                        }
+                })
+                var elem2 = document.createElement('a');
+                elem2.className = 'nav-main-link nav-compact';
+                elem2.href = 'javascript:melvorCombatSim.tabOnClick();';
+                elem1.appendChild(elem2);
+                var elem3 = document.createElement('img');
+                elem3.className = 'nav-img';
+                elem3.src = 'assets/media/skills/combat/combat.svg';
+                elem2.appendChild(elem3);
+                var elem4 = document.createElement('span');
+                elem4.className = 'nav-main-link-name';
+                elem4.textContent = 'Combat Simulator';
+                elem2.appendChild(elem4);
+
                 //Add Cards to the container
                 //Add Filler Card
                 this.cardFiller = document.createElement('div');
@@ -76,7 +82,6 @@ class mcsApp {
                 this.content.appendChild(this.cardFiller);
                 //Gear/Level/Style/Spell Selection Card:
                 {
-
                         this.gearSelecter = new mcsCard(this.content, '345px', '100%', '120px', '220px');
                         this.gearSelecter.addSectionTitle('Equipment');
                         for (let i = 0; i < this.gearSubsets.length; i++) {
@@ -145,9 +150,9 @@ class mcsApp {
                         this.simPlotOpts2.addSectionTitle('Simulation Options');
                         this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, event => this.maxhitsInputOnChange(event));
                         this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, event => this.numtrialsInputOnChange(event));
-                        var plotTypeDropdownOptions = ['XP per second', 'HP XP per second','XP per Attack', 'HP Loss per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second'];
-                        var plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond','xpPerHit', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond'];
-                        this.simPlotOpts2.addDropdown('Plot Type', plotTypeDropdownOptions, plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
+                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'XP per Attack', 'HP Loss per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second'];
+                        var plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'xpPerHit', 'hpPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond'];
+                        this.simPlotOpts2.addDropdown('Plot Type', this.plotTypeDropdownOptions, plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
                         this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
                         this.simPlotOpts2.addSectionTitle('GP/s Options');
                         this.simPlotOpts2.addRadio('Sell Bones', 25, 'sellBones', ['Yes', 'No'], [e => this.sellBonesRadioOnChange(e, true), e => this.sellBonesRadioOnChange(e, false)], 1);
@@ -158,8 +163,8 @@ class mcsApp {
                 {
                         this.gpOptionsCard = new mcsCard(this.content, '320px', '100%', '100px', '200px');
                         this.gpOptionsCard.addSectionTitle('Item Subset Selection');
-                        this.gpOptionsCard.addMultiButton(['Set Default','Set Discovered'],25,150,[e=>this.setDefaultOnClick(e),e=>this.setDiscoveredOnClick(e)]);
-                        this.gpOptionsCard.addMultiButton(['Cancel','Save'],25,150,[e=>this.cancelSubsetOnClick(e),e=>this.saveSubsetOnClick(e)]);
+                        this.gpOptionsCard.addMultiButton(['Set Default', 'Set Discovered'], 25, 150, [e => this.setDefaultOnClick(e), e => this.setDiscoveredOnClick(e)]);
+                        this.gpOptionsCard.addMultiButton(['Cancel', 'Save'], 25, 150, [e => this.cancelSubsetOnClick(e), e => this.saveSubsetOnClick(e)]);
                         this.gpOptionsCard.addTextInput('Search:', '', 25, e => this.searchInputOnInput(e));
                         //Top labels
                         var labelCont = document.createElement('div');
@@ -179,8 +184,8 @@ class mcsApp {
                         labelCont.appendChild(lab2);
                         this.gpOptionsCard.container.appendChild(labelCont);
                         this.gpSearchResults = new mcsCard(this.gpOptionsCard.container, '100%', '', '', '100px');
-                        for (let i=0;i<this.simulator.lootList.length;i++) {
-                                this.gpSearchResults.addRadio(this.simulator.lootList[i].name, 20, `${this.simulator.lootList[i].name}-radio`, ['Yes', 'No'], [e=>this.lootListRadioOnChange(e,i,true),e=>this.lootListRadioOnChange(e,i,false)], 1);
+                        for (let i = 0; i < this.simulator.lootList.length; i++) {
+                                this.gpSearchResults.addRadio(this.simulator.lootList[i].name, 20, `${this.simulator.lootList[i].name}-radio`, ['Yes', 'No'], [e => this.lootListRadioOnChange(e, i, true), e => this.lootListRadioOnChange(e, i, false)], 1);
                         }
                         this.gpSearchResults.container.style.overflowY = 'scroll';
                         this.gpSearchResults.container.style.overflowX = 'hidden';
@@ -192,7 +197,11 @@ class mcsApp {
                 //Bar Chart Card
                 this.plotter = new mcsPlotter(this);
                 //Now that everything is done we add it to the document
-                document.body.appendChild(this.container);
+                var filler = document.createElement('div');
+                filler.className = 'mcsFlexFiller';
+                document.getElementById('main-container').appendChild(filler);
+                document.getElementById('main-container').appendChild(this.content);
+                //document.body.appendChild(this.container);
                 //Push an update to the displays
                 document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
                 document.getElementById('MCS Edit Subset Button').style.display = 'none';
@@ -205,6 +214,7 @@ class mcsApp {
                 } else {
                         this.darkModeSwitch(false);
                 }
+                this.plotter.updateBars(this.simulator.getDataSet('xpPerSecond'));
                 //Add hooks into darkmode buttons
                 document.getElementById('setting-darkmode-enable').addEventListener('click', event => this.darkModeSwitch(true, event));
                 document.getElementById('setting-darkmode-disable').addEventListener('click', event => this.darkModeSwitch(false, event));
@@ -214,13 +224,10 @@ class mcsApp {
         }
         tabOnClick() {
                 var x = document.getElementById('MCS Content');
-                var y = document.getElementById('MCS Tab');
                 if (x.style.display === 'none') {
                         x.style.display = 'flex';
-                        y.style.bottom = x.style.height;
                 } else {
                         x.style.display = 'none';
-                        y.style.bottom = '0px';
                 }
         }
         //Callback Functions for Gear select Card
@@ -363,6 +370,7 @@ class mcsApp {
         }
         plottypeDropdownOnChange(event) {
                 this.plotter.plotType = event.currentTarget.value;
+                this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[event.currentTarget.selectedIndex];
                 this.plotter.updateBars(this.simulator.getDataSet(event.currentTarget.value));
         }
         simulateButtonOnClick(event) {
@@ -407,7 +415,7 @@ class mcsApp {
         searchInputOnInput(event) {
                 this.updateGPSubset(event.currentTarget.value);
         }
-        lootListRadioOnChange(event,llID,newState) {
+        lootListRadioOnChange(event, llID, newState) {
                 this.simulator.lootList[llID].sell = newState;
         }
         //Functions that manipulate the UI
@@ -490,12 +498,12 @@ class mcsApp {
         //Callback to add to games darkmode settings
         darkModeSwitch(mode) {
                 if (mode) {
-                        this.container.className = 'mcsContainer mcsDarkMode';
+                        this.content.className = 'mcsTabContent mcsDarkMode';
                         this.setDropdownOptionsColor('#2c343f');
                         this.plotter.bars.forEach(bar => { bar.style.color = 'steelblue' });
                         this.plotter.gridLine.forEach(line => { line.style.borderColor = 'lightslategray' })
                 } else {
-                        this.container.className = 'mcsContainer';
+                        this.content.className = 'mcsTabContent mcsContainer';
                         this.setDropdownOptionsColor('white');
                         this.plotter.bars.forEach(bar => { bar.style.color = '#0072BD' });
                         this.plotter.gridLine.forEach(line => { line.style.borderColor = 'lightgray' })
@@ -613,6 +621,12 @@ class mcsPlotter {
                 this.plotContainer.setAttribute('style', `width: ${this.width}px;min-width: ${this.width}px;`);
                 this.plotContainer.id = 'MCS Plotter';
 
+                this.plotTitle = document.createElement('div');
+                this.plotTitle.className = 'mcsPlotTitle';
+                this.plotTitle.style.width = `${this.barGap * 2 + this.barWidth * totBars}px`;
+                this.plotTitle.textContent = 'XP per Second';
+                this.plotContainer.appendChild(this.plotTitle);
+
                 this.plotTopContainer = document.createElement('div');
                 this.plotTopContainer.className = 'mcsPlotTopContainer';
                 this.plotTopContainer.id = 'MCS Plotter Top Container';
@@ -644,10 +658,9 @@ class mcsPlotter {
                 }
 
                 //Do Bars and images
-                var barColor = '#0072BD'
                 this.barStyle = `width: ${this.barWidth - this.barGap * 2}px;height: 0%;`;
                 this.xAxisImages = [];
-                this.xAxisImageStyle = `position: absolute;width: ${this.barWidth}px;height ${this.barWidth}px;top: 0px;`;
+                this.xAxisImageStyle = `width: ${this.barWidth}px;height ${this.barWidth}px;`;
                 this.bars = [];
                 for (let i = 0; i < totBars; i++) {
                         this.bars.push(document.createElement('div'));
@@ -657,6 +670,7 @@ class mcsPlotter {
                         this.plotBox.appendChild(this.bars[i]);
 
                         this.xAxisImages.push(document.createElement('img'));
+                        this.xAxisImages[i].className = 'mcsXAxisImage';
                         this.xAxisImages[i].setAttribute('src', this.barImageSrc[i]);
                         this.xAxisImages[i].setAttribute('style', this.xAxisImageStyle);
                         this.xAxisImages[i].style.left = `${i * this.barWidth}px`;
@@ -665,15 +679,24 @@ class mcsPlotter {
                 //Do Second descriptions
                 var botLength = 0;
                 this.barBottomDivs = [];
-                this.barBottomStyle = `position: absolute;height: ${this.xAxisHeight - 20}px;top: 20px;text-align: center`;
-                for (let i = 0; i < this.barBottomNames.length; i++) {
+                var divi = 0;
+                for (let i = this.barBottomNames.length - 1; i > -1; i--) {
                         this.barBottomDivs.push(document.createElement('div'));
-                        this.barBottomDivs[i].appendChild(document.createTextNode(this.barBottomNames[i]));
-                        this.barBottomDivs[i].setAttribute('style', this.barBottomStyle);
-                        this.barBottomDivs[i].style.left = `${100 * botLength / totBars}%`;
-                        this.barBottomDivs[i].style.width = `${100 * this.barBottomLength[i] / totBars}%`;
-                        this.xAxis.appendChild(this.barBottomDivs[i]);
+                        this.barBottomDivs[divi].appendChild(document.createTextNode(this.barBottomNames[i]));
+                        this.barBottomDivs[divi].className = 'mcsPlotLabel';
+                        this.barBottomDivs[divi].style.right = `${100 * botLength / totBars + 50 * this.barBottomLength[i] / totBars}%`;
+                        this.xAxis.appendChild(this.barBottomDivs[divi]);
+                        var newSect = document.createElement('div');
+                        newSect.className = 'mcsXAxisSection';
+                        newSect.style.width = `${100 * this.barBottomLength[i] / totBars}%`;
+                        newSect.style.right = `${100 * botLength / totBars}%`;
+                        if (i==0) {
+                                newSect.style.borderLeftStyle = 'solid';
+                        }
+                        this.xAxis.appendChild(newSect);
+
                         botLength += this.barBottomLength[i];
+                        divi++;
                 }
                 //Do tickmarks
                 this.tickMarks = [];
@@ -1206,7 +1229,7 @@ class mcsSimulator {
                         this.monsterSimData[monsterID].avgKillTime = enemySpawnTimer + playerStats.attackSpeed * this.monsterSimData[monsterID].avgNumHits;
 
                         this.monsterSimData[monsterID].hpPerEnemy = damageToPlayer / Ntrials;
-                        this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000 - playerStats.avgHPRegen/60;
+                        this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000 - playerStats.avgHPRegen / 60;
                         if (this.monsterSimData[monsterID].hpPerSecond < 0) {
                                 this.monsterSimData[monsterID].hpPerSecond = 0;
                         }
@@ -1279,7 +1302,7 @@ class mcsSimulator {
          * @param {number} monsterID 
          */
         computeAverageCoins(monsterID) {
-                return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1)*this.simGpBonus / 2;
+                return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1) * this.simGpBonus / 2;
         }
         /**
          * @description Computes the chance that a monster will drop loot when it dies
@@ -1443,7 +1466,7 @@ class mcsSimulator {
                         return 0;
                 })
                 //Set Salelist IDs
-                for (let i=0;i<lootList.length;i++) {
+                for (let i = 0; i < lootList.length; i++) {
                         this.saleList[lootList[i].id].lootlistID = i;
                 }
                 return lootList;
@@ -1452,7 +1475,7 @@ class mcsSimulator {
          * @description Sets the lootlist to the current sale list
          */
         setLootListToSaleList() {
-                this.saleList.forEach(item=>{
+                this.saleList.forEach(item => {
                         if (item.lootlistID != -1) {
                                 this.lootList[item.lootlistID].sell = item.sell;
                         }
@@ -1462,7 +1485,7 @@ class mcsSimulator {
          * @description Sets the salelist to the loot list
          */
         setSaleListToLootList() {
-                this.lootList.forEach(item=>{
+                this.lootList.forEach(item => {
                         this.saleList[item.id].sell = item.sell;
                 })
         }
@@ -1483,7 +1506,7 @@ class mcsSimulator {
                 for (let i = 0; i < this.saleList.length; i++) {
                         this.saleList[i].sell = true;
                 }
-                this.defaultSaleKeep.forEach(itemID=>{
+                this.defaultSaleKeep.forEach(itemID => {
                         this.saleList[itemID].sell = false;
                 })
         }
@@ -1501,10 +1524,10 @@ class mcsSimulator {
          * @description Sets the loot list to default settings
          */
         setLootListToDefault() {
-                for (let i=0;i<this.lootList.length;i++) {
+                for (let i = 0; i < this.lootList.length; i++) {
                         this.lootList[i].sell = true;
                 }
-                this.defaultSaleKeep.forEach(itemID=>{
+                this.defaultSaleKeep.forEach(itemID => {
                         if (this.saleList[itemID].onLootList) {
                                 this.lootList[this.saleList[itemID].lootlistID].sell = false;
                         }
@@ -1763,12 +1786,12 @@ class mcsCard {
                 this.container.appendChild(newSectionTitle);
         }
 
-        addMultiButton(buttonText,height,width,buttonCallbacks) {
+        addMultiButton(buttonText, height, width, buttonCallbacks) {
                 var newButton;
                 var newCCContainer = document.createElement('div');
                 newCCContainer.className = 'mcsMultiButtonContainer';
                 newCCContainer.style.height = `${height}px`;
-                for (let i=0;i<buttonText.length;i++) {
+                for (let i = 0; i < buttonText.length; i++) {
                         var newButton = document.createElement('button');
                         newButton.id = `MCS ${buttonText[i]} Button`;
                         newButton.className = 'mcsNoMargin mcsButton';
@@ -1891,29 +1914,25 @@ function mcsFormatNum(number, numDecimals) {
         }
         return outStr.padEnd(expectedLength, '0')
 }
-
-//Define Variable
-//var melvorCombatSim = new mcsApp();
-
-// Wait for page to finish loading, then create an instance of the combat sim after 1 second
+// Wait for page to finish loading, then create an instance of the combat sim
 var melvorCombatSim;
 const melvorCombatSimLoader = setInterval(() => {
         if (isLoaded) {
                 clearInterval(melvorCombatSimLoader);
                 melvorCombatSim = new mcsApp();
-                console.log('Melvor Combat Sim v0.3.0 Loaded')
+                console.log('Melvor Combat Sim v0.3.1 Loaded')
+                //Quickload!
+                document.getElementById('m-page-loader').className = 'hide';
         }
 }, 200);
 
 //Todo list:
 //Add reflect damage
-//UI Elements Missing:
-//Plot Title
-//Simple Log box to display the optimal xp/s enemy and zone, with the other relevant stats
-//Note on saving the sale list: will need to transfer it over everytime we load the game since it could change with updates
-//Save and load functions for combat sim data in localstorage
 
-//Maybe list:
+//Future Features List:
+//Ability to click on a bar, and recieve additional info about that enemy/dungeon
 //Ability to save and load gear sets, some initial work is done
-//Ability to optimize a leveling path
+//Save and load functions for combat sim data in localstorage
+//Note on saving the sale list: will need to transfer it over everytime we load the game since it could change with updates
+//Ability to optimize a leveling path/calculate the time it takes to get from x level to y level
 //No spoiler mode (Use item completion)
