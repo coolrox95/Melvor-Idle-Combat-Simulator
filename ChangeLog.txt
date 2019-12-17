@@ -1,3 +1,13 @@
+v0.3.1:
+New: Added plot title.
+New: Quick-load, the simulator now causes the game to display when it's done loading instead of after 5 seconds.
+Change: The minimization tab is now part of the game's sidebar
+Change: The simulator now starts minimized
+Change: The simulator no longer displays on top of the sidebar.
+Change: You can now scroll down to show content blocked by the simulator.
+Change: The combat area labels are now angled, with brackets around the enemies.
+Fix: Initial plot display is now set properly.
+
 v0.3.0:
 Patch Notes:
 New: Added GP/s and GP/kill options as simulation outputs
