@@ -13,8 +13,9 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
 
 ## Instructions:
-1. Select your gear using the drop down menus, or import it from the game.
-2. Select simulation options:
+1. Toggle the display of the simulator using the option on the game's sidebar.
+2. Select your gear using the drop down menus, or import it from the game.
+3. Select simulation options:
  - Max Hits: Controls the maximum number of attempts to hit an enemy before the simulation times out.
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
  - Sell Bones: Whether or not to sell bones. Used in GP calculations.
@@ -24,8 +25,8 @@ Currently not available on the chrome webstore, but you can download the sources
    - Selecting Set Discovered will change the subset to keep undiscovered items.
    - Hitting Cancel will prevent the subset from changing
    - Hitting Save will confirm the current settings.
-3. Hit the Simulate button.
-4. Select the Plot Type to visualize your simulation results.
+4. Hit the Simulate button.
+5. Select the Plot Type to visualize your simulation results.
  - XP per second: Experience points per second for selected combat style's skills.
  - HP XP per second: Experience points per second for the Hitpoints skill.
  - XP per Attack: Average amount of experience points per attack
@@ -35,14 +36,13 @@ Currently not available on the chrome webstore, but you can download the sources
  - Damage per Attack: The average amount of damage done per attack.
  - GP per Kill: The average amount of GP earned when killing a monster/completing a dungeon.
  - GP per second: The average amount of GP earned per second.
- 5. Hide/Show the simulator by clicking the tab in the top right.
 ## Limitations:
 Reflect damage is currently not simulated.
 ## Screenshots
 ### Darkmode
-![combatSim](https://imgur.com/MBq2h33.png)
+![combatSim](https://i.imgur.com/ExKMd1m.png)
 ### Lightmode
-![combatSim](https://imgur.com/pRutjlt.png)
+![combatSim](https://i.imgur.com/BYGUfl1.png)
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
 Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or [submit a report](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/issues/new) to this repository.
