@@ -1,6 +1,6 @@
-/*  Melvor Combat Simulator v0.3.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.4.0: Adds a combat simulator to Melvor Idle
 
-    Copyright (C) <2019>  <Coolrox95>
+    Copyright (C) <2020>  <Coolrox95>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
