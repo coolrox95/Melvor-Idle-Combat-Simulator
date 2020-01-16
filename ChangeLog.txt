@@ -1,3 +1,22 @@
+v0.4.0:
+Melvor Combat sim has been updated for game version Alpha v0.11.1
+New: Prayer has been added to the simulator
+	-Prayers available for your prayer level can now be selected from the prayer menu
+	-Importing from the game will select your active prayers
+	-Prayer point use while fighting an enemy/dungeon is tracked.
+	-Prayer experience gains are now tracked.
+New: Slayer has been added to the simulator
+	-Slayer experience gains are now tracked
+	-You can now select whether to calculate slayer xp/s as if it were a slayer task or not.
+	-Monsters which you cannot access due to insufficient slayer level or equipment are now highlighted as red.
+New: Monster/Dungeon Inspection has been added. Simply click on a bar and see a summary of the simulation for the specific monster/dungeon.
+New: Game version detection: The simulator will now detect the currently running game version and display a prompt if it does not match.
+
+Change: Quick load has been removed, as the game does this by default.
+Fix: Simulation calculations have been adjusted to account for the combat number adjustment
+Fix: GP/s calculations now account for the internal changes in monster loot logic
+Fix: Bar chart tick marks no longer prevent tooltip display.
+
 v0.3.1:
 New: Added plot title.
 New: Quick-load, the simulator now causes the game to display when it's done loading instead of after 5 seconds.
