@@ -1,6 +1,6 @@
 # Melvor-Idle-Combat-Simulator v0.4.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.11.1 of Melvor Idle.
+This extension was built for version: Alpha v0.11.2 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
