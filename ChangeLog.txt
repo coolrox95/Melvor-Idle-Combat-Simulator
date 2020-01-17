@@ -1,3 +1,7 @@
+v0.4.1:
+Melvor Combat sim has been updated for game version Alpha v0.11.2
+Change: Gp/s calculation now accounts for bones always dropping.
+
 v0.4.0:
 Melvor Combat sim has been updated for game version Alpha v0.11.1
 New: Prayer has been added to the simulator
