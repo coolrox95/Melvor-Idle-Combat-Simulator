@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.4.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.4.2: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -1312,7 +1312,7 @@ class mcsSimulator {
                 var effectiveRngDefenceLevel = Math.floor(this.playerLevels.Defence + 8 + 1);
                 this.maxRngDefRoll = Math.floor(effectiveRngDefenceLevel * (this.rngDefBon + 64) * (1 + (this.prayerBonusDefenceRanged) / 100));
                 //This might be changed because it is currently a bug
-                var effectiveMagicDefenceLevel = Math.floor(Math.floor(this.playerLevels.Magic * 0.7) + Math.floor(this.playerLevels.Defence * 0.3));
+                var effectiveMagicDefenceLevel = Math.floor(this.playerLevels.Magic * 0.7 + this.playerLevels.Defence * 0.3);
                 this.maxMagDefRoll = Math.floor(effectiveMagicDefenceLevel * (this.magDefBon + 64) * (1 + (this.prayerBonusDefenceMagic / 100)) + 8 + 1);
                 this.dmgRed = this.eqpDmgRed;
         }
@@ -1381,10 +1381,16 @@ class mcsSimulator {
                         maxMagDefRoll: this.maxMagDefRoll,
                         maxRngDefRoll: this.maxRngDefRoll,
                         xpBonus: 0,
-                        avgHPRegen: 1
+                        avgHPRegen: 1,
+                        damageReduction: this.dmgRed,
+                        reflect: false
                 }
+                console.log(playerStats);
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Emerald_Ring) {
                         playerStats.xpBonus = 0.1;
+                }
+                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Sapphire_Ring) {
+                        playerStats.reflect = true;
                 }
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
                         this.simGpBonus = 1.15;
@@ -1398,18 +1404,38 @@ class mcsSimulator {
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Hitpoints_Skillcape) {
                         playerStats.avgHPRegen += 5;
                 }
+
                 playerStats.avgHPRegen *= numberMultiplier;
                 if (this.prayerSelected[CONSTANTS.prayer.Rapid_Heal]) playerStats.avgHPRegen *= 2;
 
                 //Compute prayer point usage
+                let hasPrayerCape = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Prayer_Skillcape);
                 this.prayerPointsPerAttack = 0;
                 this.prayerPointsPerEnemy = 0;
                 this.prayerPointsPerHeal = 0;
                 for (let i = 0; i < PRAYER.length; i++) {
                         if (this.prayerSelected[i]) {
-                                this.prayerPointsPerAttack += PRAYER[i].pointsPerPlayer;
-                                this.prayerPointsPerEnemy += PRAYER[i].pointsPerEnemy;
-                                this.prayerPointsPerHeal += PRAYER[i].pointsPerRegen;
+                                if (hasPrayerCape) {
+                                        let attQty = Math.floor(PRAYER[i].pointsPerPlayer / 2);
+                                        if (attQty == 0) {
+                                                attQty = 1;
+                                        }
+                                        let enemyQty = Math.floor(PRAYER[i].pointsPerEnemy / 2);
+                                        if (enemyQty == 0) {
+                                                enemyQty = 1;
+                                        }
+                                        let healQty = Math.floor(PRAYER[i].pointsPerRegen / 2);
+                                        if (healQty == 0) {
+                                                healQty = 1;
+                                        }
+                                        this.prayerPointsPerAttack += attQty;
+                                        this.prayerPointsPerEnemy += enemyQty;
+                                        this.prayerPointsPerHeal += healQty;
+                                } else {
+                                        this.prayerPointsPerAttack += PRAYER[i].pointsPerPlayer;
+                                        this.prayerPointsPerEnemy += PRAYER[i].pointsPerEnemy;
+                                        this.prayerPointsPerHeal += PRAYER[i].pointsPerRegen;
+                                }
                         }
                 }
                 var Ntrials = this.Ntrials;
@@ -1551,15 +1577,20 @@ class mcsSimulator {
                 var xpToAdd = 0;
                 var hpXpToAdd = 0;
                 var prayerXpToAdd = 0;
-                var enemyHitChances = 0;
                 var damageToPlayer = 0;
                 var simSuccess = true;
-
                 var damageToEnemy = 0;
+                var enemyAttackTimer = 0; //Time tracking for enemy Attacks
+                //var enemyReflectDamage = 0; //Damage caused by reflect
+
+                //Start simulation for each trial
                 while (enemyKills < Ntrials && simSuccess) {
-                        //Do player attacking enemy
+                        //Reset stats for trial
                         currentHP = enemyStats.hitpoints;
-                        currentHits = 0
+                        currentHits = 0;
+                        enemyAttackTimer = 0;
+
+                        //Simulate combat until enemy is dead or max hits has been reached
                         while (currentHP > 0) {
                                 currentHits++;
                                 totalHits++;
@@ -1567,6 +1598,25 @@ class mcsSimulator {
                                         simSuccess = false;
                                         break;
                                 }
+                                //Process Enemy Hits
+                                enemyAttackTimer += playerStats.attackSpeed;
+                                while (enemyAttackTimer >= enemyStats.attackSpeed) {
+                                        totalEnemyHits++;
+                                        if (enemyAccuracy > Math.floor(Math.random() * 100)) {
+                                                let enemyDamage = Math.floor(Math.random() * enemyStats.maxHit) + 1;
+                                                enemyDamage -= Math.floor(((playerStats.damageReduction / 100) * enemyDamage));
+                                                damageToPlayer += enemyDamage;
+                                        }
+                                        if (playerStats.reflect) {
+                                                let reflectDamage = Math.floor((Math.random() * 3) * numberMultiplier);
+                                                if (currentHP > reflectDamage) {
+                                                        currentHP -= reflectDamage;
+                                                        //enemyReflectDamage += reflectDamage;
+                                                }
+                                        }
+                                        enemyAttackTimer -= enemyStats.attackSpeed;
+                                }
+                                //Process Player Hit
                                 if (playerAccuracy > Math.floor(Math.random() * 100)) {
                                         damageToEnemy = Math.floor(Math.random() * playerStats.maxHit) + 1;
                                         if (damageToEnemy > currentHP) {
@@ -1599,14 +1649,6 @@ class mcsSimulator {
                                 }
                         }
                         enemyKills++;
-                        //Do enemy attacking player
-                        enemyHitChances = Math.floor(currentHits * playerStats.attackSpeed / enemyStats.attackSpeed);
-                        totalEnemyHits += enemyHitChances;
-                        for (let i = 0; i < enemyHitChances; i++) {
-                                if (enemyAccuracy > Math.floor(Math.random() * 100)) {
-                                        damageToPlayer += Math.floor(Math.random() * enemyStats.maxHit) + 1;
-                                }
-                        }
                 }
                 //Compute stats from simulation
                 this.monsterSimData[monsterID].simSuccess = simSuccess;
@@ -1699,6 +1741,9 @@ class mcsSimulator {
                                 }
                                 if (!gearFound) {
                                         canEnter = false;
+                                }
+                                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Slayer_Skillcape) {
+                                        canEnter = true;
                                 }
                         }
                         for (let j = 0; j < combatAreas[i].monsters.length; j++) {
@@ -2377,9 +2422,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.4.1 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.4.2 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.4.1 Loaded');
+                                        console.log('Melvor Combat Sim v0.4.2 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
