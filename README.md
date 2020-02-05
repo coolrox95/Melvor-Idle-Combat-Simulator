@@ -1,4 +1,4 @@
-# Melvor-Idle-Combat-Simulator v0.4.1
+# Melvor-Idle-Combat-Simulator v0.4.2
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
 This extension was built for version: Alpha v0.11.2 of Melvor Idle.
 
@@ -41,8 +41,6 @@ Currently not available on the chrome webstore, but you can download the sources
  - GP per Kill: The average amount of GP earned when killing a monster/completing a dungeon.
  - GP per second: The average amount of GP earned per second.
 6. Click on a bar to view detailed information about that monster/dungeon.
-## Limitations:
-Reflect damage is currently not simulated.
 ## Screenshots
 ### Darkmode
 ![combatSim](https://imgur.com/DNrbI2Z.png)
