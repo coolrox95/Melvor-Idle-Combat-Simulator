@@ -1,3 +1,11 @@
+v0.4.2:
+Fixed some bugs with simulator accuracy.
+Fix: Magic evasion is now calculated properly.
+Fix: Prayer cape is now accounted for
+Fix: Slayer cape is now accounted for
+Fix: Reflect damage is now accounted for
+Fix: Damage reduction is now actually used in hp/s calculations instead of just being displayed
+
 v0.4.1:
 Melvor Combat sim has been updated for game version Alpha v0.11.2
 Change: Gp/s calculation now accounts for bones always dropping.
