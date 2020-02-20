@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.4.2
+# Melvor-Idle-Combat-Simulator v0.5.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.11.2 of Melvor Idle.
+This extension was built for version: Alpha v0.12.2 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -14,7 +14,7 @@ Currently not available on the chrome webstore, but you can download the sources
 
 ## Instructions:
 1. Toggle the display of the simulator using the option on the game's sidebar.
-2. Select your gear using the drop down menus, or import it from the game. Select Prayers using the prayer menu.
+2. Select your gear using the drop down menus, or import it from the game. Select Prayers using the prayer menu. Select potions from the potions menu.
 3. Select simulation options:
  - Max Hits: Controls the maximum number of attempts to hit an enemy before the simulation times out.
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
