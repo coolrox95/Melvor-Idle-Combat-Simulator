@@ -18,6 +18,9 @@
     z-index: 1000;
 }
 
+.mcsNoSelect {
+    user-select: none;
+}
 .mcsFlexFiller {
     flex-grow: 1;
     height: 0px;
