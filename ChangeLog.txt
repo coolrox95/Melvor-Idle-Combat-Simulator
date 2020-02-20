@@ -1,3 +1,17 @@
+v0.5.0:
+Melvor Combat Sim has been updated for game version Alpha v0.12.2
+New: The tools can now be hidden like combat or skills
+New: Potions have been implemented
+New: Hitpoints level has been added due to its impact on regen rate
+New: Chapeau Noir is accounted for in GP calculations
+
+Change: Default prayer bonuses adjusted to reflect game changes
+Change: HP Regen calculation has been adjusted to reflect game changes
+
+Fix: Removed console logging of internal objects on simulation
+Fix: Simulator shows up in the sidebar again
+Fix: Reflect damage is now only done when enemies do damage, not when they try to hit
+
 v0.4.2:
 Fixed some bugs with simulator accuracy.
 Fix: Magic evasion is now calculated properly.
