@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.5.0
+# Melvor-Idle-Combat-Simulator v0.6.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.12.2 of Melvor Idle.
+This extension was built for version: Alpha v0.13 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -40,7 +40,10 @@ Currently not available on the chrome webstore, but you can download the sources
  - Damage per Attack: The average amount of damage done per attack.
  - GP per Kill: The average amount of GP earned when killing a monster/completing a dungeon.
  - GP per second: The average amount of GP earned per second.
+ - Potential Herblore XP/s: The potential herblore xp earned using lucky herb potions. Assumes crafting the most xp efficient potions.
 6. Click on a bar to view detailed information about that monster/dungeon.
+## A Note On Simulation Accuracy
+This simulator assumes that the game is running with absolutely no slowdowns, and each action is proccessed instantaneously. In reality this is not true, and measured rates will tend to be lower.
 ## Screenshots
 ### Darkmode
 ![combatSim](https://imgur.com/DNrbI2Z.png)
