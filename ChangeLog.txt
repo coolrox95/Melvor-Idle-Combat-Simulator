@@ -1,3 +1,15 @@
+v0.6.0:
+Melvor Combat Sim has been updated for game version Alpha v0.13
+New: The divine potion has been implemented
+New: The Lucky herb potion has been implemented
+New: Potential herblore xp has been added. This is based on using lucky herb potions and crafting the most xp efficient potions.
+New: Aorpheats Signet Ring has been implemented
+New: Signet Ring part b has been added to gp calculations
+New: Prayer magic damage bonus has been implemented
+
+Fix: Slayer Areas show up in the simulator again
+
+
 v0.5.0:
 Melvor Combat Sim has been updated for game version Alpha v0.12.2
 New: The tools can now be hidden like combat or skills
