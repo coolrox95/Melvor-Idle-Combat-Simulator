@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.5.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.6.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -313,8 +313,8 @@ class mcsApp {
                         this.simPlotOpts2.addSectionTitle('Simulation Options');
                         this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, event => this.maxhitsInputOnChange(event));
                         this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, event => this.numtrialsInputOnChange(event));
-                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'Prayer XP per second', 'Slayer XP per second', 'XP per Attack', 'HP Loss per second', 'Prayer Points per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second'];
-                        this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond'];
+                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'Prayer XP per second', 'Slayer XP per second', 'XP per Attack', 'HP Loss per second', 'Prayer Points per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second', 'Potential Herblore XP/s'];
+                        this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond'];
                         this.simPlotOpts2.addDropdown('Plot Type', this.plotTypeDropdownOptions, this.plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
                         this.simPlotOpts2.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [e => this.slayerTaskRadioOnChange(e, true), e => this.slayerTaskRadioOnChange(e, false)], 1)
                         this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
@@ -365,7 +365,7 @@ class mcsApp {
                         this.zoneInfoCard = new mcsCard(this.simPlotOpts2.container, '100%', '', '100px', '100px');
                         this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
                         this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
-                        var zoneInfoNames = ['XP/s', 'HP XP/s', 'Prayer XP/s', 'Slayer XP/s', 'XP/attack', 'HP Lost/s', 'Prayer Points/s', 'Damage/s', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/s'];
+                        var zoneInfoNames = ['XP/s', 'HP XP/s', 'Prayer XP/s', 'Slayer XP/s', 'XP/attack', 'HP Lost/s', 'Prayer Points/s', 'Damage/s', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/s', 'Herb XP/s'];
                         for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
                                 this.zoneInfoCard.addNumberOutput(zoneInfoNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`);
                         }
@@ -378,6 +378,12 @@ class mcsApp {
                         this.barMonsterIDs = [];
                         this.barIsDungeon = [];
                         combatAreas.forEach(area => {
+                                area.monsters.forEach(monster => {
+                                        this.barMonsterIDs.push(monster);
+                                        this.barIsDungeon.push(false);
+                                })
+                        })
+                        slayerAreas.forEach(area => {
                                 area.monsters.forEach(monster => {
                                         this.barMonsterIDs.push(monster);
                                         this.barIsDungeon.push(false);
@@ -978,6 +984,16 @@ class mcsPlotter {
                                 this.barImageSrc.push(MONSTERS[combatAreas[i].monsters[j]].media);
                         }
                 }
+                for (let i = 0; i < slayerAreas.length; i++) {
+                        totBars += slayerAreas[i].monsters.length;
+                        this.barBottomNames.push(slayerAreas[i].areaName);
+                        this.barBottomLength.push(slayerAreas[i].monsters.length);
+                        for (let j = 0; j < slayerAreas[i].monsters.length; j++) {
+                                this.barNames.push(MONSTERS[slayerAreas[i].monsters[j]].name);
+                                this.barImageSrc.push(MONSTERS[slayerAreas[i].monsters[j]].media);
+                        }
+                }
+
                 this.barBottomNames.push('Dungeons');
                 this.barBottomLength.push(DUNGEONS.length);
                 totBars += DUNGEONS.length;
@@ -1235,6 +1251,7 @@ class mcsSimulator {
                 this.magReq = 1;
                 this.defReq = 1;
                 this.slayerXPBonus = 0;
+                this.chanceToDoubleLoot = 0;
                 //Combat Stats
                 this.selectedSpell = 0;
                 this.styles = {
@@ -1295,7 +1312,21 @@ class mcsSimulator {
                         magicEvasion: 0, //5
                         hpRegen: 0, //7
                         diamondLuck: false, //9
+                        divine: 0, //10
+                        luckyHerb: 0 //11
                 }
+
+                //Herblore XP stuff
+                this.xpPerHerb = {
+                        527: 10, //Garum
+                        528: 14, //Sourweed
+                        529: 33, //Mantalyme
+                        530: 41, //Lemontyle
+                        531: 53, //Oxilyme
+                        532: 85, //Poraxx
+                        533: 112, //Pigtayle
+                        534: 160  //Barrentoe
+                };
                 //Simulation settings
                 this.Nhitmax = 1000; //Max number of player hits to attempt before timeout
                 this.Ntrials = 1000; //Number of enemy kills to simulate
@@ -1322,7 +1353,9 @@ class mcsSimulator {
                                 prayerXpPerEnemy: 0,
                                 prayerXpPerSecond: 0,
                                 slayerXpPerSecond: 0,
-                                ppConsumedPerSecond: 0
+                                ppConsumedPerSecond: 0,
+                                herbloreXPPerSecond: 0,
+                                signetTime: 0
                         })
                 }
                 this.dungeonSimData = [];
@@ -1343,12 +1376,17 @@ class mcsSimulator {
                                 gpPerSecond: 0,
                                 prayerXpPerSecond: 0,
                                 slayerXpPerSecond: 0,
-                                ppConsumedPerSecond: 0
+                                ppConsumedPerSecond: 0,
+                                herbloreXPPerSecond: 0,
+                                signetTime: 0
                         })
                 }
                 this.simGpBonus = 1;
                 this.simLootBonus = 1;
+                this.simBoneBonus = 1;
                 this.simSlayerXPBonus = 0;
+                this.simTopaz = false;
+                this.simHerbBonus = 0;
                 //Options for GP/s calculations
                 this.sellBones = false; //True or false
                 this.sellLoot = 'All'; //Options 'All','Subset','None'
@@ -1384,6 +1422,7 @@ class mcsSimulator {
                         this.rngDefBon += (curItem.rangedDefenceBonus) ? curItem.rangedDefenceBonus : 0;
                         this.magDefBon += (curItem.magicDefenceBonus) ? curItem.magicDefenceBonus : 0;
                         this.slayerXPBonus += (curItem.slayerBonusXP) ? curItem.slayerBonusXP : 0;
+                        this.chanceToDoubleLoot += (curItem.chanceToDoubleLoot) ? curItem.chanceToDoubleLoot : 0;
 
                         if (((curItem.attackLevelRequired) ? curItem.attackLevelRequired : 1) > this.attReq) {
                                 this.attReq = curItem.attackLevelRequired;
@@ -1433,7 +1472,7 @@ class mcsSimulator {
                         this.attackType = 2;
                         effectiveAttackLevel = Math.floor(this.playerLevels.Magic + 8 + attackStyleBonus);
                         this.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.magAttBon + 64) * (1 + (this.prayerBonusAttackMagic / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
-                        this.maxHit = Math.floor(numberMultiplier * (SPELLS[this.selectedSpell].maxHit + (SPELLS[this.selectedSpell].maxHit * (this.magDmgBon / 100))) * (1 + this.herbloreBonus.magicDamage / 100));
+                        this.maxHit = Math.floor(numberMultiplier * (SPELLS[this.selectedSpell].maxHit + (SPELLS[this.selectedSpell].maxHit * (this.magDmgBon / 100))) * (1 + this.herbloreBonus.magicDamage / 100) * (1 + this.prayerBonusDamageMagic / 100));
                         this.attackSpeed = this.eqpAttSpd;
                         //Melee
                 } else {
@@ -1524,8 +1563,14 @@ class mcsSimulator {
                                 case 9: //Diamond luck
                                         this.herbloreBonus.diamondLuck = true;
                                         break;
+                                case 10: //Divine
+                                        this.herbloreBonus.divine = bonusValue;
+                                        break;
+                                case 11: //Lucky Herb
+                                        this.herbloreBonus.luckyHerb = bonusValue;
+                                        break;
                                 default:
-                                        console.error('Unknown Potion Bonus');
+                                        console.error(`Unknown Potion Bonus: ${bonusID}`);
                         }
                 }
         }
@@ -1552,6 +1597,8 @@ class mcsSimulator {
                 this.herbloreBonus.damageReduction = 0; //8
 
                 this.herbloreBonus.diamondLuck = false; //9
+                this.herbloreBonus.divine = 0;
+                this.herbloreBonus.luckyHerb = 0;
         }
         /**
          * @description Resets the properties of this that refer to equipment stats to their default values
@@ -1573,6 +1620,7 @@ class mcsSimulator {
                 this.magReq = 1;
                 this.defReq = 1;
                 this.slayerXPBonus = 0;
+                this.chanceToDoubleLoot = 0;
         }
         /**
          * @description Iterate through all the combatAreas and DUNGEONS to create a set of monsterSimData and dungeonSimData
@@ -1602,7 +1650,6 @@ class mcsSimulator {
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Ruby_Ring) {
                         playerStats.avgHPRegen = Math.floor(playerStats.avgHPRegen * (1 + items[CONSTANTS.item.Gold_Ruby_Ring].hpRegenBonus / 100));
                 }
-
                 //Other Bonuses
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Emerald_Ring) {
                         playerStats.xpBonus = 0.1;
@@ -1612,6 +1659,9 @@ class mcsSimulator {
                 }
                 if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
                         this.simGpBonus = 1.15;
+                        this.simTopaz = true;
+                } else if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Aorpheats_Signet_Ring) {
+                        this.simGpBonus = 2;
                 } else {
                         this.simGpBonus = 1;
                 }
@@ -1622,7 +1672,9 @@ class mcsSimulator {
                         this.simLootBonus = 1;
                 }
 
+                this.simBoneBonus = 1 + this.chanceToDoubleLoot / 100;
                 this.simSlayerXPBonus = this.slayerXPBonus;
+                this.simHerbBonus = this.herbloreBonus.luckyHerb/100;
 
                 //Compute prayer point usage
                 let hasPrayerCape = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Prayer_Skillcape);
@@ -1654,6 +1706,10 @@ class mcsSimulator {
                                 }
                         }
                 }
+                this.prayerPointsPerAttack *= (1 - this.herbloreBonus.divine / 100);
+                this.prayerPointsPerEnemy *= (1 - this.herbloreBonus.divine / 100);
+                this.prayerPointsPerHeal *= (1 - this.herbloreBonus.divine / 100);
+
                 var Ntrials = this.Ntrials;
                 var Nhitmax = this.Nhitmax;
                 //Reset the simulation status of all enemies
@@ -1662,6 +1718,12 @@ class mcsSimulator {
                 for (let i = 0; i < combatAreas.length; i++) {
                         for (let j = 0; j < combatAreas[i].monsters.length; j++) {
                                 this.simulateMonster(combatAreas[i].monsters[j], playerStats, Ntrials, Nhitmax);
+                        }
+                }
+                //Perform simulation of monsters in slayer areas
+                for (let i = 0; i < slayerAreas.length; i++) {
+                        for (let j = 0; j < slayerAreas[i].monsters.length; j++) {
+                                this.simulateMonster(slayerAreas[i].monsters[j], playerStats, Ntrials, Nhitmax);
                         }
                 }
                 //Perform simulation of monsters in dungeons
@@ -1721,6 +1783,8 @@ class mcsSimulator {
                 }
                 this.updateGPData();
                 this.updateSlayerXP();
+                this.updateHerbloreXP();
+                //this.updateSignetTime(0.95);
         }
         /**
          * @description Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
@@ -1833,9 +1897,9 @@ class mcsSimulator {
                                         enemyAttackTimer -= enemyStats.attackSpeed;
                                 }
                                 //Process Player Hit
-                                let hitChance = Math.floor(Math.random()*100);
+                                let hitChance = Math.floor(Math.random() * 100);
                                 if (playerStats.diamondLuck) {
-                                        let hitChance2 = Math.floor(Math.random()*100);
+                                        let hitChance2 = Math.floor(Math.random() * 100);
                                         if (hitChance > hitChance2) hitChance = hitChance2;
                                 }
                                 if (playerAccuracy > hitChance) {
@@ -1939,6 +2003,12 @@ class mcsSimulator {
                                 dataSet.push((this.monsterSimData[combatAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[combatAreas[i].monsters[j]][keyValue] : 0)
                         }
                 }
+                //Compile data from monsters in slayer zones
+                for (let i = 0; i < slayerAreas.length; i++) {
+                        for (let j = 0; j < slayerAreas[i].monsters.length; j++) {
+                                dataSet.push((this.monsterSimData[slayerAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[slayerAreas[i].monsters[j]][keyValue] : 0)
+                        }
+                }
                 //Perform simulation of monsters in dungeons
                 for (let i = 0; i < DUNGEONS.length; i++) {
                         dataSet.push((this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][keyValue] : 0)
@@ -1949,14 +2019,19 @@ class mcsSimulator {
                 var enterSet = [];
                 //Compile data from monsters in combat zones
                 for (let i = 0; i < combatAreas.length; i++) {
+                        for (let j = 0; j < combatAreas[i].monsters.length; j++) {
+                                enterSet.push(true);
+                        }
+                }
+                for (let i = 0; i < slayerAreas.length; i++) {
                         let canEnter = true;
-                        if (combatAreas[i].slayerLevel != undefined && this.playerLevels.Slayer < combatAreas[i].slayerLevel) {
+                        if (slayerAreas[i].slayerLevel != undefined && this.playerLevels.Slayer < slayerAreas[i].slayerLevel) {
                                 canEnter = false;
                         }
-                        if (combatAreas[i].slayerItem != 0) {
+                        if (slayerAreas[i].slayerItem != 0) {
                                 let gearFound = false;
                                 for (let j = 0; j < this.parent.gearSelected.length; j++) {
-                                        if (this.parent.gearSelected[j] == combatAreas[i].slayerItem) {
+                                        if (this.parent.gearSelected[j] == slayerAreas[i].slayerItem) {
                                                 gearFound = true;
                                         }
                                 }
@@ -1967,7 +2042,7 @@ class mcsSimulator {
                                         canEnter = true;
                                 }
                         }
-                        for (let j = 0; j < combatAreas[i].monsters.length; j++) {
+                        for (let j = 0; j < slayerAreas[i].monsters.length; j++) {
                                 enterSet.push(canEnter);
                         }
                 }
@@ -1996,28 +2071,39 @@ class mcsSimulator {
          * @param {number} monsterID 
          */
         //lootTable[x][0]: Item ID, [x][1]: Weight [x][2]: Max Qty
+        // this.simHerbBonus
         computeDropTableValue(monsterID) {
                 if (MONSTERS[monsterID].lootTable && this.sellLoot != 'None') {
                         var gpWeight = 0;
                         var totWeight = 0;
                         if (this.sellLoot == 'All') {
                                 MONSTERS[monsterID].lootTable.forEach(x => {
+                                        let itemID = x[0];
                                         let avgQty = (x[2] + 1) / 2;
-                                        if (items[x[0]].canOpen) {
-                                                gpWeight += this.computeChestOpenValue(x[0]) * avgQty;
+                                        if (items[itemID].canOpen) {
+                                                gpWeight += this.computeChestOpenValue(itemID) * avgQty;
                                         } else {
-                                                gpWeight += items[x[0]].sellsFor * x[1] * avgQty;
-
+                                                if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
+                                                        gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) + items[items[itemID].grownItemID].sellsFor * this.simHerbBonus) * x[1] * avgQty;
+                                                } else {
+                                                        gpWeight += items[itemID].sellsFor * x[1] * avgQty;
+                                                }
                                         }
                                         totWeight += x[1];
                                 })
                         } else {
                                 MONSTERS[monsterID].lootTable.forEach(x => {
+                                        let itemID = x[0];
                                         let avgQty = (x[2] + 1) / 2;
-                                        if (items[x[0]].canOpen) {
-                                                gpWeight += this.computeChestOpenValue(x[0]) * avgQty;
+                                        if (items[itemID].canOpen) {
+                                                gpWeight += this.computeChestOpenValue(itemID) * avgQty;
                                         } else {
-                                                gpWeight += ((this.shouldSell(x[0])) ? items[x[0]].sellsFor : 0) * x[1] * avgQty;
+                                                if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
+                                                        let herbItem = items[itemID].grownItemID;
+                                                        gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) * ((this.shouldSell(itemID)) ? 1 : 0) + items[herbItem].sellsFor * this.simHerbBonus * ((this.shouldSell(herbItem)) ? 1 : 0)) * x[1] * avgQty;
+                                                } else {
+                                                        gpWeight += ((this.shouldSell(itemID)) ? items[itemID].sellsFor : 0) * x[1] * avgQty;
+                                                }
                                         }
                                         totWeight += x[1];
                                 })
@@ -2055,6 +2141,12 @@ class mcsSimulator {
          */
         getLootList() {
                 var lootList = [];
+                lootList.push({
+                        id: CONSTANTS.item.Signet_Ring_Half_B,
+                        name: items[CONSTANTS.item.Signet_Ring_Half_B].name,
+                        sell: false
+                })
+                this.saleList[CONSTANTS.item.Signet_Ring_Half_B].onLootList = true;
                 combatAreas.forEach(area => {
                         area.monsters.forEach(mID => {
                                 MONSTERS[mID].lootTable.forEach(loot => {
@@ -2077,6 +2169,55 @@ class mcsSimulator {
                                                                 sell: false
                                                         })
                                                         this.saleList[loot[0]].onLootList = true;
+                                                }
+                                                if (items[loot[0]].tier === 'Herb' && items[loot[0]].type === 'Seeds') {
+                                                        let herbItem = items[loot[0]].grownItemID;
+                                                        if (!this.saleList[herbItem].onLootList) {
+                                                                lootList.push({
+                                                                        id: herbItem,
+                                                                        name: items[herbItem].name,
+                                                                        sell: false
+                                                                })
+                                                                this.saleList[herbItem].onLootList = true;
+                                                        }
+                                                }
+                                        }
+                                })
+                        })
+                })
+                slayerAreas.forEach(area => {
+                        area.monsters.forEach(mID => {
+                                MONSTERS[mID].lootTable.forEach(loot => {
+                                        if (items[loot[0]].canOpen) {
+                                                items[loot[0]].dropTable.forEach(loot2 => {
+                                                        if (!this.saleList[loot2[0]].onLootList) {
+                                                                lootList.push({
+                                                                        id: loot2[0],
+                                                                        name: items[loot2[0]].name,
+                                                                        sell: false
+                                                                })
+                                                                this.saleList[loot2[0]].onLootList = true;
+                                                        }
+                                                })
+                                        } else {
+                                                if (!this.saleList[loot[0]].onLootList) {
+                                                        lootList.push({
+                                                                id: loot[0],
+                                                                name: items[loot[0]].name,
+                                                                sell: false
+                                                        })
+                                                        this.saleList[loot[0]].onLootList = true;
+                                                }
+                                                if (items[loot[0]].tier === 'Herb' && items[loot[0]].type === 'Seeds') {
+                                                        let herbItem = items[loot[0]].grownItemID;
+                                                        if (!this.saleList[herbItem].onLootList) {
+                                                                lootList.push({
+                                                                        id: herbItem,
+                                                                        name: items[herbItem].name,
+                                                                        sell: false
+                                                                })
+                                                                this.saleList[herbItem].onLootList = true;
+                                                        }
                                                 }
                                         }
                                 })
@@ -2231,11 +2372,27 @@ class mcsSimulator {
                 var monsterValue = 0;
                 monsterValue += this.computeAverageCoins(monsterID);
                 monsterValue += this.computeDropTableValue(monsterID);
+                if (this.simTopaz && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
+                        monsterValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(monsterID) / 500000;
+                }
                 monsterValue *= this.computeLootChance(monsterID);
                 if (this.sellBones) {
-                        monsterValue += items[MONSTERS[monsterID].bones].sellsFor *this.simLootBonus;
+                        monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.simBoneBonus;
                 }
                 return monsterValue;
+        }
+
+        computeMonsterHerbXP(monsterID, herbChance) {
+                let herbWeight = 0;
+                let totalWeight = 0;
+                for (let i = 0; i < MONSTERS[monsterID].lootTable.length; i++) {
+                        let itemID = MONSTERS[monsterID].lootTable[i][0];
+                        if (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds') {
+                                herbWeight += MONSTERS[monsterID].lootTable[i][1] * this.xpPerHerb[itemID] * herbChance * (1 + MONSTERS[monsterID].lootTable[i][2]) / 2;
+                        }
+                        totalWeight += MONSTERS[monsterID].lootTable[i][1];
+                }
+                return herbWeight / totalWeight * this.computeLootChance(monsterID) * this.simLootBonus;
         }
         /**
          * @description Computes the average amount of GP earned when completing a dungeon, respecting the loot sell settings
@@ -2246,7 +2403,7 @@ class mcsSimulator {
                 if (this.sellLoot != 'None') {
                         DUNGEONS[dungeonID].rewards.forEach(reward => {
                                 if (items[reward].canOpen) {
-                                        dungeonValue += this.computeChestOpenValue(reward)*this.simLootBonus;
+                                        dungeonValue += this.computeChestOpenValue(reward) * this.simLootBonus;
                                 } else {
                                         if (this.sellLoot == 'All') {
                                                 dungeonValue += items[reward].sellsFor;
@@ -2255,6 +2412,9 @@ class mcsSimulator {
                                         }
                                 }
                         })
+                }
+                if (this.simTopaz && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
+                        dungeonValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length-1]) / 500000;
                 }
                 dungeonValue += this.computeAverageCoins(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]);
                 return dungeonValue;
@@ -2265,6 +2425,17 @@ class mcsSimulator {
         updateGPData() {
                 //Set data for monsters in combat zones
                 combatAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].gpPerKill = this.computeMonsterValue(monster);
+                                        this.monsterSimData[monster].gpPerSecond = this.monsterSimData[monster].gpPerKill / this.monsterSimData[monster].killTimeS;
+                                } else {
+                                        this.monsterSimData[monster].gpPerKill = 0;
+                                        this.monsterSimData[monster].gpPerSecond = 0;
+                                }
+                        })
+                })
+                slayerAreas.forEach(area => {
                         area.monsters.forEach(monster => {
                                 if (this.monsterSimData[monster].simSuccess) {
                                         this.monsterSimData[monster].gpPerKill = this.computeMonsterValue(monster);
@@ -2286,6 +2457,27 @@ class mcsSimulator {
                         }
                 }
         }
+        updateHerbloreXP() {
+                //Set data for monsters in combat zones
+                combatAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.simHerbBonus) / this.monsterSimData[monster].killTimeS;
+                                } else {
+                                        this.monsterSimData[monster].herbloreXPPerSecond = 0;
+                                }
+                        })
+                })
+                slayerAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.simHerbBonus) / this.monsterSimData[monster].killTimeS;
+                                } else {
+                                        this.monsterSimData[monster].herbloreXPPerSecond = 0;
+                                }
+                        })
+                })
+        }
         updateSlayerXP() {
                 //Set data for monsters in combat zones
                 combatAreas.forEach(area => {
@@ -2302,6 +2494,62 @@ class mcsSimulator {
                                 }
                         })
                 })
+                slayerAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        let monsterXP = 0;
+                                        monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.simSlayerXPBonus / 100));
+                                        if (this.isSlayerTask) {
+                                                monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.simSlayerXPBonus / 100))
+                                        }
+                                        this.monsterSimData[monster].slayerXpPerSecond = monsterXP / this.monsterSimData[monster].killTimeS;
+                                } else {
+                                        this.monsterSimData[monster].slayerXpPerSecond = 0;
+                                }
+                        })
+                })
+        }
+        updateSignetTime(chance) {
+                //Set data for monsters in combat zones
+                combatAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].signetTime = this.calculateSignetKills(chance, monster) * this.monsterSimData[monster].killTimeS / 3600;
+                                } else {
+                                        this.monsterSimData[monster].signetTime = 0;
+                                }
+                        })
+                })
+                slayerAreas.forEach(area => {
+                        area.monsters.forEach(monster => {
+                                if (this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].signetTime = this.calculateSignetKills(chance, monster) * this.monsterSimData[monster].killTimeS / 3600;
+                                } else {
+                                        this.monsterSimData[monster].signetTime = 0;
+                                }
+                        })
+                })
+                for (let i = 0; i < DUNGEONS.length; i++) {
+                        if (this.dungeonSimData[i].simSuccess) {
+                                this.dungeonSimData[i].signetTime = this.calculateSignetKills(chance, DUNGEONS[i].monsters[DUNGEONS[i].monsters.length - 1]) * this.dungeonSimData[i].killTimeS / 3600;
+                        } else {
+                                this.dungeonSimData[i].signetTime = 0;
+                        }
+                }
+        }
+        calculateSignetKills(chance, monster) {
+                let signetChance = this.getMonsterCombatLevel(monster) * this.computeLootChance(monster) / 500000;
+                let killsRequired = Math.log(1 - chance) / Math.log(1 - signetChance);
+                return killsRequired;
+        }
+        getMonsterCombatLevel(monster) {
+                let prayer = 1;
+                let base = 0.25 * (MONSTERS[monster].defenceLevel + MONSTERS[monster].hitpoints + Math.floor(prayer / 2));
+                let melee = 0.325 * (MONSTERS[monster].attackLevel + MONSTERS[monster].strengthLevel);
+                let range = 0.325 * (Math.floor(3 * MONSTERS[monster].rangedLevel / 2));
+                let magic = 0.325 * (Math.floor(3 * MONSTERS[monster].magicLevel / 2));
+                let levels = [melee, range, magic];
+                return Math.floor(base + Math.max(...levels));
         }
 }
 
@@ -2636,7 +2884,7 @@ const melvorCombatSimLoader = setInterval(() => {
                 clearInterval(melvorCombatSimLoader);
                 let tryLoad = true;
                 let wrongVersion = false;
-                if (gameVersion != "Alpha v0.12.2") {
+                if (gameVersion != "Alpha v0.13") {
                         wrongVersion = true;
                         tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
                 }
@@ -2644,9 +2892,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.5.0 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.6.0 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.5.0 Loaded');
+                                        console.log('Melvor Combat Sim v0.6.0 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
@@ -2659,8 +2907,6 @@ const melvorCombatSimLoader = setInterval(() => {
 }, 200);
 
 //Todo list:
-
-
 //Future Features List:
 //Monster/Dungeon Inspecter: Shows information about a monster/dungeon including: Levels, Equip Stats, Combat Stats, Drop Table, Drop Chance, Drop Quantity, Bone Type, Gold Amount, Attack Type
 //Ability to save and load gear sets, some initial work is done
