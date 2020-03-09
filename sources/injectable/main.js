@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.6.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.6.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -1383,7 +1383,6 @@ class mcsSimulator {
                 }
                 this.simGpBonus = 1;
                 this.simLootBonus = 1;
-                this.simBoneBonus = 1;
                 this.simSlayerXPBonus = 0;
                 this.simTopaz = false;
                 this.simHerbBonus = 0;
@@ -1665,16 +1664,9 @@ class mcsSimulator {
                 } else {
                         this.simGpBonus = 1;
                 }
-
-                if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Helmet] == CONSTANTS.item.Chapeau_Noir) {
-                        this.simLootBonus = 1.10;
-                } else {
-                        this.simLootBonus = 1;
-                }
-
-                this.simBoneBonus = 1 + this.chanceToDoubleLoot / 100;
+                this.simLootBonus = 1 + this.chanceToDoubleLoot / 100;
                 this.simSlayerXPBonus = this.slayerXPBonus;
-                this.simHerbBonus = this.herbloreBonus.luckyHerb/100;
+                this.simHerbBonus = this.herbloreBonus.luckyHerb / 100;
 
                 //Compute prayer point usage
                 let hasPrayerCape = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Prayer_Skillcape);
@@ -2377,7 +2369,7 @@ class mcsSimulator {
                 }
                 monsterValue *= this.computeLootChance(monsterID);
                 if (this.sellBones) {
-                        monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.simBoneBonus;
+                        monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.simLootBonus;
                 }
                 return monsterValue;
         }
@@ -2414,7 +2406,7 @@ class mcsSimulator {
                         })
                 }
                 if (this.simTopaz && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
-                        dungeonValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length-1]) / 500000;
+                        dungeonValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]) / 500000;
                 }
                 dungeonValue += this.computeAverageCoins(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]);
                 return dungeonValue;
@@ -2892,9 +2884,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.6.0 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.6.1 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.6.0 Loaded');
+                                        console.log('Melvor Combat Sim v0.6.1 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
