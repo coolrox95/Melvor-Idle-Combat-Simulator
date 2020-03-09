@@ -1,3 +1,6 @@
+v0.6.1:
+Fix: Adjusted the way loot doubling effects to reflect in game hotfix.
+
 v0.6.0:
 Melvor Combat Sim has been updated for game version Alpha v0.13
 New: The divine potion has been implemented
