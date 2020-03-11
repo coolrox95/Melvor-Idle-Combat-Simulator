@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.6.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.6.2: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -130,9 +130,7 @@ class mcsApp {
                         this.gearSelecter.addDropdown('Spell', spellOpts, spellVals, 25, event => this.spellDropdownOnChange(event));
                         this.gearSelecter.addButton('Import from Game', event => this.importButtonOnClick(event), 280, 25)
                 }
-                //Prayer Herblore Card Container Card:
-
-                //Prayer Selection Card:
+                //Potion & Prayer Selection Card:
                 {
                         this.prayerSelecter = new mcsCard(this.content, '200px', '100%', '100px', '100px');
                         this.prayerSelecter.addSectionTitle('Prayers');
@@ -313,8 +311,9 @@ class mcsApp {
                         this.simPlotOpts2.addSectionTitle('Simulation Options');
                         this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, event => this.maxhitsInputOnChange(event));
                         this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, event => this.numtrialsInputOnChange(event));
-                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'Prayer XP per second', 'Slayer XP per second', 'XP per Attack', 'HP Loss per second', 'Prayer Points per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second', 'Potential Herblore XP/s'];
-                        this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond'];
+                        this.simPlotOpts2.addNumberInput('Signet Time (h)', 1, 25, 1, 1000, event => this.signetTimeInputOnChange(event));
+                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'Prayer XP per second', 'Slayer XP per second', 'XP per Attack', 'HP Loss per second', 'Prayer Points per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second', 'Potential Herblore XP/s', 'Chance for Signet Part B(%)'];
+                        this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance'];
                         this.simPlotOpts2.addDropdown('Plot Type', this.plotTypeDropdownOptions, this.plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
                         this.simPlotOpts2.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [e => this.slayerTaskRadioOnChange(e, true), e => this.slayerTaskRadioOnChange(e, false)], 1)
                         this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
@@ -365,7 +364,7 @@ class mcsApp {
                         this.zoneInfoCard = new mcsCard(this.simPlotOpts2.container, '100%', '', '100px', '100px');
                         this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
                         this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
-                        var zoneInfoNames = ['XP/s', 'HP XP/s', 'Prayer XP/s', 'Slayer XP/s', 'XP/attack', 'HP Lost/s', 'Prayer Points/s', 'Damage/s', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/s', 'Herb XP/s'];
+                        var zoneInfoNames = ['XP/s', 'HP XP/s', 'Prayer XP/s', 'Slayer XP/s', 'XP/attack', 'HP Lost/s', 'Prayer Points/s', 'Damage/s', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/s', 'Herb XP/s', 'Signet Chance (%)'];
                         for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
                                 this.zoneInfoCard.addNumberOutput(zoneInfoNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`);
                         }
@@ -576,9 +575,55 @@ class mcsApp {
                                 this.simulator.prayerSelected[i] = false;
                         }
                 }
+                //Import Potion
+                /*
+                var potionTier = parseInt(event.currentTarget.selectedOptions[0].value);
+                this.simulator.potionTier = potionTier;
+                this.simulator.computePotionBonus();
+                this.simulator.computeCombatStats();
+                this.updateCombatStats();
+
+                */
+                let potionID = -1;
+                let potionTier = -1;
+                if (herbloreBonuses[13].itemID != 0) {
+                        let itemID = herbloreBonuses[13].itemID;
+                        //Get tier and potionID
+                        for (let i = 0; i < herbloreItemData.length; i++) {
+                                if (herbloreItemData[i].category == 0) {
+                                        for (let j = 0; j < herbloreItemData[i].itemID.length; j++) {
+                                                if (herbloreItemData[i].itemID[j] == itemID) {
+                                                        potionID = i;
+                                                        potionTier = j;
+                                                }
+                                        }
+                                }
+                        }
+                }
+                //Deselect potion if selected
+                if (this.simulator.potionSelected) {
+                        document.getElementById(`MCS ${herbloreItemData[this.simulator.potionID].name} Button`).className = 'mcsImageButton';
+                        this.simulator.potionSelected = false;
+                        this.simulator.potionID = -1;
+                }
+                //Select new potion if applicable
+                if (potionID != -1) {
+                        this.simulator.potionSelected = true;
+                        this.simulator.potionID = potionID;
+                        document.getElementById(`MCS ${herbloreItemData[this.simulator.potionID].name} Button`).className = 'mcsImageButton mcsButtonImageSelected';
+                }
+                //Set potion tier if applicable
+                if (potionTier != -1) {
+                        this.simulator.potionTier = potionTier;
+                        this.updatePotionTier(potionTier);
+                        //Set dropdown to correct option
+                        document.getElementById('MCS Potion Tier Dropdown').selectedIndex = potionTier;
+                }
+
                 this.updatePrayerOptions(skillLevel[CONSTANTS.skill.Prayer]);
                 this.simulator.computeGearStats();
                 this.updateEquipStats();
+                this.simulator.computePotionBonus();
                 this.simulator.computePrayerBonus();
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
@@ -614,18 +659,7 @@ class mcsApp {
                 this.simulator.computePotionBonus();
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
-                for (let i = 0; i < this.combatPotionIDs.length; i++) {
-                        let potionID = this.combatPotionIDs[i];
-                        //Update potion images
-                        document.getElementById(`MCS ${herbloreItemData[potionID].name} Button Image`).src = items[herbloreItemData[potionID].itemID[potionTier]].media;
-                        //Update potion tooltips
-                        //Potion  Title
-                        this.potionTooltips.titles[i].textContent = items[herbloreItemData[potionID].itemID[potionTier]].name;
-                        //Potion Description
-                        this.potionTooltips.descriptions[i].textContent = items[herbloreItemData[potionID].itemID[potionTier]].description;
-                        //Potion Charges
-                        this.potionTooltips.charges[i].textContent = `Charges: ${items[herbloreItemData[potionID].itemID[potionTier]].potionCharges}`;
-                }
+                this.updatePotionTier(potionTier);
         }
 
         herbloreButtonOnClick(event, potionID) {
@@ -717,6 +751,13 @@ class mcsApp {
         }
         lootListRadioOnChange(event, llID, newState) {
                 this.simulator.lootList[llID].sell = newState;
+        }
+        signetTimeInputOnChange(event) {
+                var newFarmTime = parseInt(event.currentTarget.value);
+                if (newFarmTime > 0 && newFarmTime <= 1000) {
+                        this.simulator.signetFarmTime = newFarmTime;
+                }
+                this.updatePlotForSignetChance();
         }
         //Callback Functions for Bar inspection
         inspectMonsterOnClick(event) {
@@ -844,6 +885,27 @@ class mcsApp {
                         this.plotter.updateBars(this.simulator.getDataSet('slayerXpPerSecond'))
                 }
                 this.updateZoneInfoCard();
+        }
+        updatePlotForSignetChance() {
+                this.simulator.updateSignetChance();
+                if (this.plotter.plotType == 'signetChance') {
+                        this.plotter.updateBars(this.simulator.getDataSet('signetChance'))
+                }
+                this.updateZoneInfoCard();
+        }
+        updatePotionTier(potionTier) {
+                for (let i = 0; i < this.combatPotionIDs.length; i++) {
+                        let potionID = this.combatPotionIDs[i];
+                        //Update potion images
+                        document.getElementById(`MCS ${herbloreItemData[potionID].name} Button Image`).src = items[herbloreItemData[potionID].itemID[potionTier]].media;
+                        //Update potion tooltips
+                        //Potion  Title
+                        this.potionTooltips.titles[i].textContent = items[herbloreItemData[potionID].itemID[potionTier]].name;
+                        //Potion Description
+                        this.potionTooltips.descriptions[i].textContent = items[herbloreItemData[potionID].itemID[potionTier]].description;
+                        //Potion Charges
+                        this.potionTooltips.charges[i].textContent = `Charges: ${items[herbloreItemData[potionID].itemID[potionTier]].potionCharges}`;
+                }
         }
         /**
          * 
@@ -1330,6 +1392,7 @@ class mcsSimulator {
                 //Simulation settings
                 this.Nhitmax = 1000; //Max number of player hits to attempt before timeout
                 this.Ntrials = 1000; //Number of enemy kills to simulate
+                this.signetFarmTime = 1; //Number of hours to farm for signet ring
                 //Simulation data;
                 this.monsterSimData = [];
                 for (let i = 0; i < MONSTERS.length; i++) {
@@ -1355,7 +1418,7 @@ class mcsSimulator {
                                 slayerXpPerSecond: 0,
                                 ppConsumedPerSecond: 0,
                                 herbloreXPPerSecond: 0,
-                                signetTime: 0
+                                signetChance: 0
                         })
                 }
                 this.dungeonSimData = [];
@@ -1378,7 +1441,7 @@ class mcsSimulator {
                                 slayerXpPerSecond: 0,
                                 ppConsumedPerSecond: 0,
                                 herbloreXPPerSecond: 0,
-                                signetTime: 0
+                                signetChance: 0
                         })
                 }
                 this.simGpBonus = 1;
@@ -1576,28 +1639,19 @@ class mcsSimulator {
 
         resetPotionBonus() {
                 this.herbloreBonus.meleeAccuracy = 0; //0
-
                 this.herbloreBonus.meleeEvasion = 0; //1
-
                 this.herbloreBonus.meleeStrength = 0; //2
-
                 this.herbloreBonus.rangedAccuracy = 0; //3
                 this.herbloreBonus.rangedEvasion = 0; //3
-
                 this.herbloreBonus.rangedStrength = 0; //4
-
                 this.herbloreBonus.magicEvasion = 0; //5
                 this.herbloreBonus.magicAccuracy = 0; //5
-
                 this.herbloreBonus.magicDamage = 0; //6
-
                 this.herbloreBonus.hpRegen = 0; //7
-
                 this.herbloreBonus.damageReduction = 0; //8
-
                 this.herbloreBonus.diamondLuck = false; //9
-                this.herbloreBonus.divine = 0;
-                this.herbloreBonus.luckyHerb = 0;
+                this.herbloreBonus.divine = 0; //10
+                this.herbloreBonus.luckyHerb = 0; //11
         }
         /**
          * @description Resets the properties of this that refer to equipment stats to their default values
@@ -1677,15 +1731,15 @@ class mcsSimulator {
                         if (this.prayerSelected[i]) {
                                 if (hasPrayerCape) {
                                         let attQty = Math.floor(PRAYER[i].pointsPerPlayer / 2);
-                                        if (attQty == 0) {
+                                        if (attQty == 0 && PRAYER[i].pointsPerPlayer != 0) {
                                                 attQty = 1;
                                         }
                                         let enemyQty = Math.floor(PRAYER[i].pointsPerEnemy / 2);
-                                        if (enemyQty == 0) {
+                                        if (enemyQty == 0 && PRAYER[i].pointsPerEnemy != 0) {
                                                 enemyQty = 1;
                                         }
                                         let healQty = Math.floor(PRAYER[i].pointsPerRegen / 2);
-                                        if (healQty == 0) {
+                                        if (healQty == 0 && PRAYER[i].pointsPerRegen != 0) {
                                                 healQty = 1;
                                         }
                                         this.prayerPointsPerAttack += attQty;
@@ -1776,7 +1830,7 @@ class mcsSimulator {
                 this.updateGPData();
                 this.updateSlayerXP();
                 this.updateHerbloreXP();
-                //this.updateSignetTime(0.95);
+                this.updateSignetChance();
         }
         /**
          * @description Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
@@ -2501,38 +2555,37 @@ class mcsSimulator {
                         })
                 })
         }
-        updateSignetTime(chance) {
+        updateSignetChance() {
                 //Set data for monsters in combat zones
                 combatAreas.forEach(area => {
                         area.monsters.forEach(monster => {
-                                if (this.monsterSimData[monster].simSuccess) {
-                                        this.monsterSimData[monster].signetTime = this.calculateSignetKills(chance, monster) * this.monsterSimData[monster].killTimeS / 3600;
+                                if (this.simTopaz && this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.monsterSimData[monster].killTimeS))) * 100;
                                 } else {
-                                        this.monsterSimData[monster].signetTime = 0;
+                                        this.monsterSimData[monster].signetChance = 0;
                                 }
                         })
                 })
                 slayerAreas.forEach(area => {
                         area.monsters.forEach(monster => {
-                                if (this.monsterSimData[monster].simSuccess) {
-                                        this.monsterSimData[monster].signetTime = this.calculateSignetKills(chance, monster) * this.monsterSimData[monster].killTimeS / 3600;
+                                if (this.simTopaz && this.monsterSimData[monster].simSuccess) {
+                                        this.monsterSimData[monster].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.monsterSimData[monster].killTimeS))) * 100;
                                 } else {
-                                        this.monsterSimData[monster].signetTime = 0;
+                                        this.monsterSimData[monster].signetChance = 0;
                                 }
                         })
                 })
                 for (let i = 0; i < DUNGEONS.length; i++) {
-                        if (this.dungeonSimData[i].simSuccess) {
-                                this.dungeonSimData[i].signetTime = this.calculateSignetKills(chance, DUNGEONS[i].monsters[DUNGEONS[i].monsters.length - 1]) * this.dungeonSimData[i].killTimeS / 3600;
+                        if (this.simTopaz && this.dungeonSimData[i].simSuccess) {
+                                let monster = DUNGEONS[i].monsters[DUNGEONS[i].monsters.length - 1];
+                                this.dungeonSimData[i].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.dungeonSimData[i].killTimeS))) * 100;
                         } else {
-                                this.dungeonSimData[i].signetTime = 0;
+                                this.dungeonSimData[i].signetChance = 0;
                         }
                 }
         }
-        calculateSignetKills(chance, monster) {
-                let signetChance = this.getMonsterCombatLevel(monster) * this.computeLootChance(monster) / 500000;
-                let killsRequired = Math.log(1 - chance) / Math.log(1 - signetChance);
-                return killsRequired;
+        getSignetDropRate(monster) {
+                return this.getMonsterCombatLevel(monster) * this.computeLootChance(monster) / 500000;
         }
         getMonsterCombatLevel(monster) {
                 let prayer = 1;
@@ -2884,9 +2937,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.6.1 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.6.2 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.6.1 Loaded');
+                                        console.log('Melvor Combat Sim v0.6.2 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
@@ -2897,22 +2950,3 @@ const melvorCombatSimLoader = setInterval(() => {
                 }
         }
 }, 200);
-
-//Todo list:
-//Future Features List:
-//Monster/Dungeon Inspecter: Shows information about a monster/dungeon including: Levels, Equip Stats, Combat Stats, Drop Table, Drop Chance, Drop Quantity, Bone Type, Gold Amount, Attack Type
-//Ability to save and load gear sets, some initial work is done
-//Save and load functions for combat sim data in localstorage
-//Note on saving the sale list: will need to transfer it over everytime we load the game since it could change with updates
-//Ability to optimize a leveling path/calculate the time it takes to get from x level to y level
-//No spoiler mode (Use item completion)
-//Tooltip revolution: Implement tooltip class, properly add tooltips to all UI elements to provide info about what they change
-
-/*
-        Future Simulation Rewrite
-        Has to be done to account fo special attacks
-        Rewrite simulation as time based for this to work, messes with attack intervals/adds bleed intervals
-        Implement Potion charge tracking to compute potion time, HP regen has a seperate timer and regen charges are consumed only when hp is gained
-        Dungeons could not be averaged using this method
-        This would include tracking auto-eat and seeing if the player die
-*/

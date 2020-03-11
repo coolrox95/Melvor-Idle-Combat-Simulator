@@ -1,3 +1,9 @@
+v0.6.2:
+Fix: Fixed Prayer Skillcape point cost calculation to be accurate. Previously it set the costs to 1 when prayers had a cost of 0.
+
+New: Signet Ring Chance added. This is the probability to get at least 1 Signet Half B while farming for Signet Time (h) hours.
+New: Currently selected potion is now imported when using Import From Game.
+
 v0.6.1:
 Fix: Adjusted the way loot doubling effects to reflect in game hotfix.
 
