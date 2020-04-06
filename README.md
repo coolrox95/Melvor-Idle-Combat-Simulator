@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.6.2
+# Melvor-Idle-Combat-Simulator v0.6.3
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.13 of Melvor Idle.
+This extension was built for version: Alpha v0.14.1 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -18,6 +18,7 @@ Currently not available on the chrome webstore, but you can download the sources
 3. Select simulation options:
  - Max Hits: Controls the maximum number of attempts to hit an enemy before the simulation times out.
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
+ - Time Unit: The unit to measure rates in (e.g. xp per second vs. xp per hour)
  - Slayer Task? Toggles whether or not to calculate slayer XP as if you were completing a slayer task.
  - Sell Bones: Whether or not to sell bones. Used in GP calculations.
  - Sell Loot: Whether or not to sell all loot, a subset of loot or none of it.
