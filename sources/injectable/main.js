@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.6.2: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.6.3: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -156,9 +156,9 @@ class mcsApp {
                                 prayerBonusDefenceMagic: 'Magic Evasion',
                                 prayerBonusProtectItem: 'Keep item on death',
                                 prayerBonusHitpoints: '2x Restore Rate for Hitpoints',
-                                prayerBonusProtectFromMelee: '95% chance to dodge Melee Attacks',
-                                prayerBonusProtectFromRanged: '95% chance to dodge Ranged Attacks',
-                                prayerBonusProtectFromMagic: '95% chance to dodge Magic Attacks',
+                                prayerBonusProtectFromMelee: `${protectFromValue}% chance to dodge Melee Attacks`,
+                                prayerBonusProtectFromRanged: `${protectFromValue}% chance to dodge Ranged Attacks`,
+                                prayerBonusProtectFromMagic: `${protectFromValue}% chance to dodge Magic Attacks`,
                                 prayerBonusHitpointHeal: 'Heal +20% HP when HP falls below 10%',
                         }
                         let prayerBonusNumeric = {
@@ -311,10 +311,25 @@ class mcsApp {
                         this.simPlotOpts2.addSectionTitle('Simulation Options');
                         this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, event => this.maxhitsInputOnChange(event));
                         this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, event => this.numtrialsInputOnChange(event));
+                        this.timeOptions = ['Second', 'Minute', 'Hour', 'Day'];
+                        this.timeShorthand = ['s', 'm', 'h', 'd'];
+                        this.selectedTimeUnit = this.timeOptions[0];
+                        this.selectedTimeShorthand = this.timeShorthand[0];
+                        this.timeMultipliers = [1, 60, 3600, 3600 * 24];
+                        this.simPlotOpts2.addDropdown('Time Unit', this.timeOptions, this.timeMultipliers, 25, event => this.timeUnitDropdownOnChange(event));
                         this.simPlotOpts2.addNumberInput('Signet Time (h)', 1, 25, 1, 1000, event => this.signetTimeInputOnChange(event));
-                        this.plotTypeDropdownOptions = ['XP per second', 'HP XP per second', 'Prayer XP per second', 'Slayer XP per second', 'XP per Attack', 'HP Loss per second', 'Prayer Points per second', 'Damage per second', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per Second', 'Potential Herblore XP/s', 'Chance for Signet Part B(%)'];
+                        this.plotTypeDropdownOptions = ['XP per ', 'HP XP per ', 'Prayer XP per ', 'Slayer XP per ', 'XP per Attack', 'HP Loss per ', 'Prayer Points per ', 'Damage per ', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per ', 'Potential Herblore XP per ', 'Chance for Signet Part B(%)'];
+                        this.plotTypeIsTime = [true, true, true, true, false, true, true, true, false, false, false, true, true, false];
                         this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance'];
-                        this.simPlotOpts2.addDropdown('Plot Type', this.plotTypeDropdownOptions, this.plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
+                        let dropDownOptionNames = [];
+                        for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
+                                if (this.plotTypeIsTime[i]) {
+                                        dropDownOptionNames.push(this.plotTypeDropdownOptions[i] + this.timeOptions[0]);
+                                } else {
+                                        dropDownOptionNames.push(this.plotTypeDropdownOptions[i]);
+                                }
+                        }
+                        this.simPlotOpts2.addDropdown('Plot Type', dropDownOptionNames, this.plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
                         this.simPlotOpts2.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [e => this.slayerTaskRadioOnChange(e, true), e => this.slayerTaskRadioOnChange(e, false)], 1)
                         this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
                         this.simPlotOpts2.addSectionTitle('GP/s Options');
@@ -364,9 +379,17 @@ class mcsApp {
                         this.zoneInfoCard = new mcsCard(this.simPlotOpts2.container, '100%', '', '100px', '100px');
                         this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
                         this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
-                        var zoneInfoNames = ['XP/s', 'HP XP/s', 'Prayer XP/s', 'Slayer XP/s', 'XP/attack', 'HP Lost/s', 'Prayer Points/s', 'Damage/s', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/s', 'Herb XP/s', 'Signet Chance (%)'];
+                        this.zoneInfoNames = ['XP/', 'HP XP/', 'Prayer XP/', 'Slayer XP/', 'XP/attack', 'HP Lost/', 'Prayer Points/', 'Damage/', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/', 'Herb XP/', 'Signet Chance (%)'];
+                        let zoneInfoLabelNames = [];
+                        for (let i = 0; i < this.zoneInfoNames.length; i++) {
+                                if (this.plotTypeIsTime[i]) {
+                                        zoneInfoLabelNames.push(this.zoneInfoNames[i] + this.timeShorthand[0]);
+                                } else {
+                                        zoneInfoLabelNames.push(this.zoneInfoNames[i]);
+                                }
+                        }
                         for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
-                                this.zoneInfoCard.addNumberOutput(zoneInfoNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`);
+                                this.zoneInfoCard.addNumberOutput(zoneInfoLabelNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`, true);
                         }
                         // this.zoneInfoCard.addButton('Inspect Monster', e => this.inspectMonsterOnClick(e), 250, 25);
                         this.selectedBar = 0;
@@ -427,7 +450,6 @@ class mcsApp {
                         x.style.display = 'none';
                 }
         }
-
         headingEyeOnClick() {
                 if (this.eyeHidden) {
                         this.headingEye.className = 'far fa-eye text-muted ml-1';
@@ -652,7 +674,6 @@ class mcsApp {
                         this.updateCombatStats();
                 }
         }
-
         potionTierDropDownOnChange(event) {
                 var potionTier = parseInt(event.currentTarget.selectedOptions[0].value);
                 this.simulator.potionTier = potionTier;
@@ -661,7 +682,6 @@ class mcsApp {
                 this.updateCombatStats();
                 this.updatePotionTier(potionTier);
         }
-
         herbloreButtonOnClick(event, potionID) {
                 if (this.simulator.potionSelected) {
                         if (this.simulator.potionID == potionID) { //Deselect Potion
@@ -682,7 +702,6 @@ class mcsApp {
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
         }
-
         //Callback Functions for the Sim Options Card
         maxhitsInputOnChange(event) {
                 var newMaxHit = parseInt(event.currentTarget.value);
@@ -698,7 +717,9 @@ class mcsApp {
         }
         plottypeDropdownOnChange(event) {
                 this.plotter.plotType = event.currentTarget.value;
-                this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[event.currentTarget.selectedIndex];
+                this.plotter.plotID = event.currentTarget.selectedIndex;
+                this.simulator.selectedPlotIsTime = this.plotTypeIsTime[event.currentTarget.selectedIndex];
+                this.updatePlotTitle();
                 this.plotter.updateBars(this.simulator.getDataSet(event.currentTarget.value));
         }
         simulateButtonOnClick(event) {
@@ -759,6 +780,25 @@ class mcsApp {
                 }
                 this.updatePlotForSignetChance();
         }
+        timeUnitDropdownOnChange(event) {
+                this.simulator.timeMultiplier = this.timeMultipliers[event.currentTarget.selectedIndex];
+                this.simulator.selectedPlotIsTime = this.plotTypeIsTime[this.plotter.plotID];
+                this.selectedTimeUnit = this.timeOptions[event.currentTarget.selectedIndex];
+                this.selectedTimeShorthand = this.timeShorthand[event.currentTarget.selectedIndex];
+                //Update dropdown options
+                let plotDropdown = document.getElementById(`MCS Plot Type Dropdown`);
+                for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
+                        if (this.plotTypeIsTime[i]) {
+                                plotDropdown[i].textContent = this.plotTypeDropdownOptions[i] + this.selectedTimeUnit;
+                                document.getElementById(`MCS ${this.zoneInfoNames[i] + this.timeShorthand[0]} Label`).textContent = this.zoneInfoNames[i] + this.selectedTimeShorthand;
+                        }
+                }
+                //Update Plot
+                this.updatePlotTitle();
+                this.plotter.updateBars(this.simulator.getDataSet(this.plotter.plotType));
+                //Update Info Card
+                this.updateZoneInfoCard();
+        }
         //Callback Functions for Bar inspection
         inspectMonsterOnClick(event) {
                 console.log('Inpsecting Monster. Damn they\'re ugly...');
@@ -802,7 +842,8 @@ class mcsApp {
                                 let updateInfo = this.simulator.dungeonSimData[this.barMonsterIDs[this.selectedBar]].simSuccess;
                                 for (let i = 0; i < this.plotTypeDropdownValues.length; i++) {
                                         let outElem = document.getElementById(`MCS ${this.plotTypeDropdownValues[i]} Output`);
-                                        outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.dungeonSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]], 2) : 'N/A');
+                                        let dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
+                                        outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.dungeonSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]] * dataMultiplier, 4) : 'N/A');
                                 }
                         } else {
                                 document.getElementById('MCS Zone Info Title').textContent = 'Monster Information';
@@ -811,7 +852,8 @@ class mcsApp {
                                 let updateInfo = this.simulator.monsterSimData[this.barMonsterIDs[this.selectedBar]].simSuccess;
                                 for (let i = 0; i < this.plotTypeDropdownValues.length; i++) {
                                         let outElem = document.getElementById(`MCS ${this.plotTypeDropdownValues[i]} Output`);
-                                        outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]], 2) : 'N/A');
+                                        let dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
+                                        outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]] * dataMultiplier, 4) : 'N/A');
                                 }
                         }
                 } else {
@@ -892,6 +934,13 @@ class mcsApp {
                         this.plotter.updateBars(this.simulator.getDataSet('signetChance'))
                 }
                 this.updateZoneInfoCard();
+        }
+        updatePlotTitle(plotID) {
+                if (this.simulator.selectedPlotIsTime) {
+                        this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[this.plotter.plotID] + this.selectedTimeUnit;
+                } else {
+                        this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[this.plotter.plotID];
+                }
         }
         updatePotionTier(potionTier) {
                 for (let i = 0; i < this.combatPotionIDs.length; i++) {
@@ -1034,7 +1083,8 @@ class mcsPlotter {
                 this.barImageSrc = [];
                 this.barBottomNames = [];
                 this.barBottomLength = [];
-                this.plotType = 'Null';
+                this.plotType = 'xpPerSecond';
+                this.plotID = 0;
                 var totBars = 0;
 
                 for (let i = 0; i < combatAreas.length; i++) {
@@ -1164,7 +1214,7 @@ class mcsPlotter {
                         this.tickText.push(document.createElement('div'));
                         this.tickText[i].className = 'mcsTicktext';
                         this.tickText[i].setAttribute('style', `height: 5%; bottom: ${i * 5 - 2.5}%;`);
-                        this.tickText[i].appendChild(document.createTextNode(mcsFormatNum(i * 0.05, 2)));
+                        this.tickText[i].appendChild(document.createTextNode(mcsFormatNum(i * 0.05, 4)));
                         this.yAxis.appendChild(this.tickText[i]);
                 }
                 //Do Tooltips
@@ -1233,7 +1283,7 @@ class mcsPlotter {
                 for (let i = 0; i < this.bars.length; i++) {
                         this.bars[i].style.height = `${barData[i] / divMax * 100}%`;
                         this.barTooltips[i].style.top = `${(1 - barData[i] / divMax) * 100}%`;
-                        this.barTooltips[i].textContent = mcsFormatNum(barData[i], 2);
+                        this.barTooltips[i].textContent = mcsFormatNum(barData[i], 4);
                         if ((1 - barData[i] / divMax) * 100 > 92) {
                                 this.barTooltips[i].style.top = '92%';
                         }
@@ -1254,7 +1304,7 @@ class mcsPlotter {
                         if (i < (Ndivs + 1)) {
                                 this.tickText[i].style.display = 'block';
                                 this.tickText[i].style.bottom = `${i * 100 / Ndivs - 2.5}%`;
-                                this.tickText[i].textContent = mcsFormatNum(i * division, 2);
+                                this.tickText[i].textContent = mcsFormatNum(i * division, 4);
                         } else {
                                 this.tickText[i].style.display = 'none';
                         }
@@ -1456,6 +1506,9 @@ class mcsSimulator {
                 this.lootList = this.getLootList(); //List of items with id: X and sell: true/false
                 this.defaultSaleKeep = [403, 247, 248, 366, 249, 383, 368, 246, 367, 348, 443, 350, 349, 351, 347, 430, 429, 427, 428, 137, 136, 139, 314, 313, 312, 134, 296, 138, 141, 140, 434, 142, 135, 426, 425, 423, 424, 418, 417, 415, 416, 340, 405, 344, 406, 361, 414, 413, 411, 412, 372, 378, 371, 374, 369, 373, 380, 376, 375, 377, 379, 370, 407, 341, 365, 364, 422, 421, 419, 420, 120, 404];
                 this.setSaleListToDefault();
+                //Options for time multiplier
+                this.timeMultiplier = 1;
+                this.selectedPlotIsTime = true;
         }
         /**
          * @description Computes the stats of the players equipped items and stores them on this properties
@@ -1534,7 +1587,7 @@ class mcsSimulator {
                         this.attackType = 2;
                         effectiveAttackLevel = Math.floor(this.playerLevels.Magic + 8 + attackStyleBonus);
                         this.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.magAttBon + 64) * (1 + (this.prayerBonusAttackMagic / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
-                        this.maxHit = Math.floor(numberMultiplier * (SPELLS[this.selectedSpell].maxHit + (SPELLS[this.selectedSpell].maxHit * (this.magDmgBon / 100))) * (1 + this.herbloreBonus.magicDamage / 100) * (1 + this.prayerBonusDamageMagic / 100));
+                        this.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.selectedSpell].maxHit + SPELLS[this.selectedSpell].maxHit * (this.magDmgBon / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonusDamageMagic / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
                         this.attackSpeed = this.eqpAttSpd;
                         //Melee
                 } else {
@@ -1853,6 +1906,8 @@ class mcsSimulator {
                         maxDefRoll: 0,
                         maxMagDefRoll: 0,
                         maxRngDefRoll: 0,
+                        hasSpecialAttack: false,
+                        specialAttackChances: []
                 }
                 //Calculate Enemy Stats
                 enemyStats.hitpoints = MONSTERS[monsterID].hitpoints * numberMultiplier;
@@ -1881,15 +1936,23 @@ class mcsSimulator {
                 else if (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Magic) {
                         var effectiveAttackLevel = Math.floor(MONSTERS[monsterID].magicLevel + 8 + 1);
                         enemyStats.maxAttackRoll = effectiveAttackLevel * (MONSTERS[monsterID].attackBonusMagic + 64);
-                        enemyStats.maxHit = Math.floor(numberMultiplier * (SPELLS[MONSTERS[monsterID].selectedSpell].maxHit + (SPELLS[MONSTERS[monsterID].selectedSpell].maxHit * (MONSTERS[monsterID].damageBonusMagic / 100))));
+                        if (MONSTERS[monsterID].selectedSpell === null || MONSTERS[monsterID].selectedSpell === undefined) enemyStats.maxHit = Math.floor(numberMultiplier * (MONSTERS[monsterID].setMaxHit + MONSTERS[monsterID].setMaxHit * (MONSTERS[monsterID].damageBonusMagic / 100)));
+                        else enemyStats.maxHit = Math.floor(numberMultiplier * (SPELLS[MONSTERS[monsterID].selectedSpell].maxHit + SPELLS[MONSTERS[monsterID].selectedSpell].maxHit * (MONSTERS[monsterID].damageBonusMagic / 100)));
                 }
                 //Calculate Accuracy
                 var playerAccuracy = this.calculateAccuracy(playerStats, enemyStats);
 
                 if ((MONSTERS[monsterID].attackType === CONSTANTS.attackType.Melee && this.prayerBonusProtectFromMelee > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Ranged && this.prayerBonusProtectFromRanged > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Magic && this.prayerBonusProtectFromMagic > 0)) {
-                        var enemyAccuracy = 5;
+                        var enemyAccuracy = 100 - protectFromValue;
                 } else {
                         var enemyAccuracy = this.calculateAccuracy(enemyStats, playerStats);
+                }
+                //Calculate special attacks
+                if (MONSTERS[monsterID].hasSpecialAttack) {
+                        enemyStats.hasSpecialAttack = true;
+                        for (let i = 0; i < MONSTERS[monsterID].specialAttackID.length; i++) {
+                                enemyStats.specialAttackChances.push(enemySpecialAttacks[MONSTERS[monsterID].specialAttackID[i]].chance);
+                        }
                 }
                 //Start Monte Carlo simulation
                 var enemyKills = 0;
@@ -1907,6 +1970,10 @@ class mcsSimulator {
                 var simSuccess = true;
                 var damageToEnemy = 0;
                 var enemyAttackTimer = 0; //Time tracking for enemy Attacks
+                var currentEnemyInterval = enemyStats.attackSpeed; //Current interval of enemy attack, depending on if special/normal
+                var currentEnemyAttackID = -1; //-1 is a normal attack
+                var enemySpecialAttackCount = 0; //Counter for special attacks
+                var enemySpecialAttackMaxCount = 0; //Max Counter for special attacks
                 //var enemyReflectDamage = 0; //Damage caused by reflect
 
                 //Start simulation for each trial
@@ -1915,6 +1982,11 @@ class mcsSimulator {
                         currentHP = enemyStats.hitpoints;
                         currentHits = 0;
                         enemyAttackTimer = 0;
+                        //Reset attack trackers
+                        currentEnemyInterval = enemyStats.attackSpeed;
+                        currentEnemyAttackID = -1;
+                        enemySpecialAttackCount = 0;
+                        enemySpecialAttackMaxCount = 0;
 
                         //Simulate combat until enemy is dead or max hits has been reached
                         while (currentHP > 0) {
@@ -1926,21 +1998,72 @@ class mcsSimulator {
                                 }
                                 //Process Enemy Hits
                                 enemyAttackTimer += playerStats.attackSpeed;
-                                while (enemyAttackTimer >= enemyStats.attackSpeed) {
+
+                                while (enemyAttackTimer >= currentEnemyInterval) {
                                         totalEnemyHits++;
-                                        if (enemyAccuracy > Math.floor(Math.random() * 100)) {
-                                                let enemyDamage = Math.floor(Math.random() * enemyStats.maxHit) + 1;
-                                                enemyDamage -= Math.floor(((playerStats.damageReduction / 100) * enemyDamage));
-                                                damageToPlayer += enemyDamage;
-                                                if (playerStats.reflect) {
-                                                        let reflectDamage = Math.floor((Math.random() * 3) * numberMultiplier);
-                                                        if (currentHP > reflectDamage) {
-                                                                currentHP -= reflectDamage;
-                                                                //enemyReflectDamage += reflectDamage;
+                                        enemyAttackTimer -= currentEnemyInterval;
+                                        if (enemyStats.hasSpecialAttack && currentEnemyAttackID == -1) {
+                                                //Determine Enemy Attack Type
+                                                let chanceForSpec = Math.floor(Math.random() * 100);
+                                                let specCount = 0;
+                                                for (let i = 0; i < enemyStats.specialAttackChances.length; i++) {
+                                                        if (chanceForSpec <= enemyStats.specialAttackChances[i] + specCount) { //Check for special
+                                                                currentEnemyAttackID = MONSTERS[monsterID].specialAttackID[i];
+                                                                enemySpecialAttackCount = 0;
+                                                                currentEnemyInterval = enemySpecialAttacks[currentEnemyAttackID].attackInterval;
+                                                                enemySpecialAttackMaxCount = enemySpecialAttacks[currentEnemyAttackID].attackCount;
+                                                                if (enemySpecialAttacks[currentEnemyAttackID].setDOTDamage !== null) {
+                                                                        currentEnemyInterval = enemySpecialAttacks[currentEnemyAttackID].DOTInterval;
+                                                                        enemySpecialAttackMaxCount = enemySpecialAttacks[currentEnemyAttackID].DOTMaxProcs;
+                                                                }
+                                                                break;
                                                         }
+                                                        specCount += enemyStats.specialAttackChances[i];
                                                 }
                                         }
-                                        enemyAttackTimer -= enemyStats.attackSpeed;
+                                        //Process enemy Attack
+                                        if (currentEnemyAttackID == -1) { //Just a normal attack
+                                                if (enemyAccuracy > Math.floor(Math.random() * 100)) {
+                                                        let enemyDamage = Math.floor(Math.random() * enemyStats.maxHit) + 1;
+                                                        enemyDamage -= Math.floor(((playerStats.damageReduction / 100) * enemyDamage));
+                                                        damageToPlayer += enemyDamage;
+                                                        if (playerStats.reflect) {
+                                                                let reflectDamage = Math.floor((Math.random() * 3) * numberMultiplier);
+                                                                if (currentHP > reflectDamage) {
+                                                                        currentHP -= reflectDamage;
+                                                                        //enemyReflectDamage += reflectDamage;
+                                                                }
+                                                        }
+                                                }
+                                        } else { //Wowee it's a special attack
+                                                //Do the hit
+                                                if (enemyAccuracy > Math.floor(Math.random() * 100) || enemySpecialAttacks[currentEnemyAttackID].forceHit) {
+                                                        let enemyDamage;
+                                                        if (enemySpecialAttacks[currentEnemyAttackID].setDamage != null) {
+                                                                enemyDamage = enemySpecialAttacks[currentEnemyAttackID].setDamage * numberMultiplier;
+                                                        } else {
+                                                                enemyDamage = Math.floor(Math.random() * enemyStats.maxHit) + 1;
+                                                        }
+                                                        enemyDamage -= Math.floor(((playerStats.damageReduction / 100) * enemyDamage));
+                                                        damageToPlayer += enemyDamage;
+                                                        if (playerStats.reflect) {
+                                                                let reflectDamage = Math.floor((Math.random() * 3) * numberMultiplier);
+                                                                if (currentHP > reflectDamage) {
+                                                                        currentHP -= reflectDamage;
+                                                                        //enemyReflectDamage += reflectDamage;
+                                                                }
+                                                        }
+                                                }
+                                                //Do the time tracking
+                                                enemySpecialAttackCount++;
+                                                if (enemySpecialAttackCount >= enemySpecialAttackMaxCount) {
+                                                        //Reset special attack
+                                                        currentEnemyInterval = enemyStats.attackSpeed;
+                                                        currentEnemyAttackID = -1;
+                                                        enemySpecialAttackCount = 0;
+                                                        enemySpecialAttackMaxCount = 0;
+                                                }
+                                        }
                                 }
                                 //Process Player Hit
                                 let hitChance = Math.floor(Math.random() * 100);
@@ -1958,7 +2081,7 @@ class mcsSimulator {
                                         xpToAdd = Math.floor(damageToEnemy / numberMultiplier * 4);
                                         if (xpToAdd < 4) xpToAdd = 4;
                                         hpXpToAdd = Math.round((damageToEnemy / numberMultiplier * 1.33) * 100) / 100;
-                                        prayerXpToAdd = Math.round((damageToEnemy / numberMultiplier) * 100) / 100;
+                                        prayerXpToAdd = Math.floor(damageToEnemy / numberMultiplier / 2);
                                         //Active Prayer Bonus
                                         for (let i = 0; i < this.prayerSelected.length; i++) {
                                                 if (this.prayerSelected[i]) {
@@ -2042,22 +2165,26 @@ class mcsSimulator {
          * @param {string} keyValue 
          */
         getDataSet(keyValue) {
+                let dataMultiplier = 1;
+                if (this.selectedPlotIsTime) {
+                        dataMultiplier = this.timeMultiplier;
+                }
                 var dataSet = [];
                 //Compile data from monsters in combat zones
                 for (let i = 0; i < combatAreas.length; i++) {
                         for (let j = 0; j < combatAreas[i].monsters.length; j++) {
-                                dataSet.push((this.monsterSimData[combatAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[combatAreas[i].monsters[j]][keyValue] : 0)
+                                dataSet.push((this.monsterSimData[combatAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[combatAreas[i].monsters[j]][keyValue] * dataMultiplier : 0)
                         }
                 }
                 //Compile data from monsters in slayer zones
                 for (let i = 0; i < slayerAreas.length; i++) {
                         for (let j = 0; j < slayerAreas[i].monsters.length; j++) {
-                                dataSet.push((this.monsterSimData[slayerAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[slayerAreas[i].monsters[j]][keyValue] : 0)
+                                dataSet.push((this.monsterSimData[slayerAreas[i].monsters[j]].simSuccess) ? this.monsterSimData[slayerAreas[i].monsters[j]][keyValue] * dataMultiplier : 0)
                         }
                 }
                 //Perform simulation of monsters in dungeons
                 for (let i = 0; i < DUNGEONS.length; i++) {
-                        dataSet.push((this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][keyValue] : 0)
+                        dataSet.push((this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][keyValue] * dataMultiplier : 0)
                 }
                 return dataSet;
         }
@@ -2743,7 +2870,7 @@ class mcsCard {
                 this.container.appendChild(newCCContainer);
         }
 
-        addNumberOutput(labelText, initialValue, height, imageSrc, outputID) {
+        addNumberOutput(labelText, initialValue, height, imageSrc, outputID, setLabelID = false) {
                 if (!outputID) {
                         var outputID = `MCS ${labelText} Output`;
                 }
@@ -2751,10 +2878,13 @@ class mcsCard {
                 if (imageSrc && imageSrc != '') {
                         newCCContainer.appendChild(this.createImage(imageSrc, height));
                 }
+                let newLabel = this.createLabel(labelText, outputID, setLabelID);
+                if (setLabelID) {
+                        newLabel.id = `MCS ${labelText} Label`;
+                }
+                newCCContainer.appendChild(newLabel);
 
-                newCCContainer.appendChild(this.createLabel(labelText, outputID));
-
-                var newOutput = document.createElement('div');
+                var newOutput = document.createElement('span');
                 newOutput.className = 'mcsNumberOutput';
                 newOutput.style.width = this.inputWidth;
                 newOutput.textContent = initialValue;
@@ -2877,50 +3007,51 @@ class mcsCard {
         }
 }
 /**
- * @description Formats a number with the specified number of decimals, padding with 0s
- * @param {number} number Number
- * @param {number} numDecimals Number of decimals
+ * @description Formats a number with the specified number of sigfigs, Addings suffixes as required
+ * @param {number} numberToFormat Number
+ * @param {number} numDigits Number of significant digits
  * @returns {string}
  */
-function mcsFormatNum(number, numDecimals) {
-        var outStr = number.toString(10);
-        var lengthFront = Math.trunc(number).toString(10).length;
-        var lengthEnd = outStr.length - lengthFront - ((outStr.length == lengthFront) ? 1 : 0);
-        var expectedLength = lengthFront + numDecimals + ((numDecimals == 0) ? 0 : 1);
-        if (outStr.length == lengthFront && numDecimals > 0) {
-                //String has no decimal and is expected to
-                outStr += '.';
-        } else if (lengthEnd > numDecimals) {
-                //String has too many decimals and needs to be rounded
-                var roundPos = lengthFront + numDecimals + 1;
-                if (outStr.charCodeAt(roundPos) > 52) {
-                        //Round up
-                        roundPos--;
-                        var isRounded = false;
-                        while (!isRounded) {
-                                //Hit the decimal decrease round position
-                                if (outStr.charCodeAt(roundPos) == 46) {
-                                        roundPos--;
-                                }
-                                if (outStr.charCodeAt(roundPos) == 57) {
-                                        //Case for rounding up a 9
-                                        outStr = outStr.substring(0, roundPos) + '0' + outStr.substring(roundPos + 1);
-                                        if (roundPos == 0) {
-                                                outStr = '1' + outStr;
-                                                expectedLength++;
-                                                isRounded = true;
-                                        }
-                                        roundPos--;
-                                } else {
-                                        outStr = outStr.substring(0, roundPos) + String.fromCharCode(outStr.charCodeAt(roundPos) + 1) + outStr.substring(roundPos + 1);
-                                        isRounded = true;
-                                }
-                        }
-                }
-                //Truncate string
-                outStr = outStr.substr(0, expectedLength);
+function mcsFormatNum(numberToFormat, numDigits) {
+        let outStr;
+        let magnitude = 0;
+        if (numberToFormat != 0) {
+                magnitude = Math.floor(Math.log10(numberToFormat));
         }
-        return outStr.padEnd(expectedLength, '0')
+        if (magnitude < numDigits) {
+                let numDecimals = numDigits - magnitude - 1;
+                if (numDecimals + 1 > numDigits) { numDecimals = numDigits - 1 };
+                outStr = (numberToFormat).toFixed(numDecimals);
+        } else {
+                let threeMag = Math.floor(magnitude / 3);
+                let formatEnd = ['k', 'M', 'B', 'T'];
+                if (formatEnd.length >= threeMag) {
+                        outStr = (numberToFormat / Math.pow(10, threeMag * 3)).toFixed(numDigits - (magnitude - 3 * threeMag) - 1) + formatEnd[threeMag - 1];
+                } else {
+                        outStr = (numberToFormat / Math.pow(10, threeMag * 3)).toFixed(numDigits - (magnitude - 3 * threeMag) - 1) + `e${3 * threeMag}`;
+                }
+        }
+        //Go Forward in string until decimal is found (or not);
+        let decInd;
+        for (i = 0; i < outStr.length; i++) {
+                if (outStr.charAt(i) == '.') {
+                        decInd = i;
+                        break;
+                }
+        }
+        if (decInd == undefined) {
+                decInd = outStr.length;
+        }
+        //Move backwards in the string and insert commas
+        let commaCount = 0;
+        for (let i = decInd; i > 1; i--) {
+                commaCount++;
+                if (commaCount == 3) {
+                        outStr = outStr.slice(0, i - 1) + ',' + outStr.slice(i - 1);
+                        commaCount = 0;
+                }
+        }
+        return outStr;
 }
 // Wait for page to finish loading, then create an instance of the combat sim
 var melvorCombatSim;
@@ -2929,7 +3060,7 @@ const melvorCombatSimLoader = setInterval(() => {
                 clearInterval(melvorCombatSimLoader);
                 let tryLoad = true;
                 let wrongVersion = false;
-                if (gameVersion != "Alpha v0.13") {
+                if (gameVersion != "Alpha v0.14.1") {
                         wrongVersion = true;
                         tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
                 }
@@ -2937,9 +3068,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.6.2 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.6.3 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.6.2 Loaded');
+                                        console.log('Melvor Combat Sim v0.6.3 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
@@ -2950,3 +3081,4 @@ const melvorCombatSimLoader = setInterval(() => {
                 }
         }
 }, 200);
+

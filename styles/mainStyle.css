@@ -270,6 +270,7 @@
     border-color: inherit;
     white-space: nowrap;
     right: 0px;
+    line-height: 1.15;
 }
 
 .mcsSectionTitle {
