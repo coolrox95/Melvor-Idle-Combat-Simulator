@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.6.3: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.6.4: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -3060,7 +3060,7 @@ const melvorCombatSimLoader = setInterval(() => {
                 clearInterval(melvorCombatSimLoader);
                 let tryLoad = true;
                 let wrongVersion = false;
-                if (gameVersion != "Alpha v0.14.1") {
+                if (gameVersion != "Alpha v0.14.2") {
                         wrongVersion = true;
                         tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
                 }
@@ -3068,9 +3068,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.6.3 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.6.4 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.6.3 Loaded');
+                                        console.log('Melvor Combat Sim v0.6.4 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')
