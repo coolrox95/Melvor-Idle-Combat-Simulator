@@ -11,6 +11,15 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.6.4.zip) the latest version of the simulator.
+2. Unzip the files.
+3. Navigate to: chrome://extensions and toggle Developer mode on.
+![Toggling developer mode](Media/chromeInstall1.png)
+4. Click "Load Unpacked" and navigate to the folder you unzipped to.
+![Loading Unpacked](Media/chromeInstall2.png)
+5. Click "Select Folder".
+6. The simulator should now be installed. You can disable or remove the extension from chrome://extensions.
+![Disabling or Removing the Extension](Media/chromeInstall3.png)
 
 ## Instructions:
 1. Toggle the display of the simulator using the option on the game's sidebar.
