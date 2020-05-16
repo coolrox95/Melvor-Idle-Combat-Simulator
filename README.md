@@ -56,6 +56,7 @@ Currently not available on the chrome webstore, but you can download the sources
  - Signet Ring Chance (%): The probability to gain at least 1 Signet Ring Half B after fighting a monster for Signet Time (h) hours.
  - Attacks Made per second: Average number of calls to attackEnemy() per second. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
 7. Click on a bar to view detailed information about that monster/dungeon.
+ - You can click Inspect Dungeon to view the simulation results for individual monsters inside a dungeon. Note that the average time in this view is the time required to defeat the quantity of that monster in the dungeon.
 ## A Note On Simulation Accuracy
 This simulator assumes that the game is running with absolutely no slowdowns, and each action is proccessed instantaneously. In reality this is not true, and measured rates will tend to be lower than simulation results.
 
