@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.6.4
+# Melvor-Idle-Combat-Simulator v0.7.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.14.2 of Melvor Idle.
+This extension was built for version: Alpha v0.15 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -11,7 +11,7 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
-1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.6.4.zip) the latest version of the simulator.
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.7.0.zip) the latest version of the simulator.
 2. Unzip the files.
 3. Navigate to: chrome://extensions and toggle Developer mode on.
 ![Toggling developer mode](Media/chromeInstall1.png)
@@ -30,14 +30,16 @@ Currently not available on the chrome webstore, but you can download the sources
  - Time Unit: The unit to measure rates in (e.g. xp per second vs. xp per hour)
  - Slayer Task? Toggles whether or not to calculate slayer XP as if you were completing a slayer task.
  - Sell Bones: Whether or not to sell bones. Used in GP calculations.
+ - Convert Shards: Whether or not to convert elemental shards from god dungeons into elemental chests.
  - Sell Loot: Whether or not to sell all loot, a subset of loot or none of it.
    - When subset is selected you may edit which items to sell, by clicking Edit Subset.
    - Selecting Set Default will change the subset to keep combat unique items.
    - Selecting Set Discovered will change the subset to keep undiscovered items.
    - Hitting Cancel will prevent the subset from changing
    - Hitting Save will confirm the current settings.
-4. Hit the Simulate button.
-5. Select the Plot Type to visualize your simulation results.
+4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot.
+5. Hit the Simulate button.
+6. Select the Plot Type to visualize your simulation results.
  - XP per second: Experience points per second for selected combat style's skills.
  - HP XP per second: Experience points per second for the Hitpoints skill.
  - Prayer XP per second: Experience points per second for the Prayer skill.
@@ -52,9 +54,15 @@ Currently not available on the chrome webstore, but you can download the sources
  - GP per second: The average amount of GP earned per second.
  - Potential Herblore XP/s: The potential herblore xp earned using lucky herb potions. Assumes crafting the most xp efficient potions.
  - Signet Ring Chance (%): The probability to gain at least 1 Signet Ring Half B after fighting a monster for Signet Time (h) hours.
-6. Click on a bar to view detailed information about that monster/dungeon.
+ - Attacks Made per second: Average number of calls to attackEnemy() per second. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
+7. Click on a bar to view detailed information about that monster/dungeon.
 ## A Note On Simulation Accuracy
 This simulator assumes that the game is running with absolutely no slowdowns, and each action is proccessed instantaneously. In reality this is not true, and measured rates will tend to be lower than simulation results.
+
+In addition the calculation for hitpoints used per second assumes there is no cap on player hitpoints (It simply sums the damage taken and subtracts all possible healing). Actual results will tend to be higher.
+
+### Known Issues:
+Currently the Slayer Crossbow applies its strength bonus to dungeons when you have Slayer Task? set to Yes. For accurate results in dungeons please set this to No.
 ## Screenshots
 ### Darkmode
 ![combatSim](https://imgur.com/DNrbI2Z.png)
