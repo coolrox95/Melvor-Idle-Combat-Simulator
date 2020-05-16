@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.6.4: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.7.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -38,4 +38,11 @@ function injectScript(scriptName) {
     newScript.setAttribute('id',scriptID);
     newScript.src = scriptPath;
     document.body.appendChild(newScript);
+    //Inject Image resource
+    let crossedOutURL = chrome.runtime.getURL('icons/crossedOut.svg');
+    let crossedImage = document.createElement('img');
+    crossedImage.id = 'mcsCrossedOut';
+    crossedImage.src = crossedOutURL;
+    crossedImage.style.display = 'none';
+    document.body.appendChild(crossedImage);
 }

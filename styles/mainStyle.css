@@ -83,30 +83,28 @@
 
 .mcsPlotTopContainer {
     position: relative;
-    width: 100%;
     margin-top: 5px;
     flex-grow: 1;
     border-color: inherit;
     background-color: inherit;
+    display: flex;
 }
 
 .mcsXAxis {
     position: relative;
+    display: flex;
     min-height: 80px;
     flex-grow: 0;
 }
 
 .mcsYAxis {
-    position: absolute;
-    bottom: 0px;
-    left: 0px;
+    position: relative;
     height: 100%;
 }
 
 .mcsPlotBox {
-    position: absolute;
-    bottom: 0px;
-    right: 0px;
+    position: relative;
+    display: flex;
     height: 100%;
     border-width: thin;
     border-style: solid;
@@ -126,6 +124,8 @@
 
 .mcsPlotTitle {
     margin-top: 5px;
+    margin-left: 80px;
+    align-self: center;
     text-align: center;
     font-weight: 900;
     font-size: larger;
@@ -139,13 +139,30 @@
     height: 10px;
     border-bottom-style: solid;
     border-right-style: solid;
+    pointer-events: none;
+}
+
+.mcsXAxisImageContainer {
+    align-self: flex-start;
+    width: 20px;
+    height: 20px;
+    position: relative;
 }
 
 .mcsXAxisImage {
+    width: 100%;
+    top: 0;
+    left: 0;
     position: absolute;
-    top: 0px;
 }
 
+.mcsCross {
+    width: 80%;
+    top: 10%;
+    left: 10%;
+    position: absolute;
+    pointer-events: none;
+}
 
 .mcsButton {
     background: lightgray;
@@ -321,24 +338,27 @@
     border-bottom-style: solid;
     border-bottom-width: thin;
     border-color: lightslategray;
-
 }
 
 .mcsBarTooltip {
-    position: absolute;
+    bottom: 100%;
     width: 60px;
     height: 25px;
-    border-width: thin;
-    border-style: solid;
-    border-color: inherit;
-    background-color: inherit;
+    color: white;
+    border: solid thin white;
+    background-color: black;
     text-align: center;
+    position: absolute;
+    z-index: 1;
 }
 
 .mcsBar {
-    position: absolute;
+    position: relative;
     background-color: #0072BD;
-    bottom: 0px;
+    width: 18px;
+    margin-right: 1px;
+    margin-left: 1px;
+    align-self: flex-end;
 }
 
 .mcsBarCantEnter {

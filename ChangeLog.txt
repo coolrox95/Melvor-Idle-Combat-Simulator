@@ -1,3 +1,28 @@
+v0.7.0:
+Melvor Combat sim has been updated for game version Alpha v0.15
+The simulation method has been completely rewritten this update to accomadate new combat mechanics.
+Due to the increase in combat complexity, and the increase in the number of monsters simulations now tend to take longer.
+As a result it is now possible to toggle the simulation of individual monsters or dungeons by clicking on their image under the plot.
+
+New Features:
+New: Player Special attacks are now accounted for
+New: Stun and other enemy and player debuffs are now accounted for
+New: Enemy bleed and player burn are now accounted for
+New: Attacks made per X plot option added. This is the number of times the attackEnemy function is called per X. Useful for determining potion charge, ammunition and rune consumption.
+New: The option to inspect the individual monsters of a dungeon has been added. To access this view, click on the bar of a succesful dungeon simulation, and then click inspect dungeon.
+	Note: The average time required for these monsters is the time to defeat the total quantity of that monster in the dungeon.
+New: Implemented several new items with special effects: Firemaking Skillcape, Fighter Amulet, Warlock Amulet, Guardian Amulet, Deadeye Amulet, Cloudburst Staff, Confetti Crossbow, Stormsnap, Slayer Crossbow and Big Ron
+New: Implemented damage reduction prayers.
+New: Added a Convert Shards option for calculating gp rates. This toggles whether elemental shards from god dungeons should be converted into chests or not.
+New: Added the ability to toggle which dungeons and monsters are simulated by clicking on their images.
+Change: Adjusted Gold Sapphire ring to have a 2 second cooldown as per the in game change.
+
+Fix: Topaz chance is no longer non-zero when simulating without Gold Topaz Ring equipped after previously simulating with it.
+Fix: Damage calculations for dungeons are no longer divided by 10.
+
+Known Issues:
+Slayer crossbow applies its bonus strength to dungeons if the slayer task option is set to true.
+
 v0.6.4:
 Updated for game version Alpha v0.14.2
 No changes to combat mechanics. 
@@ -13,11 +38,6 @@ Change: Number formatting now attempts to fix the number to 4 digits.
 Change: Prayer XP calculation changed to reflect nerf
 Change: Protect from prayers changed to reflect nerf
 Change: Magic Maximum Hit calculation changed to reflect buff
-
-things left:
-Get zone info card labels to update properly
-get dropdown labels to update properly
-get plot title to update properly
 
 v0.6.2:
 Fix: Fixed Prayer Skillcape point cost calculation to be accurate. Previously it set the costs to 1 when prayers had a cost of 0.
