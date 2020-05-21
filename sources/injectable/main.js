@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.7.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.8.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -18,6 +18,11 @@
 
 class mcsApp {
         constructor() {
+                //Plot Type Options
+                this.plotTypeDropdownOptions = ['XP per ', 'HP XP per ', 'Prayer XP per ', 'Slayer XP per ', 'XP per Attack', 'HP Loss per ', 'Prayer Points per ', 'Damage per ', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per ', 'Potential Herblore XP per ', 'Chance for Signet Part B(%)', 'Attacks Made per '];
+                this.plotTypeIsTime = [true, true, true, true, false, true, true, true, false, false, false, true, true, false, true];
+                this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance', 'attacksMadePerSecond'];
+                this.zoneInfoNames = ['XP/', 'HP XP/', 'Prayer XP/', 'Slayer XP/', 'XP/attack', 'HP Lost/', 'Prayer Points/', 'Damage/', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/', 'Herb XP/', 'Signet Chance (%)', 'Attacks Made/'];
                 //Generate gear subsets
                 this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
                 this.gearSubsets = [];
@@ -332,9 +337,6 @@ class mcsApp {
                         this.timeMultipliers = [1, 60, 3600, 3600 * 24];
                         this.simPlotOpts2.addDropdown('Time Unit', this.timeOptions, this.timeMultipliers, 25, event => this.timeUnitDropdownOnChange(event));
                         this.simPlotOpts2.addNumberInput('Signet Time (h)', 1, 25, 1, 1000, event => this.signetTimeInputOnChange(event));
-                        this.plotTypeDropdownOptions = ['XP per ', 'HP XP per ', 'Prayer XP per ', 'Slayer XP per ', 'XP per Attack', 'HP Loss per ', 'Prayer Points per ', 'Damage per ', 'Average Kill Time (s)', 'Damage per Attack', 'GP per Kill', 'GP per ', 'Potential Herblore XP per ', 'Chance for Signet Part B(%)', 'Attacks Made per'];
-                        this.plotTypeIsTime = [true, true, true, true, false, true, true, true, false, false, false, true, true, false, true];
-                        this.plotTypeDropdownValues = ['xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance', 'attacksMadePerSecond'];
                         let dropDownOptionNames = [];
                         for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
                                 if (this.plotTypeIsTime[i]) {
@@ -346,6 +348,8 @@ class mcsApp {
                         this.simPlotOpts2.addDropdown('Plot Type', dropDownOptionNames, this.plotTypeDropdownValues, 25, event => this.plottypeDropdownOnChange(event));
                         this.simPlotOpts2.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [e => this.slayerTaskRadioOnChange(e, true), e => this.slayerTaskRadioOnChange(e, false)], 1)
                         this.simPlotOpts2.addButton('Simulate', event => this.simulateButtonOnClick(event), 250, 25);
+                        this.simPlotOpts2.addButton('Export Data', event => this.exportDataOnClick(event), 250, 25);
+                        this.simPlotOpts2.addButton('Show Export Options >', event => this.exportOptionsOnClick(event), 250, 25);
                         this.simPlotOpts2.addSectionTitle('GP/s Options');
                         this.simPlotOpts2.addRadio('Sell Bones', 25, 'sellBones', ['Yes', 'No'], [e => this.sellBonesRadioOnChange(e, true), e => this.sellBonesRadioOnChange(e, false)], 1);
                         this.simPlotOpts2.addRadio('Convert Shards', 25, 'convertShards', ['Yes', 'No'], [e => this.convertShardsRadioOnChange(e, true), e => this.convertShardsRadioOnChange(e, false)], 1);
@@ -387,6 +391,24 @@ class mcsApp {
 
                         this.gpOptionsCard.container.style.display = 'none';
                 }
+                //Export Options Card
+                {
+                        this.isExportDisplayed = false;
+                        this.exportOptionsCard = new mcsCard(this.content, '320px', '100%', '220px', '100px');
+                        this.exportOptionsCard.addSectionTitle('Export Options');
+                        this.exportOptionsCard.addRadio('Export Dungeon Monsters?', 25, `DungeonMonsterExportRadio`, ['Yes', 'No'], [e => this.exportDungeonMonsterRadioOnChange(e, true), e => this.exportDungeonMonsterRadioOnChange(e, false)], 0);
+                        this.exportOptionsCard.addRadio('Export Non-Simulated?', 25, `NonSimmedExportRadio`, ['Yes', 'No'], [e => this.exportNonSimmedRadioOnChange(e, true), e => this.exportNonSimmedRadioOnChange(e, false)], 0);
+                        this.exportOptionsCard.addSectionTitle('Data to Export');
+                        this.exportOptionsCard.addRadio('Name', 25, `NameExportRadio`, ['Yes', 'No'], [e => this.exportNameRadioOnChange(e, true), e => this.exportNameRadioOnChange(e, false)], 0);
+                        for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
+                                let timeText = '';
+                                if (this.plotTypeIsTime[i]) {
+                                        timeText = 'X';
+                                }
+                                this.exportOptionsCard.addRadio(`${this.zoneInfoNames[i]}${timeText}`, 25, `${this.plotTypeDropdownValues[i]}ExportRadio`, ['Yes', 'No'], [e => this.exportRadioOnChange(e, true, i), e => this.exportRadioOnChange(e, false, i)], 0);
+                        }
+                        this.exportOptionsCard.container.style.display = 'none';
+                }
                 //Bar Chart Card
                 this.plotter = new mcsPlotter(this);
                 //Individual info card, nested into sim/plot card
@@ -395,7 +417,6 @@ class mcsApp {
                         this.zoneInfoCard.container.style.overflow = 'hidden auto';
                         this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
                         this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
-                        this.zoneInfoNames = ['XP/', 'HP XP/', 'Prayer XP/', 'Slayer XP/', 'XP/attack', 'HP Lost/', 'Prayer Points/', 'Damage/', 'Kill Time(s)', 'Damage/attack', 'GP/kill', 'GP/', 'Herb XP/', 'Signet Chance (%)', 'Attacks Made/'];
                         let zoneInfoLabelNames = [];
                         for (let i = 0; i < this.zoneInfoNames.length; i++) {
                                 if (this.plotTypeIsTime[i]) {
@@ -461,7 +482,8 @@ class mcsApp {
                 //Add hooks into darkmode buttons
                 document.getElementById('setting-darkmode-enable').addEventListener('click', event => this.darkModeSwitch(true, event));
                 document.getElementById('setting-darkmode-disable').addEventListener('click', event => this.darkModeSwitch(false, event));
-
+                //Export Options element
+                this.exportOptionsButton = document.getElementById('MCS Show Export Options > Button');
                 //Saving and loading of Gear Sets
                 this.gearSets = [];
         }
@@ -499,7 +521,7 @@ class mcsApp {
                         }
                         //Ammo Check
                         if (((items[itemID].type === 'Ranged Weapon') || items[itemID].isRanged) && items[itemID].equipmentSlot == CONSTANTS.equipmentSlot.Quiver) {
-                                //Javelin and Knives
+                                //Equipping Weapon that is also ammo.
                                 //Find index of item
                                 let gearIndex = -1;
                                 for (let i = 0; i < this.gearSubsets[CONSTANTS.equipmentSlot.Quiver].length; i++) {
@@ -555,7 +577,7 @@ class mcsApp {
                                 this.disableStyleDropdown('Melee');
                                 this.enableStyleDropdown('Ranged');
                         } else { //Arrows and Bolts
-                                if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired != items[itemID].ammoType) {
+                                if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && (items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired == 2 || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired == 3 )) {
                                         this.gearSelecter.dropDowns[CONSTANTS.equipmentSlot.Weapon].selectedIndex = 0;
                                         this.gearSelected[CONSTANTS.equipmentSlot.Weapon] = 0;
                                         this.gearSelecter.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = false;
@@ -798,22 +820,38 @@ class mcsApp {
                 this.plotter.updateBars(this.simulator.getDataSet(event.currentTarget.value));
         }
         simulateButtonOnClick(event) {
-                this.simulator.simulateCombat();
-                this.updatePlotData();
-                this.plotter.setBarColours(this.simulator.getEnterSet());
-                this.updateZoneInfoCard();
+                if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && (items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired != items[this.gearSelected[CONSTANTS.equipmentSlot.Quiver]].ammoType)) {
+                        notifyPlayer(CONSTANTS.skill.Ranged,'Incorrect Ammo type equipped for weapon.','danger');
+                } else {
+                        this.simulator.simulateCombat();
+                        this.updatePlotData();
+                        this.plotter.setBarColours(this.simulator.getEnterSet());
+                        this.updateZoneInfoCard();
+                }
         }
         sellBonesRadioOnChange(event, newState) {
                 this.simulator.sellBones = newState;
                 this.updatePlotForGP();
         }
-        convertShardsRadioOnChange(event,newState) {
+        convertShardsRadioOnChange(event, newState) {
                 this.simulator.convertShards = newState;
                 this.updatePlotForGP();
         }
         slayerTaskRadioOnChange(event, newState) {
                 this.simulator.isSlayerTask = newState;
                 this.updatePlotForSlayerXP();
+        }
+        exportRadioOnChange(event, newState, exportIndex) {
+                this.simulator.exportDataType[exportIndex] = newState;
+        }
+        exportNameRadioOnChange(event, newState) {
+                this.simulator.exportName = newState;
+        }
+        exportDungeonMonsterRadioOnChange(event, newState) {
+                this.simulator.exportDungeonMonsters = newState;
+        }
+        exportNonSimmedRadioOnChange(event, newState) {
+                this.simulator.exportNonSimmed = newState;
         }
         sellLootDropdownOnChange(event) {
                 this.simulator.sellLoot = event.currentTarget.value;
@@ -877,6 +915,19 @@ class mcsApp {
                 this.plotter.updateBars(this.simulator.getDataSet(this.plotter.plotType));
                 //Update Info Card
                 this.updateZoneInfoCard();
+        }
+        exportDataOnClick() {
+                navigator.clipboard.writeText(this.simulator.exportData()).then(() => { return }, () => { throw 'Could not copy data to clipboard.' });
+        }
+        exportOptionsOnClick() {
+                if (this.isExportDisplayed) {
+                        this.exportOptionsCard.container.style.display = 'none';
+                        this.exportOptionsButton.textContent = 'Show Export Options >';
+                } else {
+                        this.exportOptionsCard.container.style.display = '';
+                        this.exportOptionsButton.textContent = 'Hide Export Options <';
+                }
+                this.isExportDisplayed = !this.isExportDisplayed;
         }
         //Callback Functions for Bar inspection
         inspectDungeonOnClick(event) {
@@ -1238,6 +1289,7 @@ class mcsApp {
                 this.simulator.computeCombatStats();
                 this.updateCombatStats();
         }
+        //Data Sanatizing Functions
         getDungeonName(dungeonID) {
                 return this.replaceApostrophe(DUNGEONS[dungeonID].name);
         }
@@ -1851,12 +1903,22 @@ class mcsSimulator {
                                         currentIndex++;
                                         condensedArray.push({
                                                 id: lastMonster,
-                                                quantity: 1
+                                                quantity: 1,
+                                                isBoss: false
                                         })
                                 }
                         })
+                        condensedArray[condensedArray.length - 1].isBoss = true;
                         this.condensedDungeonMonsters.push(condensedArray);
                 });
+                //Data Export Settings
+                this.exportDataType = [];
+                this.exportName = true;
+                this.exportDungeonMonsters = true;
+                this.exportNonSimmed = true;
+                for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
+                        this.exportDataType.push(true);
+                }
         }
         /**
          * @description Computes the stats of the players equipped items and stores them on this properties
@@ -2394,7 +2456,11 @@ class mcsSimulator {
                 if (MONSTERS[monsterID].hasSpecialAttack) {
                         enemyStats.hasSpecialAttack = true;
                         for (let i = 0; i < MONSTERS[monsterID].specialAttackID.length; i++) {
-                                enemyStats.specialAttackChances.push(enemySpecialAttacks[MONSTERS[monsterID].specialAttackID[i]].chance);
+                                if (MONSTERS[monsterID].overrideSpecialChances !== undefined) {
+                                        enemyStats.specialAttackChances.push(MONSTERS[monsterID].overrideSpecialChances[i]);
+                                } else {
+                                        enemyStats.specialAttackChances.push(enemySpecialAttacks[MONSTERS[monsterID].specialAttackID[i]].chance);
+                                }
                         }
                         enemyStats.specialLength = enemyStats.specialAttackChances.length;
                 }
@@ -2593,10 +2659,10 @@ class mcsSimulator {
                                                                 if (playerAccuracy > hitChance) attackHits = true;
                                                         }
                                                         if (attackHits) {
-                                                                if (playerStats.specialData.setDamage) damageToEnemy = playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier;
+                                                                if (playerStats.specialData.setDamage) damageToEnemy = Math.floor(playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier);
                                                                 else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
                                                                 else if (playerStats.specialData.stormsnap) damageToEnemy = 6 + 6 * this.playerLevels.Magic;
-                                                                else damageToEnemy = Math.floor(Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier;
+                                                                else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
                                                                 if (playerStats.activeItems.Deadeye_Amulet) {
                                                                         let chance = Math.floor(Math.random() * 100);
                                                                         if (chance > items[CONSTANTS.item.Deadeye_Amulet].chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * items[CONSTANTS.item.Deadeye_Amulet].critDamage);
@@ -2762,10 +2828,10 @@ class mcsSimulator {
                                                 if (playerAccuracy > hitChance) attackHits = true;
                                         }
                                         if (attackHits) {
-                                                if (playerStats.specialData.setDamage) damageToEnemy = playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier;
+                                                if (playerStats.specialData.setDamage) damageToEnemy = Math.floor(playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier);
                                                 else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
                                                 else if (playerStats.specialData.stormsnap) damageToEnemy = 6 + 6 * this.playerLevels.Magic;
-                                                else damageToEnemy = Math.floor(Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier;
+                                                else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
                                                 if (playerStats.activeItems.Deadeye_Amulet) {
                                                         let chance = Math.floor(Math.random() * 100);
                                                         if (chance > items[CONSTANTS.item.Deadeye_Amulet].chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * items[CONSTANTS.item.Deadeye_Amulet].critDamage);
@@ -3195,9 +3261,7 @@ class mcsSimulator {
                         this.monsterSimData[monsterID].avgHitDmg = enemyStats.hitpoints * Ntrials / stats.playerAttackCalls;
                         this.monsterSimData[monsterID].avgKillTime = enemySpawnTimer + stats.totalTime / Ntrials;
 
-                        stats.damageHealed += this.monsterSimData[monsterID].avgKillTime / hitpointRegenInterval * playerStats.avgHPRegen;
-
-                        this.monsterSimData[monsterID].hpPerEnemy = (stats.damageTaken - stats.damageHealed) / Ntrials;
+                        this.monsterSimData[monsterID].hpPerEnemy = (stats.damageTaken - stats.damageHealed) / Ntrials - this.monsterSimData[monsterID].avgKillTime / hitpointRegenInterval * playerStats.avgHPRegen;
                         if (this.monsterSimData[monsterID].hpPerEnemy < 0) this.monsterSimData[monsterID].hpPerEnemy = 0;
                         this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000;
 
@@ -3301,6 +3365,91 @@ class mcsSimulator {
                         }
                 }
                 return dataSet;
+        }
+
+        exportData() {
+                let exportString = '';
+                let colDel = '\t';
+                let colLen = colDel.length;
+                let rowDel = '\n';
+                let rowLen = rowDel.length;
+                if (this.exportName) {
+                        exportString += 'Monster/Dungeon Name' + colDel;
+                }
+                for (let i = 0; i < this.parent.plotTypeDropdownOptions.length; i++) {
+                        if (this.exportDataType[i]) {
+                                if (this.parent.plotTypeIsTime[i]) {
+                                        exportString += this.parent.plotTypeDropdownOptions[i] + this.parent.selectedTimeUnit + colDel;
+                                } else {
+                                        exportString += this.parent.plotTypeDropdownOptions[i] + colDel
+                                }
+                        }
+                }
+                exportString = exportString.slice(0, -colLen);
+                exportString += rowDel;
+                combatAreas.forEach(area => {
+                        area.monsters.forEach(monsterID => {
+                                if (this.exportNonSimmed || (!this.exportNonSimmed && this.monsterSimFilter[monsterID])) {
+                                        if (this.exportName) exportString += this.parent.getMonsterName(monsterID) + colDel;
+                                        for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
+                                                if (this.exportDataType[i]) {
+                                                        exportString += (this.monsterSimFilter[monsterID] && this.monsterSimData[monsterID].simSuccess) ? this.monsterSimData[monsterID][this.parent.plotTypeDropdownValues[i]] * ((this.parent.plotTypeIsTime[i]) ? this.timeMultiplier : 1) : 0;
+                                                        exportString += colDel;
+                                                }
+                                        }
+                                        exportString = exportString.slice(0, -colLen);
+                                        exportString += rowDel;
+                                }
+                        })
+                })
+                slayerAreas.forEach(area => {
+                        area.monsters.forEach(monsterID => {
+                                if (this.exportNonSimmed || (!this.exportNonSimmed && this.monsterSimFilter[monsterID])) {
+                                        if (this.exportName) exportString += this.parent.getMonsterName(monsterID) + colDel;
+                                        for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
+                                                if (this.exportDataType[i]) {
+                                                        exportString += (this.monsterSimFilter[monsterID] && this.monsterSimData[monsterID].simSuccess) ? this.monsterSimData[monsterID][this.parent.plotTypeDropdownValues[i]] * ((this.parent.plotTypeIsTime[i]) ? this.timeMultiplier : 1) : 0;
+                                                        exportString += colDel;
+                                                }
+                                        }
+                                        exportString = exportString.slice(0, -colLen);
+                                        exportString += rowDel;
+                                }
+                        })
+                })
+                for (let i = 0; i < DUNGEONS.length; i++) {
+                        if (this.exportNonSimmed || (!this.exportNonSimmed && this.dungeonSimFilter[i])) {
+                                if (this.exportName) exportString += this.parent.getDungeonName(i) + colDel;
+                                for (let j = 0; j < this.parent.plotTypeDropdownValues.length; j++) {
+                                        if (this.exportDataType[j]) {
+                                                exportString += (this.dungeonSimFilter[i] && this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][this.parent.plotTypeDropdownValues[j]] * ((this.parent.plotTypeIsTime[j]) ? this.timeMultiplier : 1) : 0;
+                                                exportString += colDel;
+                                        }
+                                }
+                                exportString = exportString.slice(0, -colLen);
+                                exportString += rowDel;
+                                if (this.exportDungeonMonsters) {
+                                        this.condensedDungeonMonsters[i].forEach(monster => {
+                                                if (this.exportName) exportString += this.parent.getMonsterName(monster.id) + colDel;
+                                                for (let j = 0; j < this.parent.plotTypeDropdownValues.length; j++) {
+                                                        if (this.exportDataType[j]) {
+                                                                let dataMultiplier = (this.parent.plotTypeDropdownValues[j] == 'killTimeS') ? monster.quantity : 1;
+                                                                if (this.parent.plotTypeDropdownValues[j] == 'signetChance') {
+                                                                        exportString += '0';
+                                                                } else {
+                                                                        exportString += (this.monsterSimFilter[monster.id] && this.monsterSimData[monster.id].simSuccess) ? this.monsterSimData[monster.id][this.parent.plotTypeDropdownValues[j]] * ((this.parent.plotTypeIsTime[j]) ? this.timeMultiplier : 1) * dataMultiplier : 0;
+                                                                }
+                                                                exportString += colDel;
+                                                        }
+                                                }
+                                                exportString = exportString.slice(0, -colLen);
+                                                exportString += rowDel;
+                                        })
+                                }
+                        }
+                }
+                exportString = exportString.slice(0, -rowLen);
+                return exportString;
         }
         getEnterSet() {
                 var enterSet = [];
@@ -4246,7 +4395,7 @@ const melvorCombatSimLoader = setInterval(() => {
                 clearInterval(melvorCombatSimLoader);
                 let tryLoad = true;
                 let wrongVersion = false;
-                if (gameVersion != "Alpha v0.15") {
+                if (gameVersion != "Alpha v0.15.1") {
                         wrongVersion = true;
                         tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
                 }
@@ -4254,9 +4403,9 @@ const melvorCombatSimLoader = setInterval(() => {
                         try {
                                 melvorCombatSim = new mcsApp();
                                 if (wrongVersion) {
-                                        console.log('Melvor Combat Sim v0.7.0 Loaded, but simulation results may be inaccurate.')
+                                        console.log('Melvor Combat Sim v0.8.0 Loaded, but simulation results may be inaccurate.')
                                 } else {
-                                        console.log('Melvor Combat Sim v0.7.0 Loaded');
+                                        console.log('Melvor Combat Sim v0.8.0 Loaded');
                                 }
                         } catch (error) {
                                 console.warn('Melvor Combat Sim was not properly loaded due to the following error:')

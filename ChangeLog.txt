@@ -1,3 +1,17 @@
+v0.8.0:
+Updated Combat Sim for game version Alpha v0.15.1
+New: Added a Data export button. Clicking this button will copy a tab delimited version of the simulation results to your clipboard.
+New: Added an Export Options Panel, which can be accessed by clicking Show Export Options, and hidden by clicking Hide Export Options.
+		-Export Dungeon Monsters? Toggles whether or not to export the results for individual monsters from dungeons
+		-Export Non-Simulated? Toggles whether or not to export monsters/dungeons that have been turned off as 0 fields.
+		-Data to Export: Toggles the simulation results that should be exported.
+Fix: God Dungeon Boss special attacks are now assigned the correct chances.
+Fix: Added space to Attacks made per X output option
+Fix: Fixed a rounding issue on damage to enemies with player specials attacks that have damage multipliers.
+Fix: Fixed HP Regen calculation, it was previously only adding the regen for one monster to all trials.
+Fix: Equipping Bolts while having a bow equipped no longer unequips the bow.
+Fix: Added a check for if ranged weapons have the right ammo equipped before simulation.
+ 
 v0.7.0:
 Melvor Combat sim has been updated for game version Alpha v0.15
 The simulation method has been completely rewritten this update to accomadate new combat mechanics.
