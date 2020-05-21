@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.7.0
+# Melvor-Idle-Combat-Simulator v0.8.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.15 of Melvor Idle.
+This extension was built for version: Alpha v0.15.1 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -11,7 +11,7 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
-1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.7.0.zip) the latest version of the simulator.
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.8.0.zip) the latest version of the simulator.
 2. Unzip the files.
 3. Navigate to: chrome://extensions and toggle Developer mode on.
 ![Toggling developer mode](Media/chromeInstall1.png)
@@ -57,6 +57,11 @@ Currently not available on the chrome webstore, but you can download the sources
  - Attacks Made per second: Average number of calls to attackEnemy() per second. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
 7. Click on a bar to view detailed information about that monster/dungeon.
  - You can click Inspect Dungeon to view the simulation results for individual monsters inside a dungeon. Note that the average time in this view is the time required to defeat the quantity of that monster in the dungeon.
+8. Export Data to your Clip Board by clicking the Export Data button.
+ - You can change the options for this export by clicking Show Export Options.
+ - Export Dungeon Monsters toggles whether the individual monsters from dungeons should be exported.
+ - Export Non-Simulated toggles whether simulations that have been toggled off should be exported.
+ - Data to Export provides toggles for what information to export.
 ## A Note On Simulation Accuracy
 This simulator assumes that the game is running with absolutely no slowdowns, and each action is proccessed instantaneously. In reality this is not true, and measured rates will tend to be lower than simulation results.
 
