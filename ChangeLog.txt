@@ -1,3 +1,9 @@
+v0.8.1:
+Updated Combat Sim for game version Alpha v0.15.2
+Change: Adjusted how Cloudburst functions to game implementation
+Fix: Fixed Export Function not including Monsters in dungeons if they were disabled
+Fix: Fixed a bug where monster images would stay crossed out on dungeon inspection
+
 v0.8.0:
 Updated Combat Sim for game version Alpha v0.15.1
 New: Added a Data export button. Clicking this button will copy a tab delimited version of the simulation results to your clipboard.
