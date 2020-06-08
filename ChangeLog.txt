@@ -1,3 +1,7 @@
+v0.8.2:
+Updated Combat Sim for game version Alpha v0.15.2.1
+No changes should have been made to simulator functionality, but the sources have been refactored to fit a style guide.
+
 v0.8.1:
 Updated Combat Sim for game version Alpha v0.15.2
 Change: Adjusted how Cloudburst functions to game implementation

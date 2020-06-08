@@ -1,0 +1,9 @@
+Extension/node_modules
+*.rtf
+Extension/.eslintrc.js
+Extension/package-lock.json
+Extension/package.json
+mainExperimental.js
+todolist.txt
+ReleaseChecklist.txt
+Releases/OLD

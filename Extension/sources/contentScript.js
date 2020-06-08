@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.8.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.8.2: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -16,33 +16,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Perform script injection
-var injectableNames = ['main'];
+// Perform script injection
+const injectableNames = ['main'];
 
-for (let i=0;i<injectableNames.length;i++) {
-    injectScript(injectableNames[i]);
+for (let i=0; i<injectableNames.length; i++) {
+  injectScript(injectableNames[i]);
 }
 /**
- * @description Injects a script onto the page of the 
- * @param {string} scriptName 
+ * @description Injects a script onto the page of the
+ * @param {string} scriptName
  */
 function injectScript(scriptName) {
-    var scriptID = `MCS ${scriptName}`;
-    //Check if script already exists, if so delete it
-    if (document.contains(document.getElementById(scriptID))) {
-        document.getElementById(scriptID).remove();
-    }
-    //Inject script
-    var scriptPath = chrome.runtime.getURL(`sources/injectable/${scriptName}.js`);
-    var newScript = document.createElement('script');
-    newScript.setAttribute('id',scriptID);
-    newScript.src = scriptPath;
-    document.body.appendChild(newScript);
-    //Inject Image resource
-    let crossedOutURL = chrome.runtime.getURL('icons/crossedOut.svg');
-    let crossedImage = document.createElement('img');
-    crossedImage.id = 'mcsCrossedOut';
-    crossedImage.src = crossedOutURL;
-    crossedImage.style.display = 'none';
-    document.body.appendChild(crossedImage);
+  const scriptID = `MCS ${scriptName}`;
+  // Check if script already exists, if so delete it
+  if (document.contains(document.getElementById(scriptID))) {
+    document.getElementById(scriptID).remove();
+  }
+  // Inject script
+  const scriptPath = chrome.runtime.getURL(`sources/injectable/${scriptName}.js`);
+  const newScript = document.createElement('script');
+  newScript.setAttribute('id', scriptID);
+  newScript.src = scriptPath;
+  document.body.appendChild(newScript);
+  // Inject Image resource
+  const crossedOutURL = chrome.runtime.getURL('icons/crossedOut.svg');
+  const crossedImage = document.createElement('img');
+  crossedImage.id = 'mcsCrossedOut';
+  crossedImage.src = crossedOutURL;
+  crossedImage.style.display = 'none';
+  document.body.appendChild(crossedImage);
 }
