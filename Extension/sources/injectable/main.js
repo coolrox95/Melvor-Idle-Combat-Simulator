@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.8.2: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.8.3: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -40,7 +40,8 @@ class McsApp {
       'GP per ',
       'Potential Herblore XP per ',
       'Chance for Signet Part B(%)',
-      'Attacks Made per '];
+      'Attacks Made per ',
+      'Attacks Taken per '];
     this.plotTypeIsTime = [true,
       true,
       true,
@@ -55,6 +56,7 @@ class McsApp {
       true,
       true,
       false,
+      true,
       true];
     this.plotTypeDropdownValues = ['xpPerSecond',
       'hpxpPerSecond',
@@ -70,7 +72,8 @@ class McsApp {
       'gpPerSecond',
       'herbloreXPPerSecond',
       'signetChance',
-      'attacksMadePerSecond'];
+      'attacksMadePerSecond',
+      'attacksTakenPerSecond'];
     this.zoneInfoNames = ['XP/',
       'HP XP/',
       'Prayer XP/',
@@ -85,7 +88,8 @@ class McsApp {
       'GP/',
       'Herb XP/',
       'Signet Chance (%)',
-      'Attacks Made/'];
+      'Attacks Made/',
+      'Attacks Taken/'];
     // Generate gear subsets
     this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
     this.gearSubsets = [];
@@ -866,14 +870,6 @@ class McsApp {
       }
     }
     // Import Potion
-    /*
-                var potionTier = parseInt(event.currentTarget.selectedOptions[0].value);
-                this.simulator.potionTier = potionTier;
-                this.simulator.computePotionBonus();
-                this.simulator.computeCombatStats();
-                this.updateCombatStats();
-
-                */
     let potionID = -1;
     let potionTier = -1;
     if (herbloreBonuses[13].itemID != 0) {
@@ -5035,9 +5031,9 @@ const melvorCombatSimLoader = setInterval(() => {
       try {
         melvorCombatSim = new McsApp();
         if (wrongVersion) {
-          console.log('Melvor Combat Sim v0.8.2 Loaded, but simulation results may be inaccurate.');
+          console.log('Melvor Combat Sim v0.8.3 Loaded, but simulation results may be inaccurate.');
         } else {
-          console.log('Melvor Combat Sim v0.8.2 Loaded');
+          console.log('Melvor Combat Sim v0.8.3 Loaded');
         }
       } catch (error) {
         console.warn('Melvor Combat Sim was not properly loaded due to the following error:');
