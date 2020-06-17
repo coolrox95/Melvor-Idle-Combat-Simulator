@@ -1,3 +1,6 @@
+v0.8.4:
+Fix: Fixed Water Surge not recieving max hit bonus from Cloudburst Staff
+
 v0.8.3:
 Updated Combat Sim for game version Alpha v0.15.3
 Change: Adjusted Deadeye Amulet to match game change.

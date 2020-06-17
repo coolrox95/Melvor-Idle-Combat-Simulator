@@ -1,4 +1,4 @@
-# Melvor-Idle-Combat-Simulator v0.8.3
+# Melvor-Idle-Combat-Simulator v0.8.4
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
 This extension was built for version: Alpha v0.15.3 of Melvor Idle.
 
@@ -11,7 +11,7 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
-1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.8.3.zip) the latest version of the simulator.
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.8.4.zip) the latest version of the simulator.
 2. Unzip the files.
 3. Navigate to: chrome://extensions and toggle Developer mode on.
 ![Toggling developer mode](Media/chromeInstall1.png)
