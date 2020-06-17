@@ -1,5 +1,9 @@
 v0.8.3:
-Fix: Made it so attacks taken per second statistic actually shows up in the UI
+Updated Combat Sim for game version Alpha v0.15.3
+Change: Adjusted Deadeye Amulet to match game change.
+Change: Adjusted Implementation of Lucky Herb Potions to match game change.
+Fix: Made it so attacks taken per second statistic actually shows up in the UI.
+Fix: Bones will no longer contribute to gp calculations when the Bone Necklace is equipped.
 
 v0.8.2:
 Updated Combat Sim for game version Alpha v0.15.2.1

@@ -2367,6 +2367,7 @@ class McsSimulator {
     this.simSlayerXPBonus = 0;
     this.simTopaz = false;
     this.simHerbBonus = 0;
+    this.simAutoBuryBones = false;
     // Options for GP/s calculations
     this.sellBones = false; // True or false
     this.sellLoot = 'All'; // Options 'All','Subset','None'
@@ -2721,7 +2722,7 @@ class McsSimulator {
     this.simLootBonus = 1 + this.chanceToDoubleLoot / 100;
     this.simSlayerXPBonus = this.slayerXPBonus;
     this.simHerbBonus = this.herbloreBonus.luckyHerb / 100;
-
+    this.simAutoBuryBones = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
     // Compute prayer point usage
     const hasPrayerCape = playerStats.activeItems.Prayer_Skillcape;
     this.prayerPointsPerAttack = 0;
@@ -3162,7 +3163,7 @@ class McsSimulator {
                 else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
                 if (playerStats.activeItems.Deadeye_Amulet) {
                   const chance = Math.floor(Math.random() * 100);
-                  if (chance > items[CONSTANTS.item.Deadeye_Amulet].chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * items[CONSTANTS.item.Deadeye_Amulet].critDamage);
+                  if (chance < items[CONSTANTS.item.Deadeye_Amulet].chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * items[CONSTANTS.item.Deadeye_Amulet].critDamage);
                 }
                 if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
                 if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
@@ -4015,11 +4016,12 @@ class McsSimulator {
       if (this.sellLoot == 'All') {
         MONSTERS[monsterID].lootTable.forEach((x) => {
           const itemID = x[0];
-          const avgQty = (x[2] + 1) / 2;
+          let avgQty = (x[2] + 1) / 2;
           if (items[itemID].canOpen) {
             gpWeight += this.computeChestOpenValue(itemID) * avgQty;
           } else {
             if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
+              avgQty += 3;
               gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) + items[items[itemID].grownItemID].sellsFor * this.simHerbBonus) * x[1] * avgQty;
             } else {
               gpWeight += items[itemID].sellsFor * x[1] * avgQty;
@@ -4030,12 +4032,13 @@ class McsSimulator {
       } else {
         MONSTERS[monsterID].lootTable.forEach((x) => {
           const itemID = x[0];
-          const avgQty = (x[2] + 1) / 2;
+          let avgQty = (x[2] + 1) / 2;
           if (items[itemID].canOpen) {
             gpWeight += this.computeChestOpenValue(itemID) * avgQty;
           } else {
             if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
               const herbItem = items[itemID].grownItemID;
+              avgQty += 3;
               gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) * ((this.shouldSell(itemID)) ? 1 : 0) + items[herbItem].sellsFor * this.simHerbBonus * ((this.shouldSell(herbItem)) ? 1 : 0)) * x[1] * avgQty;
             } else {
               gpWeight += ((this.shouldSell(itemID)) ? items[itemID].sellsFor : 0) * x[1] * avgQty;
@@ -4333,7 +4336,7 @@ class McsSimulator {
       monsterValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(monsterID) / 500000;
     }
     monsterValue *= this.computeLootChance(monsterID);
-    if (this.sellBones) {
+    if (this.sellBones && !this.simAutoBuryBones) {
       monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.simLootBonus * ((MONSTERS[monsterID].boneQty) ? MONSTERS[monsterID].boneQty : 1);
     }
     return monsterValue;
@@ -4342,16 +4345,17 @@ class McsSimulator {
   /**
    * Computes the average amount of potional herblore xp from killing a monster
    * @param {Number} monsterID Index of MONSTERS
-   * @param {Number} herbChance The chance to convert seeds into herbs
+   * @param {Number} convertChance The chance to convert seeds into herbs
    * @return {Number}
    */
-  computeMonsterHerbXP(monsterID, herbChance) {
+  computeMonsterHerbXP(monsterID, convertChance) {
     let herbWeight = 0;
     let totalWeight = 0;
     for (let i = 0; i < MONSTERS[monsterID].lootTable.length; i++) {
       const itemID = MONSTERS[monsterID].lootTable[i][0];
       if (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds') {
-        herbWeight += MONSTERS[monsterID].lootTable[i][1] * this.xpPerHerb[itemID] * herbChance * (1 + MONSTERS[monsterID].lootTable[i][2]) / 2;
+        const avgQty = (1 + MONSTERS[monsterID].lootTable[i][2]) / 2 + 3;
+        herbWeight += MONSTERS[monsterID].lootTable[i][1] * this.xpPerHerb[itemID] * convertChance * avgQty;
       }
       totalWeight += MONSTERS[monsterID].lootTable[i][1];
     }
@@ -5023,7 +5027,7 @@ const melvorCombatSimLoader = setInterval(() => {
     clearInterval(melvorCombatSimLoader);
     let tryLoad = true;
     let wrongVersion = false;
-    if (gameVersion != 'Alpha v0.15.2.1') {
+    if (gameVersion != 'Alpha v0.15.3') {
       wrongVersion = true;
       tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
     }
