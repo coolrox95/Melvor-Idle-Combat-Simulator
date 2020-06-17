@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.8.3: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.8.4: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -2291,7 +2291,7 @@ class McsSimulator {
       534: 160, // Barrentoe
     };
     // Cloudburst stuff
-    this.waterSpells = [1, 5, 9, 13, 27];
+    this.waterSpells = [1, 5, 9, 13, 17];
     // Simulation settings
     this.Nhitmax = 1000; // Max number of player hits to attempt before timeout
     this.Ntrials = 1000; // Number of enemy kills to simulate
@@ -5035,9 +5035,9 @@ const melvorCombatSimLoader = setInterval(() => {
       try {
         melvorCombatSim = new McsApp();
         if (wrongVersion) {
-          console.log('Melvor Combat Sim v0.8.3 Loaded, but simulation results may be inaccurate.');
+          console.log('Melvor Combat Sim v0.8.4 Loaded, but simulation results may be inaccurate.');
         } else {
-          console.log('Melvor Combat Sim v0.8.3 Loaded');
+          console.log('Melvor Combat Sim v0.8.4 Loaded');
         }
       } catch (error) {
         console.warn('Melvor Combat Sim was not properly loaded due to the following error:');
