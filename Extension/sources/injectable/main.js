@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.8.4: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.9.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -23,8 +23,9 @@
 class McsApp {
   /**
    * Constructs an instance of mcsApp
+   * @param {*} urls URLs from content script
    */
-  constructor() {
+  constructor(urls) {
     // Plot Type Options
     this.plotTypeDropdownOptions = ['XP per ',
       'HP XP per ',
@@ -41,7 +42,8 @@ class McsApp {
       'Potential Herblore XP per ',
       'Chance for Signet Part B(%)',
       'Attacks Made per ',
-      'Attacks Taken per '];
+      'Attacks Taken per ',
+      'Simulation Time'];
     this.plotTypeIsTime = [true,
       true,
       true,
@@ -57,7 +59,8 @@ class McsApp {
       true,
       false,
       true,
-      true];
+      true,
+      false];
     this.plotTypeDropdownValues = ['xpPerSecond',
       'hpxpPerSecond',
       'prayerXpPerSecond',
@@ -73,7 +76,8 @@ class McsApp {
       'herbloreXPPerSecond',
       'signetChance',
       'attacksMadePerSecond',
-      'attacksTakenPerSecond'];
+      'attacksTakenPerSecond',
+      'simulationTime'];
     this.zoneInfoNames = ['XP/',
       'HP XP/',
       'Prayer XP/',
@@ -89,7 +93,8 @@ class McsApp {
       'Herb XP/',
       'Signet Chance (%)',
       'Attacks Made/',
-      'Attacks Taken/'];
+      'Attacks Taken/',
+      'Sim Time'];
     // Generate gear subsets
     this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
     this.gearSubsets = [];
@@ -135,7 +140,7 @@ class McsApp {
 
     this.skillKeys = ['Attack', 'Strength', 'Defence', 'Hitpoints', 'Ranged', 'Magic', 'Prayer', 'Slayer'];
     // Simulation Object
-    this.simulator = new McsSimulator(this);
+    this.simulator = new McsSimulator(this, urls.simulationWorker);
     // Temporary GP/s settings variable
     this.itemSubsetTemp = [];
 
@@ -386,23 +391,23 @@ class McsApp {
     {
       this.statDisplay = new McsCard(this.content, '220px', '100%', '150px', '50px');
       this.statDisplay.addSectionTitle('Equipment Stats');
-      this.equipStatKeys = ['eqpAttSpd',
-        'strBon',
+      this.equipStatKeys = ['attackSpeed',
+        'strengthBonus',
         'attBon0',
         'attBon1',
         'attBon2',
-        'rngAttBon',
-        'rngStrBon',
-        'magAttBon',
-        'magDmgBon',
-        'defBon',
-        'eqpDmgRed',
-        'rngDefBon',
-        'magDefBon',
-        'attReq',
-        'defReq',
-        'rngReq',
-        'magReq'];
+        'rangedAttackBonus',
+        'rangedStrengthBonus',
+        'magicAttackBonus',
+        'magicDamageBonus',
+        'defenceBonus',
+        'damageReduction',
+        'rangedDefenceBonus',
+        'magicDefenceBonus',
+        'attackLevelRequired',
+        'defenceLevelRequired',
+        'rangedLevelRequired',
+        'magicLevelRequired'];
       const equipStatNames = ['Attack Speed',
         'Strength Bonus',
         'Stab Bonus',
@@ -446,7 +451,7 @@ class McsApp {
         defence: 'assets/media/skills/defence/defence.svg',
       };
       for (let i = 0; i < equipStatNames.length; i++) {
-        this.statDisplay.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]], `MCS ${this.equipStatKeys[i]} Output`);
+        this.statDisplay.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]], `MCS ${this.equipStatKeys[i]} ES Output`);
       }
       this.statDisplay.addSectionTitle('Combat Stats');
       const combatStatNames = ['Attack Speed',
@@ -463,9 +468,9 @@ class McsApp {
         'maxDefRoll',
         'maxRngDefRoll',
         'maxMagDefRoll',
-        'dmgRed'];
+        'damageReduction'];
       for (let i = 0; i < combatStatNames.length; i++) {
-        this.statDisplay.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} Output`);
+        this.statDisplay.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} CS Output`);
       }
     }
     // Simulation/Plot Options Card
@@ -474,6 +479,7 @@ class McsApp {
       this.simPlotOpts2.addSectionTitle('Simulation Options');
       this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, (event) => this.maxhitsInputOnChange(event));
       this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, (event) => this.numtrialsInputOnChange(event));
+      this.simPlotOpts2.addRadio('Use Threads', 25, 'useThreads', ['Yes', 'No'], [(e)=>this.useThreadsRadioOnChange(e, true), (e)=>this.useThreadsRadioOnChange(e, false)], 0);
       this.timeOptions = ['Second', 'Minute', 'Hour', 'Day'];
       this.timeShorthand = ['s', 'm', 'h', 'd'];
       this.selectedTimeUnit = this.timeOptions[0];
@@ -554,7 +560,7 @@ class McsApp {
       this.exportOptionsCard.container.style.display = 'none';
     }
     // Bar Chart Card
-    this.plotter = new McsPlotter(this);
+    this.plotter = new McsPlotter(this, urls.crossedOut);
     // Individual info card, nested into sim/plot card
     {
       this.zoneInfoCard = new McsCard(this.simPlotOpts2.container, '100%', '', '100px', '100px');
@@ -616,7 +622,7 @@ class McsApp {
     // Push an update to the displays
     document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
     document.getElementById('MCS Edit Subset Button').style.display = 'none';
-    this.simulator.computeGearStats();
+    this.simulator.computeEquipStats();
     this.updateEquipStats();
     this.simulator.computeCombatStats();
     this.updateCombatStats();
@@ -745,7 +751,7 @@ class McsApp {
         }
       }
     }
-    this.simulator.computeGearStats();
+    this.simulator.computeEquipStats();
     this.updateEquipStats();
     this.simulator.computeCombatStats();
     this.updateCombatStats();
@@ -777,7 +783,7 @@ class McsApp {
    */
   styleDropdownOnChange(event, combatType) {
     const styleID = parseInt(event.currentTarget.selectedOptions[0].value);
-    this.simulator.styles[combatType] = styleID;
+    this.simulator.attackStyle[combatType] = styleID;
     this.simulator.computeCombatStats();
     this.updateCombatStats();
   }
@@ -843,13 +849,13 @@ class McsApp {
     });
     // Update attack style
     if (attackStyle <= 2) {
-      this.simulator.styles.Melee = attackStyle;
+      this.simulator.attackStyle.Melee = attackStyle;
       document.getElementById('MCS Melee Style Dropdown').selectedIndex = attackStyle;
     } else if (attackStyle <= 5) {
-      this.simulator.styles.Ranged = attackStyle - 3;
+      this.simulator.attackStyle.Ranged = attackStyle - 3;
       document.getElementById('MCS Ranged Style Dropdown').selectedIndex = attackStyle - 3;
     } else {
-      this.simulator.styles.Magic = attackStyle - 6;
+      this.simulator.attackStyle.Magic = attackStyle - 6;
       document.getElementById('MCS Magic Style Dropdown').selectedIndex = attackStyle - 6;
     }
     // Update spells
@@ -907,7 +913,7 @@ class McsApp {
     }
 
     this.updatePrayerOptions(skillLevel[CONSTANTS.skill.Prayer]);
-    this.simulator.computeGearStats();
+    this.simulator.computeEquipStats();
     this.updateEquipStats();
     this.simulator.computePotionBonus();
     this.simulator.computePrayerBonus();
@@ -1002,6 +1008,14 @@ class McsApp {
     }
   }
   /**
+   * Callback for when the use threads toggle is changed
+   * @param {Event} event The change event for a radio
+   * @param {Boolean} newState The new value for the option
+   */
+  useThreadsRadioOnChange(event, newState) {
+    this.simulator.useThreads = newState;
+  }
+  /**
    * Callback for when the plot type is changed
    * @param {Event} event The change event for a dropdown
    */
@@ -1020,10 +1034,10 @@ class McsApp {
     if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && (items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired != items[this.gearSelected[CONSTANTS.equipmentSlot.Quiver]].ammoType)) {
       notifyPlayer(CONSTANTS.skill.Ranged, 'Incorrect Ammo type equipped for weapon.', 'danger');
     } else {
-      this.simulator.simulateCombat();
-      this.updatePlotData();
-      this.plotter.setBarColours(this.simulator.getEnterSet());
-      this.updateZoneInfoCard();
+      if (!this.simulator.simInProgress && this.simulator.simulationWorkers.length === this.simulator.maxThreads) {
+        document.getElementById('MCS Simulate Button').disabled = true;
+        this.simulator.simulateCombat();
+      }
     }
   }
   /**
@@ -1407,23 +1421,23 @@ class McsApp {
     let newStatValue;
     for (let i = 0; i < this.equipStatKeys.length; i++) {
       if (this.equipStatKeys[i] == 'attBon0') {
-        newStatValue = this.simulator.attBon[0];
+        newStatValue = this.simulator.equipStats.attackBonus[0];
       } else if (this.equipStatKeys[i] == 'attBon1') {
-        newStatValue = this.simulator.attBon[1];
+        newStatValue = this.simulator.equipStats.attackBonus[1];
       } else if (this.equipStatKeys[i] == 'attBon2') {
-        newStatValue = this.simulator.attBon[2];
+        newStatValue = this.simulator.equipStats.attackBonus[2];
       } else {
-        newStatValue = this.simulator[this.equipStatKeys[i]];
+        newStatValue = this.simulator.equipStats[this.equipStatKeys[i]];
       }
-      document.getElementById(`MCS ${this.equipStatKeys[i]} Output`).textContent = newStatValue;
+      document.getElementById(`MCS ${this.equipStatKeys[i]} ES Output`).textContent = newStatValue;
     }
   }
   /**
    * Updates the text fields for the computed combat stats
    */
   updateCombatStats() {
-    this.combatStatKeys.forEach((element) => {
-      document.getElementById(`MCS ${element} Output`).textContent = this.simulator[element];
+    this.combatStatKeys.forEach((key) => {
+      document.getElementById(`MCS ${key} CS Output`).textContent = this.simulator.combatStats[key];
     });
   }
   /**
@@ -1662,7 +1676,7 @@ class McsApp {
       }
     }
     // Update gear stats and combat stats
-    this.simulator.computeGearStats();
+    this.simulator.computeEquipStats();
     this.updateEquipStats();
     this.simulator.computeCombatStats();
     this.updateCombatStats();
@@ -1728,6 +1742,14 @@ class McsApp {
   replaceApostrophe(stringToFix) {
     return stringToFix.replace(/&apos;/g, '\'');
   }
+  /** Updates the display post simulation */
+  updateDisplayPostSim() {
+    this.updatePlotData();
+    this.plotter.setBarColours(this.simulator.getEnterSet());
+    this.updateZoneInfoCard();
+    document.getElementById('MCS Simulate Button').disabled = false;
+    document.getElementById('MCS Simulate Button').textContent = 'Simulate';
+  }
 }
 /**
  * A Card Class that creates a bar plot
@@ -1736,8 +1758,9 @@ class McsPlotter {
   /**
    * Consctructs an instance of the plotting class
    * @param {McsApp} parent Reference to container class
+   * @param {String} crossedOutURL URL from content script
    */
-  constructor(parent) {
+  constructor(parent, crossedOutURL) {
     this.parent = parent;
     this.barWidth = 20;
     this.barGap = 1;
@@ -1751,9 +1774,8 @@ class McsPlotter {
     this.barBottomBrackets = [];
     this.plotType = 'xpPerSecond';
     this.plotID = 0;
-    const passedImage = document.getElementById('mcsCrossedOut');
-    this.maskImageFile = passedImage.src;
-    document.body.removeChild(passedImage);
+    this.maskImageFile = crossedOutURL;
+
     let totBars = 0;
 
     for (let i = 0; i < combatAreas.length; i++) {
@@ -2148,6 +2170,7 @@ class McsPlotter {
 /**
  * Simulation result for a single monster
  * @typedef {Object} monsterSimResult
+ * @property {Boolean} inQueue
  * @property {Boolean} simDone
  * @property {Boolean} simSuccess
  * @property {Number} xpPerEnemy
@@ -2173,6 +2196,7 @@ class McsPlotter {
  * @property {Number} attacksTaken
  * @property {Number} attacksTakenPerSecond
  * @property {Number} attacksMadePerSecond
+ * @property {Number} simulationTime
  */
 
 /**
@@ -2183,8 +2207,9 @@ class McsSimulator {
   /**
    *
    * @param {McsApp} parent Reference to container class
+   * @param {String} workerURI URI to simulator web worker
    */
-  constructor(parent) {
+  constructor(parent, workerURI) {
     this.parent = parent;
     // Player combat stats
     this.playerLevels = {
@@ -2198,63 +2223,88 @@ class McsSimulator {
       Slayer: 1,
     };
     // Equipment Stats
-    this.eqpAttSpd = 4000;
-    this.strBon = 0;
-    this.attBon = [0, 0, 0];
-    this.rngAttBon = 0;
-    this.rngStrBon = 0;
-    this.magAttBon = 0;
-    this.magDmgBon = 0;
-    this.defBon = 0;
-    this.eqpDmgRed = 0;
-    this.rngDefBon = 0;
-    this.magDefBon = 0;
-    this.attReq = 1;
-    this.rngReq = 1;
-    this.magReq = 1;
-    this.defReq = 1;
-    this.slayerXPBonus = 0;
-    this.chanceToDoubleLoot = 0;
-    // Combat Stats
+    this.equipStats = {
+      attackSpeed: 4000,
+      strengthBonus: 0,
+      attackBonus: [0, 0, 0],
+      rangedAttackBonus: 0,
+      rangedStrengthBonus: 0,
+      magicAttackBonus: 0,
+      magicDamageBonus: 0,
+      defenceBonus: 0,
+      damageReduction: 0,
+      rangedDefenceBonus: 0,
+      magicDefenceBonus: 0,
+      attackLevelRequired: 1,
+      defenceLevelRequired: 1,
+      rangedLevelRequired: 1,
+      magicLevelRequired: 1,
+      slayerXPBonus: 0,
+      chanceToDoubleLoot: 0,
+    };
+    // Spell Selection
     this.selectedSpell = 0;
-    this.styles = {
+    // Style Selection
+    this.attackStyle = {
       Melee: 0,
       Ranged: 0,
       Magic: 0,
     };
-    this.dmgRed = 0;
-    this.attackSpeed = 4000;
-    this.attackType = 0;
-    this.maxAttackRoll = 0;
-    this.maxHit = 0;
-    this.maxMagDefRoll = 0;
-    this.maxDefRoll = 0;
-    this.maxRngDefRoll = 0;
+    // Combat Stats
+    this.combatStats = {
+      attackSpeed: 4000,
+      maxHit: 0,
+      maxAttackRoll: 0,
+      maxDefRoll: 0,
+      maxRngDefRoll: 0,
+      maxMagDefRoll: 0,
+      damageReduction: 0,
+      attackType: 0,
+    };
     // Prayer Stats
+    /** @type {Array<Boolean>} */
     this.prayerSelected = [];
     for (let i = 0; i < PRAYER.length; i++) {
       this.prayerSelected.push(false);
     }
+    this.prayerKeyMap = {
+      prayerBonusAttack: 'meleeAccuracy',
+      prayerBonusStrength: 'meleeDamage',
+      prayerBonusDefence: 'meleeEvasion',
+      prayerBonusAttackRanged: 'rangedAccuracy',
+      prayerBonusStrengthRanged: 'rangedDamage',
+      prayerBonusDefenceRanged: 'rangedEvasion',
+      prayerBonusAttackMagic: 'magicAccuracy',
+      prayerBonusDamageMagic: 'magicDamage',
+      prayerBonusDefenceMagic: 'magicEvasion',
+      prayerBonusProtectItem: 'protectItem',
+      prayerBonusHitpoints: 'hitpoints',
+      prayerBonusProtectFromMelee: 'protectFromMelee',
+      prayerBonusProtectFromRanged: 'protectFromRanged',
+      prayerBonusProtectFromMagic: 'protectFromMagic',
+      prayerBonusHitpointHeal: 'hitpointHeal',
+      prayerBonusDamageReduction: 'damageReduction',
+    };
     this.activePrayers = 0;
-    this.prayerBonusAttack = 0;
-    this.prayerBonusStrength = 0;
-    this.prayerBonusDefence = 0;
-    this.prayerBonusAttackRanged = 0;
-    this.prayerBonusStrengthRanged = 0;
-    this.prayerBonusDefenceRanged = 0;
-    this.prayerBonusAttackMagic = 0;
-    this.prayerBonusDamageMagic = 0;
-    this.prayerBonusDefenceMagic = 0;
-    this.prayerBonusProtectItem = 0;
-    this.prayerBonusHitpoints = 1;
-    this.prayerBonusProtectFromMelee = 0;
-    this.prayerBonusProtectFromRanged = 0;
-    this.prayerBonusProtectFromMagic = 0;
-    this.prayerBonusHitpointHeal = 0;
-    this.prayerBonusDamageReduction = 0;
-    this.prayerPointsPerAttack = 0;
-    this.prayerPointsPerEnemy = 0;
-    this.prayerPointsPerHeal = 0;
+    /** Computer Prayer Bonus From UI */
+    this.prayerBonus = {
+      meleeAccuracy: 0,
+      meleeDamage: 0,
+      meleeEvasion: 0,
+      rangedAccuracy: 0,
+      rangedDamage: 0,
+      rangedEvasion: 0,
+      magicAccuracy: 0,
+      magicDamage: 0,
+      magicEvasion: 0,
+      protectItem: 0,
+      hitpoints: 1,
+      protectFromMelee: 0,
+      protectFromRanged: 0,
+      protectFromMagic: 0,
+      hitpointHeal: 0,
+      damageReduction: 0,
+    };
     // Slayer Variables
     this.isSlayerTask = false;
 
@@ -2279,7 +2329,7 @@ class McsSimulator {
       luckyHerb: 0, // 11
     };
 
-    // Herblore XP stuff
+    /** Herblore XP for Lucky Herb Potions */
     this.xpPerHerb = {
       527: 10, // Garum
       528: 14, // Sourweed
@@ -2290,21 +2340,27 @@ class McsSimulator {
       533: 112, // Pigtayle
       534: 160, // Barrentoe
     };
-    // Cloudburst stuff
+    /** Array of spell IDs that trigger Cloudburst */
     this.waterSpells = [1, 5, 9, 13, 17];
     // Simulation settings
-    this.Nhitmax = 1000; // Max number of player hits to attempt before timeout
-    this.Ntrials = 1000; // Number of enemy kills to simulate
-    this.signetFarmTime = 1; // Number of hours to farm for signet ring
+    /** Max number of player hits to attempt before timeout */
+    this.Nhitmax = 1000;
+    /** Number of enemy kills to simulate */
+    this.Ntrials = 1000;
+    /** Toggle for using multithreading */
+    this.useThreads = true;
+    /** Number of hours to farm for signet ring */
+    this.signetFarmTime = 1;
+    /** @type {Array<Boolean>} */
     this.monsterSimFilter = [];
+    /** @type {Array<Boolean>} */
     this.dungeonSimFilter = [];
     // Simulation data;
-    /**
-     * @type {Array<monsterSimResult>}
-     */
+    /** @type {Array<monsterSimResult>} */
     this.monsterSimData = [];
     for (let i = 0; i < MONSTERS.length; i++) {
       this.monsterSimData.push({
+        inQueue: false,
         simDone: false,
         simSuccess: false,
         xpPerEnemy: 0,
@@ -2331,6 +2387,7 @@ class McsSimulator {
         attacksTaken: 0,
         attacksTakenPerSecond: 0,
         attacksMadePerSecond: 0,
+        simulationTime: 0,
       });
       this.monsterSimFilter.push(true);
     }
@@ -2359,15 +2416,46 @@ class McsSimulator {
         attacksTaken: 0,
         attacksTakenPerSecond: 0,
         attacksMadePerSecond: 0,
+        simulationTime: 0,
       });
       this.dungeonSimFilter.push(true);
     }
-    this.simGpBonus = 1;
-    this.simLootBonus = 1;
-    this.simSlayerXPBonus = 0;
-    this.simTopaz = false;
-    this.simHerbBonus = 0;
-    this.simAutoBuryBones = false;
+    // Pre Compute Monster Base Stats
+    /** @typedef {Object} enemyStats
+     * @property {Number} hitpoints Max Enemy HP
+     * @property {Number} attackSpeed Enemy attack speed (ms)
+     * @property {Number} attackType Enemy attack type
+     * @property {Number} maxHit Normal attack max hit
+     * @property {Number} maxDefRoll Melee Evasion Rating
+     * @property {Number} maxMagDefRoll Magic Evasion Rating
+     * @property {Number} maxRngDefRoll Ranged Evasion Rating
+     * @property {Boolean} hasSpecialAttack If enemy can do special attacks
+     * @property {Array<Number>} specialAttackChances Chance of each special attack
+     * @property {Array<Number>} specialIDs IDs of special attacks
+     * @property {Number} specialLength Number of special attacks
+     */
+    /** @type {Array<enemyStats>} */
+    this.enemyStats = [];
+    for (let i = 0; i < MONSTERS.length; i++) {
+      this.enemyStats.push(this.getEnemyStats(i));
+    }
+    /** Variables of currently stored simulation */
+    this.currentSim = {
+      gpBonus: 1,
+      lootBonus: 1,
+      slayerXPBonus: 0,
+      canTopazDrop: false,
+      herbConvertChance: 0,
+      doBonesAutoBury: false,
+      playerStats: {},
+      equipStats: {},
+      options: {},
+      prayerBonus: {},
+      herbloreBonus: {},
+      combatStats: {},
+      attackStyle: {},
+      isSlayerTask: false,
+    };
     // Options for GP/s calculations
     this.sellBones = false; // True or false
     this.sellLoot = 'All'; // Options 'All','Subset','None'
@@ -2380,6 +2468,12 @@ class McsSimulator {
     this.timeMultiplier = 1;
     this.selectedPlotIsTime = true;
     // Condensed monster data for dungeon display
+    /** @typedef {Object} dungeonMonster
+     * @property {Number} id
+     * @property {Number} quantity
+     * @property {Boolean} isBoss
+     */
+    /** @type {Array<Array<dungeonMonster>>} */
     this.condensedDungeonMonsters = [];
     DUNGEONS.forEach((dungeon) => {
       let lastMonster = -1;
@@ -2409,11 +2503,91 @@ class McsSimulator {
     for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
       this.exportDataType.push(true);
     }
+    // Simulation queue and webworkers
+    this.workerURI = workerURI;
+    this.currentJob = 0;
+    this.simInProgress = false;
+    /** @typedef {Object} simulationJob
+     * @property {Number} monsterID
+     */
+    /** @type {Array<simulationJob>} */
+    this.simulationQueue = [];
+    /** @typedef {Object} simulationWorker
+     * @property {Worker} worker
+     * @property {Boolean} inUse
+    */
+    /** @type {Array<simulationWorker>} */
+    this.simulationWorkers = [];
+    this.maxThreads = window.navigator.hardwareConcurrency;
+    for (let i = 0; i < this.maxThreads; i++) {
+      this.createWorker(this.workerURI)
+          .then((worker)=>{
+            this.intializeWorker(worker, i);
+            const newWorker = {
+              worker: worker,
+              inUse: false,
+              selfTime: 0,
+            };
+            this.simulationWorkers.push(newWorker);
+          });
+    }
+    this.simStartTime = 0;
+  }
+
+  /**
+   * Attempts to create a web worker, with a chrome hack
+   * @param {String} scriptURI
+   * @return {Promise<Worker>}
+   */
+  createWorker(scriptURI) {
+    return new Promise((resolve, reject) => {
+      let newWorker;
+      try {
+        newWorker = new Worker(this.workerURI);
+        resolve(newWorker);
+      } catch (error) {
+        // Chrome Hack
+        if (error.name === 'SecurityError' && error.message.includes('Failed to construct \'Worker\': Script')) {
+          const workerContent = new XMLHttpRequest();
+          workerContent.open('GET', scriptURI);
+          workerContent.send();
+          workerContent.addEventListener('load', (event)=>{
+            const blob = new Blob([event.currentTarget.responseText], {type: 'application/javascript'});
+            resolve(new Worker(URL.createObjectURL(blob)));
+          });
+        } else { // Other Error
+          reject(error);
+        }
+      }
+    });
+  }
+  /**
+   * Intializes a simulation worker
+   * @param {Worker} worker
+   * @param {Number} i
+   */
+  intializeWorker(worker, i) {
+    worker.onmessage = (event) => this.processWorkerMessage(event, i);
+    worker.onerror = (event) => {
+      console.log('An error occured in a simulation worker');
+      console.log(event);
+    };
+    worker.postMessage({action: 'RECIEVE_GAMEDATA',
+      protectFromValue: protectFromValue,
+      numberMultiplier: numberMultiplier,
+      PRAYER: PRAYER,
+      enemySpecialAttacks: enemySpecialAttacks,
+      enemySpawnTimer: enemySpawnTimer,
+      hitpointRegenInterval: hitpointRegenInterval,
+      Deadeye_Amulet: items[CONSTANTS.item.Deadeye_Amulet],
+      Confetti_Crossbow: items[CONSTANTS.item.Confetti_Crossbow],
+      Warlock_Amulet: items[CONSTANTS.item.Warlock_Amulet],
+    });
   }
   /**
   * @description Computes the stats of the players equipped items and stores them on this properties
   */
-  computeGearStats() {
+  computeEquipStats() {
     this.resetGearStats();
     for (let i = 0; i < this.parent.slotKeys.length; i++) {
       const itemID = this.parent.gearSelected[i];
@@ -2423,39 +2597,39 @@ class McsSimulator {
       } else {
         curItem = items[itemID];
       }
-      this.strBon += (curItem.strengthBonus) ? curItem.strengthBonus : 0;
+      this.equipStats.strengthBonus += (curItem.strengthBonus) ? curItem.strengthBonus : 0;
       if (curItem.attackBonus != undefined) {
         for (let j = 0; j < 3; j++) {
-          this.attBon[j] += curItem.attackBonus[j];
+          this.equipStats.attackBonus[j] += curItem.attackBonus[j];
         }
       }
       if (!(i == CONSTANTS.equipmentSlot.Weapon && curItem.isAmmo)) {
-        this.rngAttBon += (curItem.rangedAttackBonus) ? curItem.rangedAttackBonus : 0;
-        this.rngStrBon += (curItem.rangedStrengthBonus) ? curItem.rangedStrengthBonus : 0;
-        this.rngDefBon += (curItem.rangedDefenceBonus) ? curItem.rangedDefenceBonus : 0;
+        this.equipStats.rangedAttackBonus += (curItem.rangedAttackBonus) ? curItem.rangedAttackBonus : 0;
+        this.equipStats.rangedStrengthBonus += (curItem.rangedStrengthBonus) ? curItem.rangedStrengthBonus : 0;
+        this.equipStats.rangedDefenceBonus += (curItem.rangedDefenceBonus) ? curItem.rangedDefenceBonus : 0;
       }
-      this.magAttBon += (curItem.magicAttackBonus) ? curItem.magicAttackBonus : 0;
-      this.magDmgBon += (curItem.magicDamageBonus) ? curItem.magicDamageBonus : 0;
-      this.defBon += (curItem.defenceBonus) ? curItem.defenceBonus : 0;
-      this.eqpDmgRed += (curItem.damageReduction) ? curItem.damageReduction : 0;
-      this.magDefBon += (curItem.magicDefenceBonus) ? curItem.magicDefenceBonus : 0;
-      this.slayerXPBonus += (curItem.slayerBonusXP) ? curItem.slayerBonusXP : 0;
-      this.chanceToDoubleLoot += (curItem.chanceToDoubleLoot) ? curItem.chanceToDoubleLoot : 0;
+      this.equipStats.magicAttackBonus += (curItem.magicAttackBonus) ? curItem.magicAttackBonus : 0;
+      this.equipStats.magicDamageBonus += (curItem.magicDamageBonus) ? curItem.magicDamageBonus : 0;
+      this.equipStats.defenceBonus += (curItem.defenceBonus) ? curItem.defenceBonus : 0;
+      this.equipStats.damageReduction += (curItem.damageReduction) ? curItem.damageReduction : 0;
+      this.equipStats.magicDefenceBonus += (curItem.magicDefenceBonus) ? curItem.magicDefenceBonus : 0;
+      this.equipStats.slayerXPBonus += (curItem.slayerBonusXP) ? curItem.slayerBonusXP : 0;
+      this.equipStats.chanceToDoubleLoot += (curItem.chanceToDoubleLoot) ? curItem.chanceToDoubleLoot : 0;
 
-      if (((curItem.attackLevelRequired) ? curItem.attackLevelRequired : 1) > this.attReq) {
-        this.attReq = curItem.attackLevelRequired;
+      if (((curItem.attackLevelRequired) ? curItem.attackLevelRequired : 1) > this.equipStats.attackLevelRequired) {
+        this.equipStats.attackLevelRequired = curItem.attackLevelRequired;
       }
-      if (((curItem.rangedLevelRequired) ? curItem.rangedLevelRequired : 1) > this.rngReq) {
-        this.rngReq = curItem.rangedLevelRequired;
+      if (((curItem.rangedLevelRequired) ? curItem.rangedLevelRequired : 1) > this.equipStats.rangedLevelRequired) {
+        this.equipStats.rangedLevelRequired = curItem.rangedLevelRequired;
       }
-      if (((curItem.magicLevelRequired) ? curItem.magicLevelRequired : 1) > this.magReq) {
-        this.magReq = curItem.magicLevelRequired;
+      if (((curItem.magicLevelRequired) ? curItem.magicLevelRequired : 1) > this.equipStats.magicLevelRequired) {
+        this.equipStats.magicLevelRequired = curItem.magicLevelRequired;
       }
-      if (((curItem.defenceLevelRequired) ? curItem.defenceLevelRequired : 1) > this.defReq) {
-        this.defReq = curItem.defenceLevelRequired;
+      if (((curItem.defenceLevelRequired) ? curItem.defenceLevelRequired : 1) > this.equipStats.defenceLevelRequired) {
+        this.equipStats.defenceLevelRequired = curItem.defenceLevelRequired;
       }
       if (i == CONSTANTS.equipmentSlot.Weapon) {
-        this.eqpAttSpd = (curItem.attackSpeed) ? curItem.attackSpeed : 4000;
+        this.equipStats.attackSpeed = (curItem.attackSpeed) ? curItem.attackSpeed : 4000;
       }
     }
   }
@@ -2464,56 +2638,56 @@ class McsSimulator {
   */
   computeCombatStats() {
     // ['Attack','Strength','Defence','Ranged','Magic']
-    this.attackSpeed = 4000;
+    this.combatStats.attackSpeed = 4000;
     let attackStyleBonus = 1;
     let meleeDefenceBonus = 1;
     const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
     // Ranged
     if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
-      this.attackType = 1;
-      if (this.styles.Ranged == 0) {
+      this.combatStats.attackType = 1;
+      if (this.attackStyle.Ranged == 0) {
         attackStyleBonus += 3;
-        this.attackSpeed = this.eqpAttSpd;
-      } else if (this.styles.Ranged == 1) {
-        this.attackSpeed = this.eqpAttSpd - 400;
+        this.combatStats.attackSpeed = this.equipStats.attackSpeed;
+      } else if (this.attackStyle.Ranged == 1) {
+        this.combatStats.attackSpeed = this.equipStats.attackSpeed - 400;
       } else {
         meleeDefenceBonus += 3;
-        this.attackSpeed = this.eqpAttSpd;
+        this.combatStats.attackSpeed = this.equipStats.attackSpeed;
       }
       const effectiveAttackLevel = Math.floor(this.playerLevels.Ranged + 8 + attackStyleBonus);
-      this.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.rngAttBon + 64) * (1 + (this.prayerBonusAttackRanged / 100)) * (1 + this.herbloreBonus.rangedAccuracy / 100));
+      this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.rangedAttackBonus + 64) * (1 + (this.prayerBonus.rangedAccuracy / 100)) * (1 + this.herbloreBonus.rangedAccuracy / 100));
 
       const effectiveStrengthLevel = Math.floor(this.playerLevels.Ranged + attackStyleBonus);
-      this.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.rngStrBon / 80 + effectiveStrengthLevel * this.rngStrBon / 640) * (1 + (this.prayerBonusStrengthRanged / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
+      this.combatStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.equipStats.rangedStrengthBonus / 80 + effectiveStrengthLevel * this.equipStats.rangedStrengthBonus / 640) * (1 + (this.prayerBonus.rangedDamage / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
       // Magic
     } else if (items[weaponID].isMagic) {
-      this.attackType = 2;
+      this.combatStats.attackType = 2;
       effectiveAttackLevel = Math.floor(this.playerLevels.Magic + 8 + attackStyleBonus);
-      this.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.magAttBon + 64) * (1 + (this.prayerBonusAttackMagic / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
-      this.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.selectedSpell].maxHit + SPELLS[this.selectedSpell].maxHit * (this.magDmgBon / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonusDamageMagic / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
+      this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.magicAttackBonus + 64) * (1 + (this.prayerBonus.magicAccuracy / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
+      this.combatStats.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.selectedSpell].maxHit + SPELLS[this.selectedSpell].maxHit * (this.equipStats.magicDamageBonus / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonus.magicDamage / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
       // Cloudburst Water Spell Bonus
       if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Cloudburst_Staff && (this.waterSpells.includes(this.selectedSpell))) {
-        this.maxHit += items[CONSTANTS.item.Cloudburst_Staff].increasedWaterSpellDamage * numberMultiplier;
+        this.combatStats.maxHit += items[CONSTANTS.item.Cloudburst_Staff].increasedWaterSpellDamage * numberMultiplier;
       }
-      this.attackSpeed = this.eqpAttSpd;
+      this.combatStats.attackSpeed = this.equipStats.attackSpeed;
       // Melee
     } else {
-      this.attackType = 0;
+      this.combatStats.attackType = 0;
       effectiveAttackLevel = Math.floor(this.playerLevels.Attack + 8 + attackStyleBonus);
-      this.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.attBon[this.styles.Melee] + 64) * (1 + (this.prayerBonusAttack / 100)) * (1 + this.herbloreBonus.meleeAccuracy / 100));
+      this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.attackBonus[this.attackStyle.Melee] + 64) * (1 + (this.prayerBonus.meleeAccuracy / 100)) * (1 + this.herbloreBonus.meleeAccuracy / 100));
 
       effectiveStrengthLevel = Math.floor(this.playerLevels.Strength + 8 + 1);
-      this.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.strBon / 80 + effectiveStrengthLevel * this.strBon / 640) * (1 + (this.prayerBonusStrength / 100)) * (1 + this.herbloreBonus.meleeStrength / 100)));
-      this.attackSpeed = this.eqpAttSpd;
+      this.combatStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.equipStats.strengthBonus / 80 + effectiveStrengthLevel * this.equipStats.strengthBonus / 640) * (1 + (this.prayerBonus.meleeDamage / 100)) * (1 + this.herbloreBonus.meleeStrength / 100)));
+      this.combatStats.attackSpeed = this.equipStats.attackSpeed;
     }
     const effectiveDefenceLevel = Math.floor(this.playerLevels.Defence + 8 + meleeDefenceBonus);
-    this.maxDefRoll = Math.floor(effectiveDefenceLevel * (this.defBon + 64) * (1 + (this.prayerBonusDefence) / 100) * (1 + this.herbloreBonus.meleeEvasion / 100));
+    this.combatStats.maxDefRoll = Math.floor(effectiveDefenceLevel * (this.equipStats.defenceBonus + 64) * (1 + (this.prayerBonus.meleeEvasion) / 100) * (1 + this.herbloreBonus.meleeEvasion / 100));
     const effectiveRngDefenceLevel = Math.floor(this.playerLevels.Defence + 8 + 1);
-    this.maxRngDefRoll = Math.floor(effectiveRngDefenceLevel * (this.rngDefBon + 64) * (1 + (this.prayerBonusDefenceRanged) / 100) * (1 + this.herbloreBonus.rangedEvasion / 100));
+    this.combatStats.maxRngDefRoll = Math.floor(effectiveRngDefenceLevel * (this.equipStats.rangedDefenceBonus + 64) * (1 + (this.prayerBonus.rangedEvasion) / 100) * (1 + this.herbloreBonus.rangedEvasion / 100));
     // This might be changed because it is currently a bug
-    const effectiveMagicDefenceLevel = Math.floor(this.playerLevels.Magic * 0.7 + this.playerLevels.Defence * 0.3);
-    this.maxMagDefRoll = Math.floor(effectiveMagicDefenceLevel * (this.magDefBon + 64) * (1 + (this.prayerBonusDefenceMagic / 100)) * (1 + this.herbloreBonus.magicEvasion / 100) + 8 + 1);
-    this.dmgRed = this.eqpDmgRed + this.herbloreBonus.damageReduction + this.prayerBonusDamageReduction;
+    const effectiveMagicDefenceLevel = Math.floor(this.playerLevels.Magic * 0.7 + this.playerLevels.Defence * 0.3 + 9);
+    this.combatStats.maxMagDefRoll = Math.floor(effectiveMagicDefenceLevel * (this.equipStats.magicDefenceBonus + 64) * (1 + (this.prayerBonus.magicEvasion / 100)) * (1 + this.herbloreBonus.magicEvasion / 100));
+    this.combatStats.damageReduction = this.equipStats.damageReduction + this.herbloreBonus.damageReduction + this.prayerBonus.damageReduction;
   }
   /**
   * @description Computes the prayer bonuses for the selected prayers
@@ -2523,7 +2697,7 @@ class McsSimulator {
     for (let i = 0; i < this.prayerSelected.length; i++) {
       if (this.prayerSelected[i]) {
         for (let j = 0; j < PRAYER[i].vars.length; j++) {
-          this[PRAYER[i].vars[j]] += PRAYER[i].values[j];
+          this.prayerBonus[this.prayerKeyMap[PRAYER[i].vars[j]]] += PRAYER[i].values[j];
         }
       }
     }
@@ -2532,22 +2706,22 @@ class McsSimulator {
    * Resets prayer bonuses to none
    */
   resetPrayerBonus() {
-    this.prayerBonusAttack = 0;
-    this.prayerBonusStrength = 0;
-    this.prayerBonusDefence = 0;
-    this.prayerBonusAttackRanged = 0;
-    this.prayerBonusStrengthRanged = 0;
-    this.prayerBonusDefenceRanged = 0;
-    this.prayerBonusAttackMagic = 0;
-    this.prayerBonusDamageMagic = 0;
-    this.prayerBonusDefenceMagic = 0;
-    this.prayerBonusProtectItem = 0;
-    this.prayerBonusHitpoints = 1;
-    this.prayerBonusProtectFromMelee = 0;
-    this.prayerBonusProtectFromRanged = 0;
-    this.prayerBonusProtectFromMagic = 0;
-    this.prayerBonusHitpointHeal = 0;
-    this.prayerBonusDamageReduction = 0;
+    this.prayerBonus.meleeAccuracy = 0;
+    this.prayerBonus.meleeDamage = 0;
+    this.prayerBonus.meleeEvasion = 0;
+    this.prayerBonus.rangedAccuracy = 0;
+    this.prayerBonus.rangedDamage = 0;
+    this.prayerBonus.rangedEvasion = 0;
+    this.prayerBonus.magicAccuracy = 0;
+    this.prayerBonus.magicDamage = 0;
+    this.prayerBonus.magicEvasion = 0;
+    this.prayerBonus.protectItem = 0;
+    this.prayerBonus.hitpoints = 1;
+    this.prayerBonus.protectFromMelee = 0;
+    this.prayerBonus.protectFromRanged = 0;
+    this.prayerBonus.protectFromMagic = 0;
+    this.prayerBonus.hitpointHeal = 0;
+    this.prayerBonus.damageReduction = 0;
   }
 
   /**
@@ -2625,45 +2799,48 @@ class McsSimulator {
   * Resets the properties of this that refer to equipment stats to their default values
   */
   resetGearStats() {
-    this.eqpAttSpd = 4000;
-    this.strBon = 0;
-    this.attBon = [0, 0, 0];
-    this.rngAttBon = 0;
-    this.rngStrBon = 0;
-    this.magAttBon = 0;
-    this.magDmgBon = 0;
-    this.defBon = 0;
-    this.eqpDmgRed = 0;
-    this.rngDefBon = 0;
-    this.magDefBon = 0;
-    this.attReq = 1;
-    this.rngReq = 1;
-    this.magReq = 1;
-    this.defReq = 1;
-    this.slayerXPBonus = 0;
-    this.chanceToDoubleLoot = 0;
+    this.equipStats.attackSpeed = 4000;
+    this.equipStats.strengthBonus = 0;
+    this.equipStats.attackBonus = [0, 0, 0];
+    this.equipStats.rangedAttackBonus = 0;
+    this.equipStats.rangedStrengthBonus = 0;
+    this.equipStats.magicAttackBonus = 0;
+    this.equipStats.magicDamageBonus = 0;
+    this.equipStats.defenceBonus = 0;
+    this.equipStats.damageReduction = 0;
+    this.equipStats.rangedDefenceBonus = 0;
+    this.equipStats.magicDefenceBonus = 0;
+    this.equipStats.attackLevelRequired = 1;
+    this.equipStats.rangedLevelRequired = 1;
+    this.equipStats.magicLevelRequired = 1;
+    this.equipStats.defenceLevelRequired = 1;
+    this.equipStats.slayerXPBonus = 0;
+    this.equipStats.chanceToDoubleLoot = 0;
   }
   /**
   * Iterate through all the combatAreas and DUNGEONS to create a set of monsterSimData and dungeonSimData
   */
   simulateCombat() {
+    this.simStartTime = performance.now();
     // Start by grabbing the player stats
     const playerStats = {
-      attackSpeed: this.attackSpeed,
-      attackType: this.attackType,
-      maxAttackRoll: this.maxAttackRoll,
-      maxHit: this.maxHit,
-      maxDefRoll: this.maxDefRoll,
-      maxMagDefRoll: this.maxMagDefRoll,
-      maxRngDefRoll: this.maxRngDefRoll,
+      attackSpeed: this.combatStats.attackSpeed,
+      attackType: this.combatStats.attackType,
+      maxAttackRoll: this.combatStats.maxAttackRoll,
+      maxHit: this.combatStats.maxHit,
+      maxDefRoll: this.combatStats.maxDefRoll,
+      maxMagDefRoll: this.combatStats.maxMagDefRoll,
+      maxRngDefRoll: this.combatStats.maxRngDefRoll,
       xpBonus: 0,
       avgHPRegen: 1 + Math.floor(this.playerLevels.Hitpoints / 10),
-      damageReduction: this.dmgRed,
+      damageReduction: this.combatStats.damageReduction,
       reflect: false,
       diamondLuck: this.herbloreBonus.diamondLuck,
       hasSpecialAttack: false,
       specialData: null,
       startingGP: 50000000,
+      levels: Object.assign({}, this.playerLevels), // Shallow copy of player levels
+      prayerSelected: this.prayerSelected.slice(), // Shallow Copy
       activeItems: {
         Hitpoints_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Hitpoints_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
         Ranged_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Ranged_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
@@ -2678,9 +2855,9 @@ class McsSimulator {
         Gold_Sapphire_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Sapphire_Ring), // Reflect
 
         Fighter_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Fighter_Amulet), // Attack stun
-        Warlock_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Warlock_Amulet && this.attackType == 2), // Magic Healing
+        Warlock_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Warlock_Amulet && this.combatStats.attackType == 2), // Magic Healing
         Guardian_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Guardian_Amulet), // Damage reduction on getting hit
-        Deadeye_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Deadeye_Amulet && this.attackType == 1), // Ranged criticals
+        Deadeye_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Deadeye_Amulet && this.combatStats.attackType == 1), // Ranged criticals
 
         Cloudburst_Staff: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Cloudburst_Staff && (this.waterSpells.includes(this.selectedSpell))),
         Confetti_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Confetti_Crossbow),
@@ -2688,6 +2865,10 @@ class McsSimulator {
         Slayer_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Slayer_Crossbow),
         Big_Ron: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Big_Ron),
       },
+      prayerPointsPerAttack: 0,
+      prayerPointsPerEnemy: 0,
+      prayerPointsPerHeal: 0,
+      isProtected: false,
     };
     // Special Attack
     if (items[this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon]].hasSpecialAttack) {
@@ -2705,29 +2886,26 @@ class McsSimulator {
     }
     // Other Bonuses
     if (playerStats.activeItems.Gold_Emerald_Ring) {
-      playerStats.xpBonus = 0.1;
+      playerStats.xpBonus = 0.07;
     }
     if (playerStats.activeItems.Gold_Sapphire_Ring) {
       playerStats.reflect = true;
     }
-    this.simTopaz = false;
+    this.currentSim.canTopazDrop = false;
     if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
-      this.simGpBonus = 1.15;
-      this.simTopaz = true;
+      this.currentSim.gpBonus = 1.15;
+      this.currentSim.canTopazDrop = true;
     } else if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Aorpheats_Signet_Ring) {
-      this.simGpBonus = 2;
+      this.currentSim.gpBonus = 2;
     } else {
-      this.simGpBonus = 1;
+      this.currentSim.gpBonus = 1;
     }
-    this.simLootBonus = 1 + this.chanceToDoubleLoot / 100;
-    this.simSlayerXPBonus = this.slayerXPBonus;
-    this.simHerbBonus = this.herbloreBonus.luckyHerb / 100;
-    this.simAutoBuryBones = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
+    this.currentSim.lootBonus = 1 + this.equipStats.chanceToDoubleLoot / 100;
+    this.currentSim.slayerXPBonus = this.equipStats.slayerXPBonus;
+    this.currentSim.herbConvertChance = this.herbloreBonus.luckyHerb / 100;
+    this.currentSim.doBonesAutoBury = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
     // Compute prayer point usage
     const hasPrayerCape = playerStats.activeItems.Prayer_Skillcape;
-    this.prayerPointsPerAttack = 0;
-    this.prayerPointsPerEnemy = 0;
-    this.prayerPointsPerHeal = 0;
     for (let i = 0; i < PRAYER.length; i++) {
       if (this.prayerSelected[i]) {
         if (hasPrayerCape) {
@@ -2743,164 +2921,97 @@ class McsSimulator {
           if (healQty == 0 && PRAYER[i].pointsPerRegen != 0) {
             healQty = 1;
           }
-          this.prayerPointsPerAttack += attQty;
-          this.prayerPointsPerEnemy += enemyQty;
-          this.prayerPointsPerHeal += healQty;
+          playerStats.prayerPointsPerAttack += attQty;
+          playerStats.prayerPointsPerEnemy += enemyQty;
+          playerStats.prayerPointsPerHeal += healQty;
         } else {
-          this.prayerPointsPerAttack += PRAYER[i].pointsPerPlayer;
-          this.prayerPointsPerEnemy += PRAYER[i].pointsPerEnemy;
-          this.prayerPointsPerHeal += PRAYER[i].pointsPerRegen;
+          playerStats.prayerPointsPerAttack += PRAYER[i].pointsPerPlayer;
+          playerStats.prayerPointsPerEnemy += PRAYER[i].pointsPerEnemy;
+          playerStats.prayerPointsPerHeal += PRAYER[i].pointsPerRegen;
         }
       }
     }
-    this.prayerPointsPerAttack *= (1 - this.herbloreBonus.divine / 100);
-    this.prayerPointsPerEnemy *= (1 - this.herbloreBonus.divine / 100);
-    this.prayerPointsPerHeal *= (1 - this.herbloreBonus.divine / 100);
+    playerStats.prayerPointsPerAttack *= (1 - this.herbloreBonus.divine / 100);
+    playerStats.prayerPointsPerEnemy *= (1 - this.herbloreBonus.divine / 100);
+    playerStats.prayerPointsPerHeal *= (1 - this.herbloreBonus.divine / 100);
+    this.currentSim.options = {
+      Ntrials: this.Ntrials,
+      Nhitmax: this.Nhitmax,
+    };
+    this.currentSim.playerStats = playerStats;
+    this.currentSim.isSlayerTask = this.isSlayerTask;
+    Object.assign(this.currentSim.herbloreBonus, this.herbloreBonus);
+    Object.assign(this.currentSim.prayerBonus, this.prayerBonus);
+    Object.assign(this.currentSim.combatStats, this.combatStats);
+    Object.assign(this.currentSim.attackStyle, this.attackStyle);
 
-    const Ntrials = this.Ntrials;
-    const Nhitmax = this.Nhitmax;
     // Reset the simulation status of all enemies
     this.resetSimDone();
-    // Perform simulation of monsters in combat areas
+    // Set up simulation queue
+    this.simulationQueue = [];
+    // Queue simulation of monsters in combat areas
     combatAreas.forEach((area) => {
       area.monsters.forEach((monsterID) => {
-        if (this.monsterSimFilter[monsterID]) {
-          this.simulateMonster(monsterID, playerStats, Ntrials, Nhitmax);
+        if (this.monsterSimFilter[monsterID] && !this.monsterSimData[monsterID].inQueue) {
+          this.monsterSimData[monsterID].inQueue = true;
+          this.simulationQueue.push({monsterID: monsterID});
         } else {
           this.monsterSimData[monsterID].simSuccess = false;
         }
       });
     });
-    // Perform simulation of monsters in slayer areas
+    // Queue simulation of monsters in slayer areas
     slayerAreas.forEach((area) => {
       area.monsters.forEach((monsterID) => {
-        if (this.monsterSimFilter[monsterID]) {
-          this.simulateMonster(monsterID, playerStats, Ntrials, Nhitmax);
+        if (this.monsterSimFilter[monsterID] && !this.monsterSimData[monsterID].inQueue) {
+          this.monsterSimData[monsterID].inQueue = true;
+          this.simulationQueue.push({monsterID: monsterID});
         } else {
           this.monsterSimData[monsterID].simSuccess = false;
         }
       });
     });
-    // Perform simulation of monsters in dungeons
+    // Queue simulation of monsters in dungeons
     for (let i = 0; i < DUNGEONS.length; i++) {
       if (this.dungeonSimFilter[i]) {
         for (let j = 0; j < DUNGEONS[i].monsters.length; j++) {
-          this.simulateMonster(DUNGEONS[i].monsters[j], playerStats, Ntrials, Nhitmax);
-        }
-      }
-    }
-    // Perform calculation of dungeon stats
-    let totXp = 0;
-    let totHpXp = 0;
-    let totPrayXP = 0;
-    let totHits = 0;
-    let totHP = 0;
-    let totEnemyHP = 0;
-    let totTime = 0;
-    let totPrayerPoints = 0;
-    let totalGPFromDamage = 0;
-    let totalAttacksTaken = 0;
-
-    for (let i = 0; i < DUNGEONS.length; i++) {
-      if (this.dungeonSimFilter[i]) {
-        this.dungeonSimData[i].simSuccess = true;
-        totXp = 0;
-        totHpXp = 0;
-        totPrayXP = 0;
-        totHits = 0;
-        totHP = 0;
-        totEnemyHP = 0;
-        totPrayerPoints = 0;
-        totTime = 0;
-        totalGPFromDamage = 0;
-        totalAttacksTaken = 0;
-        for (let j = 0; j < DUNGEONS[i].monsters.length; j++) {
-          const mInd = DUNGEONS[i].monsters[j];
-          totXp += this.monsterSimData[mInd].xpPerEnemy;
-          totHpXp += this.monsterSimData[mInd].hpxpPerEnemy;
-          totPrayXP += this.monsterSimData[mInd].prayerXpPerEnemy;
-          totHits += this.monsterSimData[mInd].attacksMade;
-          totHP += this.monsterSimData[mInd].hpPerEnemy;
-          totEnemyHP += MONSTERS[mInd].hitpoints * numberMultiplier;
-          totTime += this.monsterSimData[mInd].avgKillTime;
-          totPrayerPoints += this.monsterSimData[mInd].ppConsumedPerSecond * this.monsterSimData[mInd].killTimeS;
-          totalGPFromDamage += this.monsterSimData[mInd].gpFromDamage;
-          totalAttacksTaken += this.monsterSimData[mInd].attacksTaken;
-          if (!this.monsterSimData[mInd].simSuccess) {
-            this.dungeonSimData[i].simSuccess = false;
-            break;
+          const monsterID = DUNGEONS[i].monsters[j];
+          if (!this.monsterSimData[monsterID].inQueue) {
+            this.monsterSimData[monsterID].inQueue = true;
+            this.simulationQueue.push({monsterID: monsterID});
           }
         }
-        if (this.dungeonSimData[i].simSuccess) {
-          this.dungeonSimData[i].xpPerSecond = totXp / totTime * 1000;
-          this.dungeonSimData[i].xpPerHit = totXp / totHits;
-          this.dungeonSimData[i].hpxpPerSecond = totHpXp / totTime * 1000;
-          this.dungeonSimData[i].prayerXpPerSecond = totPrayXP / totTime * 1000;
-          this.dungeonSimData[i].hpPerSecond = totHP / totTime * 1000;
-          this.dungeonSimData[i].dmgPerSecond = totEnemyHP / totTime * 1000;
-          this.dungeonSimData[i].avgKillTime = totTime;
-          this.dungeonSimData[i].attacksMade = totHits;
-          this.dungeonSimData[i].avgHitDmg = totEnemyHP / totHits;
-          this.dungeonSimData[i].killTimeS = totTime / 1000;
-          this.dungeonSimData[i].ppConsumedPerSecond = totPrayerPoints / this.dungeonSimData[i].killTimeS;
-          this.dungeonSimData[i].gpFromDamage = totalGPFromDamage;
-          this.dungeonSimData[i].attacksTaken = totalAttacksTaken;
-          this.dungeonSimData[i].attacksTakenPerSecond = totalAttacksTaken / totTime * 1000;
-          this.dungeonSimData[i].attacksMadePerSecond = totHits / totTime * 1000;
-        }
-      } else {
-        this.dungeonSimData[i].simSuccess = false;
       }
     }
-    this.updateGPData();
-    this.updateSlayerXP();
-    this.updateHerbloreXP();
-    this.updateSignetChance();
+    // An attempt to sort jobs my relative complexity so they go from highest to lowest.
+    this.simulationQueue = this.simulationQueue.sort((jobA, jobB)=>{
+      const jobAComplex = this.enemyStats[jobA.monsterID].hitpoints / this.calculateAccuracy(playerStats, this.enemyStats[jobA.monsterID]);
+      const jobBComplex = this.enemyStats[jobB.monsterID].hitpoints / this.calculateAccuracy(playerStats, this.enemyStats[jobB.monsterID]);
+      return jobBComplex - jobAComplex;
+    });
+    // Start simulation workers
+    if (this.useThreads) {
+      this.initializeSimulationJobs();
+      document.getElementById('MCS Simulate Button').textContent = `Simulating... (0/${this.simulationQueue.length})`;
+    } else {
+      this.simulationQueue.forEach((simQueue)=>{
+        const startTime = performance.now();
+        this.simulateMonster(simQueue.monsterID, playerStats, this.Ntrials, this.Nhitmax);
+        this.monsterSimData[simQueue.monsterID].simulationTime = performance.now() - startTime;
+      });
+      this.simInProgress = false;
+      this.performPostSimAnalysis();
+      this.parent.updateDisplayPostSim();
+    }
   }
+
   /**
-  * Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
-  * @param {Number} monsterID The index of the monster in MONSTERS
-  * @param {*} playerStats The stats of the player
-  * @param {Number} Ntrials The number of times to simulate combat
-  * @param {Number} Nhitmax The maximum number of player hits before timeout
-  */
-  simulateMonster(monsterID, playerStats, Ntrials, Nhitmax) {
-    // Check if already simulated
-    if (this.monsterSimData[monsterID].simDone) {
-      return;
-    }
-    // Modify playerStats for specific monsters
-    if (playerStats.activeItems.Stormsnap || playerStats.activeItems.Big_Ron || playerStats.activeItems.Slayer_Crossbow) {
-      let attackStyleBonus = 1;
-      const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
-      if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
-        // Ranged
-        if (this.styles.Ranged == 0) {
-          attackStyleBonus += 3;
-        }
-        let rangedStrengthBonus = this.rngStrBon;
-        let rangedAttackBonus = this.rngAttBon;
-        if (playerStats.activeItems.Stormsnap) {
-          rangedStrengthBonus += Math.floor(110 + (1 + (MONSTERS[monsterID].magicLevel * 6) / 33));
-          rangedAttackBonus += Math.floor(102 * (1 + (MONSTERS[monsterID].magicLevel * 6) / 5500));
-        }
-        if (playerStats.activeItems.Slayer_Crossbow && (MONSTERS[monsterID].slayerXP != undefined || this.isSlayerTask)) {
-          rangedStrengthBonus = Math.floor(rangedStrengthBonus * items[CONSTANTS.item.Slayer_Crossbow].slayerStrengthMultiplier);
-        }
-        const effectiveAttackLevel = Math.floor(this.playerLevels.Ranged + 8 + attackStyleBonus);
-        playerStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (rangedAttackBonus + 64) * (1 + (this.prayerBonusAttackRanged / 100)) * (1 + this.herbloreBonus.rangedAccuracy / 100));
-        const effectiveStrengthLevel = Math.floor(this.playerLevels.Ranged + attackStyleBonus);
-        playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + rangedStrengthBonus / 80 + effectiveStrengthLevel * rangedStrengthBonus / 640) * (1 + (this.prayerBonusStrengthRanged / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
-      } else {
-        // Melee
-        let meleeStrengthBonus = this.strBon;
-        if (playerStats.activeItems.Big_Ron && MONSTERS[monsterID].isBoss) {
-          meleeStrengthBonus = Math.floor(meleeStrengthBonus * items[CONSTANTS.item.Big_Ron].bossStrengthMultiplier);
-        }
-        const effectiveStrengthLevel = Math.floor(this.playerLevels.Strength + 8 + 1);
-        playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + meleeStrengthBonus / 80 + effectiveStrengthLevel * meleeStrengthBonus / 640) * (1 + (this.prayerBonusStrength / 100)) * (1 + this.herbloreBonus.meleeStrength / 100)));
-      }
-    }
+   * Gets the stats of a monster
+   * @param {Number} monsterID
+   * @return {enemyStats}
+   */
+  getEnemyStats(monsterID) {
+    /** @type {enemyStats} */
     const enemyStats = {
       hitpoints: 0,
       attackSpeed: 0,
@@ -2912,6 +3023,7 @@ class McsSimulator {
       maxRngDefRoll: 0,
       hasSpecialAttack: false,
       specialAttackChances: [],
+      specialIDs: [],
       specialLength: 0,
     };
     // Calculate Enemy Stats
@@ -2942,14 +3054,6 @@ class McsSimulator {
       if (MONSTERS[monsterID].selectedSpell === null || MONSTERS[monsterID].selectedSpell === undefined) enemyStats.maxHit = Math.floor(numberMultiplier * (MONSTERS[monsterID].setMaxHit + MONSTERS[monsterID].setMaxHit * (MONSTERS[monsterID].damageBonusMagic / 100)));
       else enemyStats.maxHit = Math.floor(numberMultiplier * (SPELLS[MONSTERS[monsterID].selectedSpell].maxHit + SPELLS[MONSTERS[monsterID].selectedSpell].maxHit * (MONSTERS[monsterID].damageBonusMagic / 100)));
     }
-    // Calculate Accuracy
-    let playerAccuracy = this.calculateAccuracy(playerStats, enemyStats);
-    let enemyAccuracy;
-    if ((MONSTERS[monsterID].attackType === CONSTANTS.attackType.Melee && this.prayerBonusProtectFromMelee > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Ranged && this.prayerBonusProtectFromRanged > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Magic && this.prayerBonusProtectFromMagic > 0)) {
-      enemyAccuracy = 100 - protectFromValue;
-    } else {
-      enemyAccuracy = this.calculateAccuracy(enemyStats, playerStats);
-    }
     // Calculate special attacks
     if (MONSTERS[monsterID].hasSpecialAttack) {
       enemyStats.hasSpecialAttack = true;
@@ -2959,8 +3063,258 @@ class McsSimulator {
         } else {
           enemyStats.specialAttackChances.push(enemySpecialAttacks[MONSTERS[monsterID].specialAttackID[i]].chance);
         }
+        enemyStats.specialIDs.push(MONSTERS[monsterID].specialAttackID[i]);
       }
       enemyStats.specialLength = enemyStats.specialAttackChances.length;
+    }
+    return enemyStats;
+  }
+
+  /** Performs all data analysis post queue completion */
+  performPostSimAnalysis() {
+    // Perform calculation of dungeon stats
+    let totXp = 0;
+    let totHpXp = 0;
+    let totPrayXP = 0;
+    let totHits = 0;
+    let totHP = 0;
+    let totEnemyHP = 0;
+    let totTime = 0;
+    let totPrayerPoints = 0;
+    let totalGPFromDamage = 0;
+    let totalAttacksTaken = 0;
+    let totalSimTime = 0;
+    for (let i = 0; i < DUNGEONS.length; i++) {
+      if (this.dungeonSimFilter[i]) {
+        this.dungeonSimData[i].simSuccess = true;
+        totXp = 0;
+        totHpXp = 0;
+        totPrayXP = 0;
+        totHits = 0;
+        totHP = 0;
+        totEnemyHP = 0;
+        totPrayerPoints = 0;
+        totTime = 0;
+        totalGPFromDamage = 0;
+        totalAttacksTaken = 0;
+        totalSimTime = 0;
+        for (let j = 0; j < DUNGEONS[i].monsters.length; j++) {
+          const mInd = DUNGEONS[i].monsters[j];
+          totXp += this.monsterSimData[mInd].xpPerEnemy;
+          totHpXp += this.monsterSimData[mInd].hpxpPerEnemy;
+          totPrayXP += this.monsterSimData[mInd].prayerXpPerEnemy;
+          totHits += this.monsterSimData[mInd].attacksMade;
+          totHP += this.monsterSimData[mInd].hpPerEnemy;
+          totEnemyHP += MONSTERS[mInd].hitpoints * numberMultiplier;
+          totTime += this.monsterSimData[mInd].avgKillTime;
+          totPrayerPoints += this.monsterSimData[mInd].ppConsumedPerSecond * this.monsterSimData[mInd].killTimeS;
+          totalGPFromDamage += this.monsterSimData[mInd].gpFromDamage;
+          totalAttacksTaken += this.monsterSimData[mInd].attacksTaken;
+          totalSimTime += this.monsterSimData[mInd].simulationTime;
+          if (!this.monsterSimData[mInd].simSuccess) {
+            this.dungeonSimData[i].simSuccess = false;
+            break;
+          }
+        }
+        if (this.dungeonSimData[i].simSuccess) {
+          this.dungeonSimData[i].xpPerSecond = totXp / totTime * 1000;
+          this.dungeonSimData[i].xpPerHit = totXp / totHits;
+          this.dungeonSimData[i].hpxpPerSecond = totHpXp / totTime * 1000;
+          this.dungeonSimData[i].prayerXpPerSecond = totPrayXP / totTime * 1000;
+          this.dungeonSimData[i].hpPerSecond = totHP / totTime * 1000;
+          this.dungeonSimData[i].dmgPerSecond = totEnemyHP / totTime * 1000;
+          this.dungeonSimData[i].avgKillTime = totTime;
+          this.dungeonSimData[i].attacksMade = totHits;
+          this.dungeonSimData[i].avgHitDmg = totEnemyHP / totHits;
+          this.dungeonSimData[i].killTimeS = totTime / 1000;
+          this.dungeonSimData[i].ppConsumedPerSecond = totPrayerPoints / this.dungeonSimData[i].killTimeS;
+          this.dungeonSimData[i].gpFromDamage = totalGPFromDamage;
+          this.dungeonSimData[i].attacksTaken = totalAttacksTaken;
+          this.dungeonSimData[i].attacksTakenPerSecond = totalAttacksTaken / totTime * 1000;
+          this.dungeonSimData[i].attacksMadePerSecond = totHits / totTime * 1000;
+          this.dungeonSimData[i].simulationTime = totalSimTime;
+        }
+      } else {
+        this.dungeonSimData[i].simSuccess = false;
+      }
+    }
+    // Update other data
+    this.updateGPData();
+    this.updateSlayerXP();
+    this.updateHerbloreXP();
+    this.updateSignetChance();
+    console.log(`Elapsed Simulation Time: ${performance.now() - this.simStartTime}ms`);
+  }
+  /** Starts processing simulation jobs */
+  initializeSimulationJobs() {
+    if (!this.simInProgress) {
+      this.simInProgress = true;
+      this.currentJob = 0;
+      for (let i = 0; i < this.simulationWorkers.length; i++) {
+        this.simulationWorkers[i].selfTime = 0;
+        if (i < this.simulationQueue.length) {
+          this.startJob(i);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  /** Starts a job for a given worker
+   * @param {Number} workerID
+  */
+  startJob(workerID) {
+    if (this.currentJob < this.simulationQueue.length) {
+      const monsterID = this.simulationQueue[this.currentJob].monsterID;
+      this.modifyCurrentSimStatsForMonster(monsterID);
+      this.simulationWorkers[workerID].worker.postMessage({action: 'START_SIMULATION',
+        monsterID: monsterID,
+        monsterStats: this.enemyStats[monsterID],
+        playerStats: this.currentSim.playerStats,
+        simOptions: this.currentSim.options});
+      this.simulationWorkers[workerID].inUse = true;
+      this.currentJob++;
+    } else {
+      // Check if none of the workers are in use
+      let allDone = true;
+      this.simulationWorkers.forEach((simWorker)=>{
+        if (simWorker.inUse) {
+          allDone = false;
+        }
+      });
+      if (allDone) {
+        this.simInProgress = false;
+        this.performPostSimAnalysis();
+        this.parent.updateDisplayPostSim();
+        // console.log(this.simulationWorkers);
+      }
+    }
+  }
+
+  /**
+   * Modifies the playerStats before starting a job for a specific monster
+   * @param {Number} monsterID Index of MONSTERS
+   */
+  modifyCurrentSimStatsForMonster(monsterID) {
+    // Do check for protection prayer
+    switch (MONSTERS[monsterID].attackType) {
+      case CONSTANTS.attackType.Melee:
+        this.currentSim.playerStats.isProtected = this.currentSim.prayerBonus.protectFromMelee > 0;
+        break;
+      case CONSTANTS.attackType.Ranged:
+        this.currentSim.playerStats.isProtected = this.currentSim.prayerBonus.protectFromRanged > 0;
+        break;
+      case CONSTANTS.attackType.Magic:
+        this.currentSim.playerStats.isProtected = this.currentSim.prayerBonus.protectFromMagic > 0;
+        break;
+    }
+    // Do preprocessing of player stats for special weapons TODO: Modify this so it doesn't draw from current UI options
+    if (this.currentSim.playerStats.activeItems.Stormsnap || this.currentSim.playerStats.activeItems.Slayer_Crossbow) {
+      let attackStyleBonus = 1;
+      // Ranged
+      if (this.attackStyle.Ranged == 0) {
+        attackStyleBonus += 3;
+      }
+      let rangedStrengthBonus = this.currentSim.equipStats.rangedStrengthBonus;
+      let rangedAttackBonus = this.currentSim.equipStats.rangedAttackBonus;
+      if (this.currentSim.playerStats.activeItems.Stormsnap) {
+        rangedStrengthBonus += Math.floor(110 + (1 + (MONSTERS[monsterID].magicLevel * 6) / 33));
+        rangedAttackBonus += Math.floor(102 * (1 + (MONSTERS[monsterID].magicLevel * 6) / 5500));
+      }
+      if (this.currentSim.playerStats.activeItems.Slayer_Crossbow && (MONSTERS[monsterID].slayerXP != undefined || this.currentSim.isSlayerTask)) {
+        rangedStrengthBonus = Math.floor(rangedStrengthBonus * items[CONSTANTS.item.Slayer_Crossbow].slayerStrengthMultiplier);
+      }
+      const effectiveAttackLevel = Math.floor(this.currentSim.playerStats.levels.Ranged + 8 + attackStyleBonus);
+      this.currentSim.playerStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (rangedAttackBonus + 64) * (1 + (this.currentSim.prayerBonus.rangedAccuracy / 100)) * (1 + this.currentSim.herbloreBonus.rangedAccuracy / 100));
+      const effectiveStrengthLevel = Math.floor(this.currentSim.playerStats.levels.Ranged + attackStyleBonus);
+      this.currentSim.playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + rangedStrengthBonus / 80 + effectiveStrengthLevel * rangedStrengthBonus / 640) * (1 + (this.currentSim.prayerBonus.rangedDamage / 100)) * (1 + this.currentSim.herbloreBonus.rangedStrength / 100)));
+    } else if (this.currentSim.playerStats.activeItems.Big_Ron ) {
+      // Melee
+      let meleeStrengthBonus = this.currentSim.equipStats.strengthBonus;
+      if (this.currentSim.playerStats.activeItems.Big_Ron && MONSTERS[monsterID].isBoss) {
+        meleeStrengthBonus = Math.floor(meleeStrengthBonus * items[CONSTANTS.item.Big_Ron].bossStrengthMultiplier);
+      }
+      const effectiveStrengthLevel = Math.floor(this.currentSim.playerStats.levels.Strength + 8 + 1);
+      this.currentSim.playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + meleeStrengthBonus / 80 + effectiveStrengthLevel * meleeStrengthBonus / 640) * (1 + (this.currentSim.prayerBonus.meleeDamage / 100)) * (1 + this.currentSim.herbloreBonus.meleeStrength / 100)));
+    }
+  }
+
+  /**
+   * Processes a message recieved from one of the simulation workers
+   * @param {*} event The event data of the worker
+   * @param {Number} workerID The ID of the worker that sent the message
+   */
+  processWorkerMessage(event, workerID) {
+    // console.log(`Recieved Message from worker: ${workerID}`);
+    switch (event.data.action) {
+      case 'FINISHED_SIM':
+        // Send next job in queue to worker
+        this.simulationWorkers[workerID].inUse = false;
+        this.simulationWorkers[workerID].selfTime += event.data.selfTime;
+        // Transfer data into monsterSimData
+        const monsterID = event.data.monsterID;
+        Object.assign(this.monsterSimData[monsterID], event.data.simResult);
+        this.monsterSimData[monsterID].simulationTime = event.data.selfTime;
+        document.getElementById('MCS Simulate Button').textContent = `Simulating... (${this.currentJob - 1}/${this.simulationQueue.length})`;
+        // console.log(event.data.simResult);
+        // Attempt to add another job to the worker
+        this.startJob(workerID);
+        break;
+    }
+  }
+  /**
+  * Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
+  * @param {Number} monsterID The index of the monster in MONSTERS
+  * @param {*} playerStats The stats of the player
+  * @param {Number} Ntrials The number of times to simulate combat
+  * @param {Number} Nhitmax The maximum number of player hits before timeout
+  */
+  simulateMonster(monsterID, playerStats, Ntrials, Nhitmax) {
+    // Check if already simulated
+    if (this.monsterSimData[monsterID].simDone) {
+      return;
+    }
+    // Modify playerStats for specific monsters
+    if (playerStats.activeItems.Stormsnap || playerStats.activeItems.Big_Ron || playerStats.activeItems.Slayer_Crossbow) {
+      let attackStyleBonus = 1;
+      const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
+      if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
+        // Ranged
+        if (this.attackStyle.Ranged == 0) {
+          attackStyleBonus += 3;
+        }
+        let rangedStrengthBonus = this.equipStats.rangedStrengthBonus;
+        let rangedAttackBonus = this.equipStats.rangedAttackBonus;
+        if (playerStats.activeItems.Stormsnap) {
+          rangedStrengthBonus += Math.floor(110 + (1 + (MONSTERS[monsterID].magicLevel * 6) / 33));
+          rangedAttackBonus += Math.floor(102 * (1 + (MONSTERS[monsterID].magicLevel * 6) / 5500));
+        }
+        if (playerStats.activeItems.Slayer_Crossbow && (MONSTERS[monsterID].slayerXP != undefined || this.isSlayerTask)) {
+          rangedStrengthBonus = Math.floor(rangedStrengthBonus * items[CONSTANTS.item.Slayer_Crossbow].slayerStrengthMultiplier);
+        }
+        const effectiveAttackLevel = Math.floor(this.playerLevels.Ranged + 8 + attackStyleBonus);
+        playerStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (rangedAttackBonus + 64) * (1 + (this.prayerBonus.rangedAccuracy / 100)) * (1 + this.herbloreBonus.rangedAccuracy / 100));
+        const effectiveStrengthLevel = Math.floor(this.playerLevels.Ranged + attackStyleBonus);
+        playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + rangedStrengthBonus / 80 + effectiveStrengthLevel * rangedStrengthBonus / 640) * (1 + (this.prayerBonus.rangedDamage / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
+      } else {
+        // Melee
+        let meleeStrengthBonus = this.equipStats.strengthBonus;
+        if (playerStats.activeItems.Big_Ron && MONSTERS[monsterID].isBoss) {
+          meleeStrengthBonus = Math.floor(meleeStrengthBonus * items[CONSTANTS.item.Big_Ron].bossStrengthMultiplier);
+        }
+        const effectiveStrengthLevel = Math.floor(this.playerLevels.Strength + 8 + 1);
+        playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + meleeStrengthBonus / 80 + effectiveStrengthLevel * meleeStrengthBonus / 640) * (1 + (this.prayerBonus.meleeDamage / 100)) * (1 + this.herbloreBonus.meleeStrength / 100)));
+      }
+    }
+    const enemyStats = this.enemyStats[monsterID];
+    // Calculate Accuracy
+    let playerAccuracy = this.calculateAccuracy(playerStats, enemyStats);
+    let enemyAccuracy;
+    if ((MONSTERS[monsterID].attackType === CONSTANTS.attackType.Melee && this.prayerBonus.protectFromMelee > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Ranged && this.prayerBonus.protectFromRanged > 0) || (MONSTERS[monsterID].attackType === CONSTANTS.attackType.Magic && this.prayerBonus.protectFromMagic > 0)) {
+      enemyAccuracy = 100 - protectFromValue;
+    } else {
+      enemyAccuracy = this.calculateAccuracy(enemyStats, playerStats);
     }
     // Start Monte Carlo simulation
     let enemyKills = 0;
@@ -3254,25 +3608,15 @@ class McsSimulator {
             }
             // XP Tracking
             if (damageToEnemy > 0) {
-              xpToAdd = Math.floor(damageToEnemy / numberMultiplier * 4);
+              xpToAdd = damageToEnemy / numberMultiplier * 4;
               if (xpToAdd < 4) xpToAdd = 4;
-              hpXpToAdd = Math.round((damageToEnemy / numberMultiplier * 1.33) * 100) / 100;
-              prayerXpToAdd = Math.floor(damageToEnemy / numberMultiplier / 2);
+              hpXpToAdd = damageToEnemy / numberMultiplier * 1.33;
+              prayerXpToAdd = damageToEnemy / numberMultiplier / 2;
               // Active Prayer Bonus
-              for (let i = 0; i < this.prayerSelected.length; i++) {
-                if (this.prayerSelected[i]) {
-                  prayerXpToAdd += Math.floor(damageToEnemy / numberMultiplier * 2) * PRAYER[i].pointsPerPlayer;
+              for (let i = 0; i < playerStats.prayerSelected.length; i++) {
+                if (playerStats.prayerSelected[i]) {
+                  prayerXpToAdd += damageToEnemy / numberMultiplier * 2 * PRAYER[i].pointsPerPlayer;
                 }
-              }
-              // Ring bonus
-              xpToAdd += Math.floor(xpToAdd * playerStats.xpBonus);
-              hpXpToAdd += Math.floor(hpXpToAdd * playerStats.xpBonus);
-              prayerXpToAdd += Math.floor(prayerXpToAdd * playerStats.xpBonus);
-              // Cape Bonus
-              if (playerStats.activeItems.Firemaking_Skillcape) {
-                xpToAdd = Math.floor(xpToAdd * 1.05);
-                hpXpToAdd = Math.floor(hpXpToAdd * 1.05);
-                prayerXpToAdd = Math.floor(prayerXpToAdd * 1.05);
               }
 
               stats.totalHpXP += hpXpToAdd;
@@ -3369,25 +3713,15 @@ class McsSimulator {
           }
           // XP Tracking
           if (damageToEnemy > 0) {
-            xpToAdd = Math.floor(damageToEnemy / numberMultiplier * 4);
+            xpToAdd = damageToEnemy / numberMultiplier * 4;
             if (xpToAdd < 4) xpToAdd = 4;
-            hpXpToAdd = Math.round((damageToEnemy / numberMultiplier * 1.33) * 100) / 100;
-            prayerXpToAdd = Math.floor(damageToEnemy / numberMultiplier / 2);
+            hpXpToAdd = damageToEnemy / numberMultiplier * 1.33;
+            prayerXpToAdd = damageToEnemy / numberMultiplier / 2;
             // Active Prayer Bonus
-            for (let i = 0; i < this.prayerSelected.length; i++) {
-              if (this.prayerSelected[i]) {
-                prayerXpToAdd += Math.floor(damageToEnemy / numberMultiplier * 2) * PRAYER[i].pointsPerPlayer;
+            for (let i = 0; i < playerStats.prayerSelected.length; i++) {
+              if (playerStats.prayerSelected[i]) {
+                prayerXpToAdd += damageToEnemy / numberMultiplier * 2 * PRAYER[i].pointsPerPlayer;
               }
-            }
-            // Ring bonus
-            xpToAdd += Math.floor(xpToAdd * playerStats.xpBonus);
-            hpXpToAdd += Math.floor(hpXpToAdd * playerStats.xpBonus);
-            prayerXpToAdd += Math.floor(prayerXpToAdd * playerStats.xpBonus);
-            // Cape Bonus
-            if (playerStats.activeItems.Firemaking_Skillcape) {
-              xpToAdd = Math.floor(xpToAdd * 1.05);
-              hpXpToAdd = Math.floor(hpXpToAdd * 1.05);
-              prayerXpToAdd = Math.floor(prayerXpToAdd * 1.05);
             }
             stats.totalHpXP += hpXpToAdd;
             stats.totalPrayerXP += prayerXpToAdd;
@@ -3455,7 +3789,7 @@ class McsSimulator {
               let specCount = 0;
               for (let i = 0; i < enemyStats.specialLength; i++) {
                 if (chanceForSpec <= enemyStats.specialAttackChances[i] + specCount) {
-                  enemy.specialID = MONSTERS[monsterID].specialAttackID[i];
+                  enemy.specialID = enemyStats.specialIDs[i];
                   enemy.doingSpecial = true;
                   specialAttack = true;
                   break;
@@ -3466,18 +3800,19 @@ class McsSimulator {
             // Attack Parameters
             if (specialAttack) {
               // Do Enemy Special
+              const currentSpecial = enemySpecialAttacks[enemy.specialID];
               // Activate Buffs
-              if (enemySpecialAttacks[enemy.specialID].activeBuffs && !enemy.isBuffed) {
+              if (currentSpecial.activeBuffs && !enemy.isBuffed) {
                 enemy.isBuffed = true;
-                if (enemySpecialAttacks[enemy.specialID].activeBuffTurns !== null && enemySpecialAttacks[enemy.specialID].activeBuffTurns !== undefined) enemy.buffTurns = enemySpecialAttacks[enemy.specialID].activeBuffTurns;
-                else enemy.buffTurns = enemySpecialAttacks[enemy.specialID].attackCount;
+                if (currentSpecial.activeBuffTurns !== null && currentSpecial.activeBuffTurns !== undefined) enemy.buffTurns = currentSpecial.activeBuffTurns;
+                else enemy.buffTurns = currentSpecial.attackCount;
                 let newEnemyEvasion;
                 if (playerStats.attackType == 0) {
-                  newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedMeleeEvasion / 100));
+                  newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + currentSpecial.increasedMeleeEvasion / 100));
                 } else if (playerStats.attackType == 1) {
-                  newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedRangedEvasion / 100));
+                  newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + currentSpecial.increasedRangedEvasion / 100));
                 } else {
-                  newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedMagicEvasion / 100));
+                  newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + currentSpecial.increasedMagicEvasion / 100));
                 }
                 // Modify Player Accuracy according to buff
                 if (playerStats.maxAttackRoll < newEnemyEvasion) {
@@ -3485,19 +3820,19 @@ class McsSimulator {
                 } else {
                   playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
                 }
-                enemy.reflectMelee = enemySpecialAttacks[enemy.specialID].reflectMelee;
-                enemy.damageReduction = enemySpecialAttacks[enemy.specialID].increasedDamageReduction;
+                enemy.reflectMelee = currentSpecial.reflectMelee;
+                enemy.damageReduction = currentSpecial.increasedDamageReduction;
               }
               // Apply Player Slow
-              if (enemySpecialAttacks[enemy.specialID].attackSpeedDebuff && !player.isSlowed) {
+              if (currentSpecial.attackSpeedDebuff && !player.isSlowed) {
                 // Modify current player speed
                 player.isSlowed = true;
-                player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + enemySpecialAttacks[enemy.specialID].attackSpeedDebuff / 100));
-                player.slowTurns = enemySpecialAttacks[enemy.specialID].attackSpeedDebuffTurns;
+                player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100));
+                player.slowTurns = currentSpecial.attackSpeedDebuffTurns;
               }
               // Do the first hit
               let attackHits = false;
-              if (player.isStunned || enemySpecialAttacks[enemy.specialID].forceHit) {
+              if (player.isStunned || currentSpecial.forceHit) {
                 attackHits = true;
               } else {
                 // Roll for hit
@@ -3505,12 +3840,12 @@ class McsSimulator {
                 if (enemyAccuracy > hitChance) attackHits = true;
               }
               if (attackHits) {
-                if (enemySpecialAttacks[enemy.specialID].setDamage !== null) {
-                  damageToPlayer = enemySpecialAttacks[enemy.specialID].setDamage * numberMultiplier;
+                if (currentSpecial.setDamage !== null) {
+                  damageToPlayer = currentSpecial.setDamage * numberMultiplier;
                 } else {
                   damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
                 }
-                if (player.isStunned) damageToPlayer *= enemySpecialAttacks[enemy.specialID].stunDamageMultiplier;
+                if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
                 damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
                 stats.damageTaken += damageToPlayer;
                 if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
@@ -3524,30 +3859,30 @@ class McsSimulator {
                 }
                 if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
                 // Apply Stun
-                if (enemySpecialAttacks[enemy.specialID].canStun && !player.isStunned) {
+                if (currentSpecial.canStun && !player.isStunned) {
                   player.isStunned = true;
-                  player.stunTurns = enemySpecialAttacks[enemy.specialID].stunTurns;
+                  player.stunTurns = currentSpecial.stunTurns;
                   player.isAttacking = false;
                   player.isActing = true;
                   player.actionTimer = player.currentSpeed;
                 }
                 // Apply Burning
-                if (enemySpecialAttacks[enemy.specialID].burnDebuff > 0 && !player.isBurning) {
+                if (currentSpecial.burnDebuff > 0 && !player.isBurning) {
                   player.isBurning = true;
                   player.burnCount = 0;
-                  player.burnDamage = Math.floor((this.playerLevels.Hitpoints * numberMultiplier * (enemySpecialAttacks[enemy.specialID].burnDebuff / 100)) / player.burnMaxCount);
+                  player.burnDamage = Math.floor((this.playerLevels.Hitpoints * numberMultiplier * (currentSpecial.burnDebuff / 100)) / player.burnMaxCount);
                   player.burnTimer = player.burnInterval;
                 }
               }
               // Set up subsequent hits if required
-              const isDOT = enemySpecialAttacks[enemy.specialID].setDOTDamage !== null;
-              const maxCount = isDOT ? enemySpecialAttacks[enemy.specialID].DOTMaxProcs : enemySpecialAttacks[enemy.specialID].attackCount;
+              const isDOT = currentSpecial.setDOTDamage !== null;
+              const maxCount = isDOT ? currentSpecial.DOTMaxProcs : currentSpecial.attackCount;
               if (maxCount > 1) {
                 enemy.attackCount = 1;
                 enemy.countMax = maxCount;
                 enemy.isActing = false;
                 enemy.isAttacking = true;
-                enemy.attackInterval = isDOT ? enemySpecialAttacks[enemy.specialID].DOTInterval : enemySpecialAttacks[enemy.specialID].attackInterval;
+                enemy.attackInterval = isDOT ? currentSpecial.DOTInterval : currentSpecial.attackInterval;
                 enemy.attackTimer = enemy.attackInterval;
               } else {
                 enemy.actionTimer = enemy.currentSpeed;
@@ -3618,17 +3953,18 @@ class McsSimulator {
           stats.enemyAttackCalls++;
           // Do Enemy Special
           // Activate Buffs
-          if (enemySpecialAttacks[enemy.specialID].activeBuffs && !enemy.isBuffed) {
+          const currentSpecial = enemySpecialAttacks[enemy.specialID];
+          if (currentSpecial.activeBuffs && !enemy.isBuffed) {
             enemy.isBuffed = true;
-            if (enemySpecialAttacks[enemy.specialID].activeBuffTurns !== null && enemySpecialAttacks[enemy.specialID].activeBuffTurns !== undefined) enemy.buffTurns = enemySpecialAttacks[enemy.specialID].activeBuffTurns;
-            else enemy.buffTurns = enemySpecialAttacks[enemy.specialID].attackCount;
+            if (currentSpecial.activeBuffTurns !== null && currentSpecial.activeBuffTurns !== undefined) enemy.buffTurns = currentSpecial.activeBuffTurns;
+            else enemy.buffTurns = currentSpecial.attackCount;
             let newEnemyEvasion;
             if (playerStats.attackType == 0) {
-              newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedMeleeEvasion / 100));
+              newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + currentSpecial.increasedMeleeEvasion / 100));
             } else if (playerStats.attackType == 1) {
-              newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedRangedEvasion / 100));
+              newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + currentSpecial.increasedRangedEvasion / 100));
             } else {
-              newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + enemySpecialAttacks[enemy.specialID].increasedMagicEvasion / 100));
+              newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + currentSpecial.increasedMagicEvasion / 100));
             }
             // Modify Player Accuracy according to buff
             if (playerStats.maxAttackRoll < newEnemyEvasion) {
@@ -3636,19 +3972,19 @@ class McsSimulator {
             } else {
               playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
             }
-            enemy.reflectMelee = enemySpecialAttacks[enemy.specialID].reflectMelee;
-            enemy.damageReduction = enemySpecialAttacks[enemy.specialID].increasedDamageReduction;
+            enemy.reflectMelee = currentSpecial.reflectMelee;
+            enemy.damageReduction = currentSpecial.increasedDamageReduction;
           }
           // Apply Player Slow
-          if (enemySpecialAttacks[enemy.specialID].attackSpeedDebuff && !player.isSlowed) {
+          if (currentSpecial.attackSpeedDebuff && !player.isSlowed) {
             // Modify current player speed
             player.isSlowed = true;
-            player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + enemySpecialAttacks[enemy.specialID].attackSpeedDebuff / 100));
-            player.slowTurns = enemySpecialAttacks[enemy.specialID].attackSpeedDebuffTurns;
+            player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100));
+            player.slowTurns = currentSpecial.attackSpeedDebuffTurns;
           }
           // Do the first hit
           let attackHits = false;
-          if (player.isStunned || enemySpecialAttacks[enemy.specialID].forceHit) {
+          if (player.isStunned || currentSpecial.forceHit) {
             attackHits = true;
           } else {
             // Roll for hit
@@ -3656,12 +3992,12 @@ class McsSimulator {
             if (enemyAccuracy > hitChance) attackHits = true;
           }
           if (attackHits) {
-            if (enemySpecialAttacks[enemy.specialID].setDamage !== null) {
-              damageToPlayer = enemySpecialAttacks[enemy.specialID].setDamage * numberMultiplier;
+            if (currentSpecial.setDamage !== null) {
+              damageToPlayer = currentSpecial.setDamage * numberMultiplier;
             } else {
               damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
             }
-            if (player.isStunned) damageToPlayer *= enemySpecialAttacks[enemy.specialID].stunDamageMultiplier;
+            if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
             damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
             stats.damageTaken += damageToPlayer;
             if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
@@ -3675,18 +4011,18 @@ class McsSimulator {
             }
             if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
             // Apply Stun
-            if (enemySpecialAttacks[enemy.specialID].canStun && !player.isStunned) {
+            if (currentSpecial.canStun && !player.isStunned) {
               player.isStunned = true;
-              player.stunTurns = enemySpecialAttacks[enemy.specialID].stunTurns;
+              player.stunTurns = currentSpecial.stunTurns;
               player.isAttacking = false;
               player.isActing = true;
               player.actionTimer = player.currentSpeed;
             }
             // Apply Burning
-            if (enemySpecialAttacks[enemy.specialID].burnDebuff > 0 && !player.isBurning) {
+            if (currentSpecial.burnDebuff > 0 && !player.isBurning) {
               player.isBurning = true;
               player.burnCount = 0;
-              player.burnDamage = Math.floor((this.playerLevels.Hitpoints * numberMultiplier * (enemySpecialAttacks[enemy.specialID].burnDebuff / 100)) / player.burnMaxCount);
+              player.burnDamage = Math.floor((this.playerLevels.Hitpoints * numberMultiplier * (currentSpecial.burnDebuff / 100)) / player.burnMaxCount);
               player.burnTimer = player.burnInterval;
             }
           }
@@ -3746,34 +4082,46 @@ class McsSimulator {
       enemyKills++;
     }
     // Compute stats from simulation
-    this.monsterSimData[monsterID].simSuccess = simSuccess;
+    const simResult = this.monsterSimData[monsterID];
+    simResult.simSuccess = simSuccess;
     if (simSuccess) {
-      this.monsterSimData[monsterID].attacksMade = stats.playerAttackCalls / Ntrials;
-      this.monsterSimData[monsterID].avgHitDmg = enemyStats.hitpoints * Ntrials / stats.playerAttackCalls;
-      this.monsterSimData[monsterID].avgKillTime = enemySpawnTimer + stats.totalTime / Ntrials;
+      // Apply XP Bonuses
+      // Ring bonus
+      stats.totalCombatXP += stats.totalCombatXP * playerStats.xpBonus;
+      stats.totalHpXP += stats.totalHpXP * playerStats.xpBonus;
+      stats.totalPrayerXP += stats.totalPrayerXP * playerStats.xpBonus;
+      // Cape Bonus
+      if (playerStats.activeItems.Firemaking_Skillcape) {
+        stats.totalCombatXP *= 1.05;
+        stats.totalHpXP *= 1.05;
+        stats.totalPrayerXP *= 1.05;
+      }
+      simResult.attacksMade = stats.playerAttackCalls / Ntrials;
+      simResult.avgHitDmg = enemyStats.hitpoints * Ntrials / stats.playerAttackCalls;
+      simResult.avgKillTime = enemySpawnTimer + stats.totalTime / Ntrials;
 
-      this.monsterSimData[monsterID].hpPerEnemy = (stats.damageTaken - stats.damageHealed) / Ntrials - this.monsterSimData[monsterID].avgKillTime / hitpointRegenInterval * playerStats.avgHPRegen;
-      if (this.monsterSimData[monsterID].hpPerEnemy < 0) this.monsterSimData[monsterID].hpPerEnemy = 0;
-      this.monsterSimData[monsterID].hpPerSecond = this.monsterSimData[monsterID].hpPerEnemy / this.monsterSimData[monsterID].avgKillTime * 1000;
+      simResult.hpPerEnemy = (stats.damageTaken - stats.damageHealed) / Ntrials - simResult.avgKillTime / hitpointRegenInterval * playerStats.avgHPRegen;
+      if (simResult.hpPerEnemy < 0) simResult.hpPerEnemy = 0;
+      simResult.hpPerSecond = simResult.hpPerEnemy / simResult.avgKillTime * 1000;
 
-      this.monsterSimData[monsterID].dmgPerSecond = enemyStats.hitpoints / this.monsterSimData[monsterID].avgKillTime * 1000;
-      this.monsterSimData[monsterID].xpPerEnemy = stats.totalCombatXP / Ntrials;
-      this.monsterSimData[monsterID].xpPerHit = stats.totalCombatXP / stats.playerAttackCalls;
+      simResult.dmgPerSecond = enemyStats.hitpoints / simResult.avgKillTime * 1000;
+      simResult.xpPerEnemy = stats.totalCombatXP / Ntrials;
+      simResult.xpPerHit = stats.totalCombatXP / stats.playerAttackCalls;
 
-      this.monsterSimData[monsterID].xpPerSecond = stats.totalCombatXP / Ntrials / this.monsterSimData[monsterID].avgKillTime * 1000;
-      this.monsterSimData[monsterID].hpxpPerEnemy = stats.totalHpXP / Ntrials;
-      this.monsterSimData[monsterID].hpxpPerSecond = stats.totalHpXP / Ntrials / this.monsterSimData[monsterID].avgKillTime * 1000;
-      this.monsterSimData[monsterID].killTimeS = this.monsterSimData[monsterID].avgKillTime / 1000;
-      this.monsterSimData[monsterID].prayerXpPerEnemy = stats.totalPrayerXP / Ntrials;
-      this.monsterSimData[monsterID].prayerXpPerSecond = stats.totalPrayerXP / Ntrials / this.monsterSimData[monsterID].avgKillTime * 1000;
+      simResult.xpPerSecond = stats.totalCombatXP / Ntrials / simResult.avgKillTime * 1000;
+      simResult.hpxpPerEnemy = stats.totalHpXP / Ntrials;
+      simResult.hpxpPerSecond = stats.totalHpXP / Ntrials / simResult.avgKillTime * 1000;
+      simResult.killTimeS = simResult.avgKillTime / 1000;
+      simResult.prayerXpPerEnemy = stats.totalPrayerXP / Ntrials;
+      simResult.prayerXpPerSecond = stats.totalPrayerXP / Ntrials / simResult.avgKillTime * 1000;
 
-      this.monsterSimData[monsterID].ppConsumedPerSecond = (stats.playerAttackCalls * this.prayerPointsPerAttack + stats.enemyAttackCalls * this.prayerPointsPerEnemy) / Ntrials / this.monsterSimData[monsterID].killTimeS + this.prayerPointsPerHeal / hitpointRegenInterval * 1000;
-      this.monsterSimData[monsterID].gpFromDamage = stats.gpGainedFromDamage / Ntrials;
-      this.monsterSimData[monsterID].attacksTaken = stats.enemyAttackCalls / Ntrials;
-      this.monsterSimData[monsterID].attacksTakenPerSecond = stats.enemyAttackCalls / Ntrials / this.monsterSimData[monsterID].killTimeS;
-      this.monsterSimData[monsterID].attacksMadePerSecond = stats.playerAttackCalls / Ntrials / this.monsterSimData[monsterID].killTimeS;
+      simResult.ppConsumedPerSecond = (stats.playerAttackCalls * playerStats.prayerPointsPerAttack + stats.enemyAttackCalls * playerStats.prayerPointsPerEnemy) / Ntrials / simResult.killTimeS + playerStats.prayerPointsPerHeal / hitpointRegenInterval * 1000;
+      simResult.gpFromDamage = stats.gpGainedFromDamage / Ntrials;
+      simResult.attacksTaken = stats.enemyAttackCalls / Ntrials;
+      simResult.attacksTakenPerSecond = stats.enemyAttackCalls / Ntrials / simResult.killTimeS;
+      simResult.attacksMadePerSecond = stats.playerAttackCalls / Ntrials / simResult.killTimeS;
     }
-    this.monsterSimData[monsterID].simDone = true;
+    simResult.simDone = true;
   }
   /**
   * Resets the simulation status for each monster
@@ -3781,6 +4129,7 @@ class McsSimulator {
   resetSimDone() {
     for (let i = 0; i < MONSTERS.length; i++) {
       this.monsterSimData[i].simDone = false;
+      this.monsterSimData[i].inQueue = false;
     }
   }
   /**
@@ -3993,7 +4342,7 @@ class McsSimulator {
   * @return {Number}
   */
   computeAverageCoins(monsterID) {
-    return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1) * this.simGpBonus / 2;
+    return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1) * this.currentSim.gpBonus / 2;
   }
   /**
   * Computes the chance that a monster will drop loot when it dies
@@ -4020,9 +4369,9 @@ class McsSimulator {
           if (items[itemID].canOpen) {
             gpWeight += this.computeChestOpenValue(itemID) * avgQty;
           } else {
-            if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
+            if (this.currentSim.herbConvertChance && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
               avgQty += 3;
-              gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) + items[items[itemID].grownItemID].sellsFor * this.simHerbBonus) * x[1] * avgQty;
+              gpWeight += (items[itemID].sellsFor * (1 - this.currentSim.herbConvertChance) + items[items[itemID].grownItemID].sellsFor * this.currentSim.herbConvertChance) * x[1] * avgQty;
             } else {
               gpWeight += items[itemID].sellsFor * x[1] * avgQty;
             }
@@ -4036,10 +4385,10 @@ class McsSimulator {
           if (items[itemID].canOpen) {
             gpWeight += this.computeChestOpenValue(itemID) * avgQty;
           } else {
-            if (this.simHerbBonus && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
+            if (this.currentSim.herbConvertChance && (items[itemID].tier === 'Herb' && items[itemID].type === 'Seeds')) {
               const herbItem = items[itemID].grownItemID;
               avgQty += 3;
-              gpWeight += (items[itemID].sellsFor * (1 - this.simHerbBonus) * ((this.shouldSell(itemID)) ? 1 : 0) + items[herbItem].sellsFor * this.simHerbBonus * ((this.shouldSell(herbItem)) ? 1 : 0)) * x[1] * avgQty;
+              gpWeight += (items[itemID].sellsFor * (1 - this.currentSim.herbConvertChance) * ((this.shouldSell(itemID)) ? 1 : 0) + items[herbItem].sellsFor * this.currentSim.herbConvertChance * ((this.shouldSell(herbItem)) ? 1 : 0)) * x[1] * avgQty;
             } else {
               gpWeight += ((this.shouldSell(itemID)) ? items[itemID].sellsFor : 0) * x[1] * avgQty;
             }
@@ -4047,7 +4396,7 @@ class McsSimulator {
           totWeight += x[1];
         });
       }
-      return gpWeight / totWeight * this.simLootBonus;
+      return gpWeight / totWeight * this.currentSim.lootBonus;
     } else {
       return 0;
     }
@@ -4332,12 +4681,12 @@ class McsSimulator {
     let monsterValue = 0;
     monsterValue += this.computeAverageCoins(monsterID);
     monsterValue += this.computeDropTableValue(monsterID);
-    if (this.simTopaz && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
+    if (this.currentSim.canTopazDrop && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
       monsterValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(monsterID) / 500000;
     }
     monsterValue *= this.computeLootChance(monsterID);
-    if (this.sellBones && !this.simAutoBuryBones) {
-      monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.simLootBonus * ((MONSTERS[monsterID].boneQty) ? MONSTERS[monsterID].boneQty : 1);
+    if (this.sellBones && !this.currentSim.doBonesAutoBury) {
+      monsterValue += items[MONSTERS[monsterID].bones].sellsFor * this.currentSim.lootBonus * ((MONSTERS[monsterID].boneQty) ? MONSTERS[monsterID].boneQty : 1);
     }
     return monsterValue;
   }
@@ -4359,7 +4708,7 @@ class McsSimulator {
       }
       totalWeight += MONSTERS[monsterID].lootTable[i][1];
     }
-    return herbWeight / totalWeight * this.computeLootChance(monsterID) * this.simLootBonus;
+    return herbWeight / totalWeight * this.computeLootChance(monsterID) * this.currentSim.lootBonus;
   }
   /**
   * Computes the average amount of GP earned when completing a dungeon, respecting the loot sell settings
@@ -4371,7 +4720,7 @@ class McsSimulator {
     if (this.sellLoot != 'None') {
       DUNGEONS[dungeonID].rewards.forEach((reward) => {
         if (items[reward].canOpen) {
-          dungeonValue += this.computeChestOpenValue(reward) * this.simLootBonus;
+          dungeonValue += this.computeChestOpenValue(reward) * this.currentSim.lootBonus;
         } else {
           if (this.sellLoot == 'All') {
             dungeonValue += items[reward].sellsFor;
@@ -4388,7 +4737,7 @@ class McsSimulator {
           const shardQty = (MONSTERS[monster.id].boneQty) ? MONSTERS[monster.id].boneQty : 1;
           shardCount += shardQty;
         });
-        shardCount *= this.simLootBonus;
+        shardCount *= this.currentSim.lootBonus;
         if (this.convertShards) {
           const chestID = items[shardID].trimmedItemID;
           dungeonValue += shardCount / items[chestID].itemsRequired[0][1] * this.computeChestOpenValue(chestID);
@@ -4397,7 +4746,7 @@ class McsSimulator {
         }
       }
     }
-    if (this.simTopaz && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
+    if (this.currentSim.canTopazDrop && this.shouldSell(CONSTANTS.item.Signet_Ring_Half_B)) {
       dungeonValue += items[CONSTANTS.item.Signet_Ring_Half_B].sellsFor * this.getMonsterCombatLevel(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]) / 500000;
     }
     dungeonValue += this.computeAverageCoins(DUNGEONS[dungeonID].monsters[DUNGEONS[dungeonID].monsters.length - 1]);
@@ -4417,9 +4766,9 @@ class McsSimulator {
             const shardID = MONSTERS[monster.id].bones;
             if (this.convertShards) {
               const chestID = items[shardID].trimmedItemID;
-              this.monsterSimData[monster.id].gpPerKill += boneQty * this.simLootBonus / items[chestID].itemsRequired[0][1] * this.computeChestOpenValue(chestID);
+              this.monsterSimData[monster.id].gpPerKill += boneQty * this.currentSim.lootBonus / items[chestID].itemsRequired[0][1] * this.computeChestOpenValue(chestID);
             } else if (this.shouldSell(shardID)) {
-              this.monsterSimData[monster.id].gpPerKill += items[shardID].sellsFor * this.simLootBonus * boneQty;
+              this.monsterSimData[monster.id].gpPerKill += items[shardID].sellsFor * this.currentSim.lootBonus * boneQty;
             }
           }
           this.monsterSimData[monster.id].gpPerSecond = this.monsterSimData[monster.id].gpPerKill / this.monsterSimData[monster.id].killTimeS;
@@ -4476,7 +4825,7 @@ class McsSimulator {
       combatAreas.forEach((area) => {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
-            this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.simHerbBonus) / this.monsterSimData[monster].killTimeS;
+            this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.currentSim.herbConvertChance) / this.monsterSimData[monster].killTimeS;
           } else {
             this.monsterSimData[monster].herbloreXPPerSecond = 0;
           }
@@ -4485,7 +4834,7 @@ class McsSimulator {
       slayerAreas.forEach((area) => {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
-            this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.simHerbBonus) / this.monsterSimData[monster].killTimeS;
+            this.monsterSimData[monster].herbloreXPPerSecond = this.computeMonsterHerbXP(monster, this.currentSim.herbConvertChance) / this.monsterSimData[monster].killTimeS;
           } else {
             this.monsterSimData[monster].herbloreXPPerSecond = 0;
           }
@@ -4507,9 +4856,9 @@ class McsSimulator {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
             let monsterXP = 0;
-            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.simSlayerXPBonus / 100));
+            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
             if (this.isSlayerTask) {
-              monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.simSlayerXPBonus / 100));
+              monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
             this.monsterSimData[monster].slayerXpPerSecond = monsterXP / this.monsterSimData[monster].killTimeS;
           } else {
@@ -4521,9 +4870,9 @@ class McsSimulator {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
             let monsterXP = 0;
-            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.simSlayerXPBonus / 100));
+            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
             if (this.isSlayerTask) {
-              monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.simSlayerXPBonus / 100));
+              monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
             this.monsterSimData[monster].slayerXpPerSecond = monsterXP / this.monsterSimData[monster].killTimeS;
           } else {
@@ -4545,7 +4894,7 @@ class McsSimulator {
       // Set data for monsters in combat zones
       combatAreas.forEach((area) => {
         area.monsters.forEach((monster) => {
-          if (this.simTopaz && this.monsterSimData[monster].simSuccess) {
+          if (this.currentSim.canTopazDrop && this.monsterSimData[monster].simSuccess) {
             this.monsterSimData[monster].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.monsterSimData[monster].killTimeS))) * 100;
           } else {
             this.monsterSimData[monster].signetChance = 0;
@@ -4554,7 +4903,7 @@ class McsSimulator {
       });
       slayerAreas.forEach((area) => {
         area.monsters.forEach((monster) => {
-          if (this.simTopaz && this.monsterSimData[monster].simSuccess) {
+          if (this.currentSim.canTopazDrop && this.monsterSimData[monster].simSuccess) {
             this.monsterSimData[monster].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.monsterSimData[monster].killTimeS))) * 100;
           } else {
             this.monsterSimData[monster].signetChance = 0;
@@ -4562,7 +4911,7 @@ class McsSimulator {
         });
       });
       for (let i = 0; i < DUNGEONS.length; i++) {
-        if (this.simTopaz && this.dungeonSimData[i].simSuccess) {
+        if (this.currentSim.canTopazDrop && this.dungeonSimData[i].simSuccess) {
           const monster = DUNGEONS[i].monsters[DUNGEONS[i].monsters.length - 1];
           this.dungeonSimData[i].signetChance = (1 - Math.pow(1 - this.getSignetDropRate(monster), Math.floor(this.signetFarmTime * 3600 / this.dungeonSimData[i].killTimeS))) * 100;
         } else {
@@ -5020,31 +5369,47 @@ function mcsFormatNum(numberToFormat, numDigits) {
   }
   return outStr;
 }
+// Define the message listeners from the content script
+window.addEventListener('message', (event) => {
+  // We only accept messages from ourselves
+  if (event.source != window) {
+    return;
+  }
+  if (event.data.type && (event.data.type == 'MCS_FROM_CONTENT')) {
+    // console.log('Message recieved from content script');
+    switch (event.data.action) {
+      case 'RECIEVE_URLS':
+        // console.log('Loading sim with provided URLS');
+        let tryLoad = true;
+        let wrongVersion = false;
+        if (gameVersion != 'Alpha v0.15.4') {
+          wrongVersion = true;
+          tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
+        }
+        if (tryLoad) {
+          try {
+            melvorCombatSim = new McsApp(event.data.urls);
+            if (wrongVersion) {
+              console.log('Melvor Combat Sim v0.9.0 Loaded, but simulation results may be inaccurate.');
+            } else {
+              console.log('Melvor Combat Sim v0.9.0 Loaded');
+            }
+          } catch (error) {
+            console.warn('Melvor Combat Sim was not properly loaded due to the following error:');
+            console.error(error);
+          }
+        } else {
+          console.warn('Melvor Combat Sim was not Loaded due to game version incompatability.');
+        }
+        break;
+    }
+  }
+}, false);
 // Wait for page to finish loading, then create an instance of the combat sim
 let melvorCombatSim;
 const melvorCombatSimLoader = setInterval(() => {
   if (isLoaded) {
     clearInterval(melvorCombatSimLoader);
-    let tryLoad = true;
-    let wrongVersion = false;
-    if (gameVersion != 'Alpha v0.15.3') {
-      wrongVersion = true;
-      tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
-    }
-    if (tryLoad) {
-      try {
-        melvorCombatSim = new McsApp();
-        if (wrongVersion) {
-          console.log('Melvor Combat Sim v0.8.4 Loaded, but simulation results may be inaccurate.');
-        } else {
-          console.log('Melvor Combat Sim v0.8.4 Loaded');
-        }
-      } catch (error) {
-        console.warn('Melvor Combat Sim was not properly loaded due to the following error:');
-        console.error(error);
-      }
-    } else {
-      console.warn('Melvor Combat Sim was not Loaded due to game version incompatability.');
-    }
+    window.postMessage({type: 'MCS_FROM_PAGE', action: 'REQUEST_URLS'});
   }
 }, 200);

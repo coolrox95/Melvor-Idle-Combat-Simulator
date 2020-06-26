@@ -1,3 +1,11 @@
+v0.9.0:
+Updated Combat Sim for game version Alpha v0.15.4
+The Combat simulator has now been multithreaded, and should now no longer freeze the game or tab when simulating. 
+In addition there may be a significant decrease in simulation time for those with mult-core CPUs.
+Change: Adjusted XP Calculations to account for xp rounding change
+Change: Adjusted Magic Evasion Calculation to reflect game change
+Fix: Changed Gold Emerald Ring Bonus to 7% from 10%
+
 v0.8.4:
 Fix: Fixed Water Surge not recieving max hit bonus from Cloudburst Staff
 
