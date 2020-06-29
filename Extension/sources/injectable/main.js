@@ -23,7 +23,9 @@
 class McsApp {
   /**
    * Constructs an instance of mcsApp
-   * @param {*} urls URLs from content script
+   * @param {Object} urls URLs from content script
+   * @param {string} urls.simulationWorker URL for simulator script
+   * @param {string} urls.crossedOut URL for crossed out svg
    */
   constructor(urls) {
     // Plot Type Options
@@ -98,7 +100,7 @@ class McsApp {
     // Generate gear subsets
     this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
     this.gearSubsets = [];
-    /** @type {Array<Number>} */
+    /** @type {Array<number>} */
     this.gearSelected = [];
     for (let j = 0; j < this.slotKeys.length; j++) {
       this.gearSubsets.push([{name: 'None', itemID: 0}]);
@@ -191,7 +193,7 @@ class McsApp {
     this.content.appendChild(this.cardFiller);
     // Gear/Level/Style/Spell Selection Card:
     {
-      this.gearSelecter = new McsCard(this.content, '345px', '100%', '120px', '220px');
+      this.gearSelecter = new McsCard(this.content, '345px', '100%', '220px');
       this.gearSelecter.addSectionTitle('Equipment');
       for (let i = 0; i < this.gearSubsets.length; i++) {
         const optionNames = [];
@@ -235,7 +237,7 @@ class McsApp {
     }
     // Potion & Prayer Selection Card:
     {
-      this.prayerSelecter = new McsCard(this.content, '200px', '100%', '100px', '100px');
+      this.prayerSelecter = new McsCard(this.content, '200px', '100%', '100px');
       this.prayerSelecter.container.style.width = '200px';
       this.prayerSelecter.addSectionTitle('Prayers');
       const prayerSources = [];
@@ -266,6 +268,7 @@ class McsApp {
         prayerBonusHitpointHeal: 'Heal +20% HP when HP falls below 10%',
         prayerBonusDamageReduction: 'Damage Reduction',
       };
+
       const prayerBonusNumeric = {
         prayerBonusAttack: true,
         prayerBonusStrength: true,
@@ -341,7 +344,7 @@ class McsApp {
       const potionSources = [];
       const potionNames = [];
       const potionCallbacks = [];
-      /** @type {Array<Number>} */
+      /** @type {Array<number>} */
       this.combatPotionIDs = [];
       for (let i = 0; i < herbloreItemData.length; i++) {
         if (herbloreItemData[i].category == 0) {
@@ -389,7 +392,7 @@ class McsApp {
     }
     // Gear Stats/Player Stats Display Card
     {
-      this.statDisplay = new McsCard(this.content, '220px', '100%', '150px', '50px');
+      this.statDisplay = new McsCard(this.content, '220px', '100%', '50px');
       this.statDisplay.addSectionTitle('Equipment Stats');
       this.equipStatKeys = ['attackSpeed',
         'strengthBonus',
@@ -475,7 +478,7 @@ class McsApp {
     }
     // Simulation/Plot Options Card
     {
-      this.simPlotOpts2 = new McsCard(this.content, '275px', '100%', '100px', '150px');
+      this.simPlotOpts2 = new McsCard(this.content, '275px', '100%', '150px');
       this.simPlotOpts2.addSectionTitle('Simulation Options');
       this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, (event) => this.maxhitsInputOnChange(event));
       this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, (event) => this.numtrialsInputOnChange(event));
@@ -508,7 +511,7 @@ class McsApp {
     }
     // GP/s options card
     {
-      this.gpOptionsCard = new McsCard(this.content, '320px', '100%', '100px', '200px');
+      this.gpOptionsCard = new McsCard(this.content, '320px', '100%', '200px');
       this.gpOptionsCard.addSectionTitle('Item Subset Selection');
       this.gpOptionsCard.addMultiButton(['Set Default', 'Set Discovered'], 25, 150, [(e) => this.setDefaultOnClick(e), (e) => this.setDiscoveredOnClick(e)]);
       this.gpOptionsCard.addMultiButton(['Cancel', 'Save'], 25, 150, [(e) => this.cancelSubsetOnClick(e), (e) => this.saveSubsetOnClick(e)]);
@@ -530,7 +533,7 @@ class McsApp {
       lab2.style.marginRight = '17px';
       labelCont.appendChild(lab2);
       this.gpOptionsCard.container.appendChild(labelCont);
-      this.gpSearchResults = new McsCard(this.gpOptionsCard.container, '100%', '', '', '100px');
+      this.gpSearchResults = new McsCard(this.gpOptionsCard.container, '100%', '', '100px');
       for (let i = 0; i < this.simulator.lootList.length; i++) {
         this.gpSearchResults.addRadio(this.simulator.lootList[i].name, 20, `${this.simulator.lootList[i].name}-radio`, ['Yes', 'No'], [(e) => this.lootListRadioOnChange(e, i, true), (e) => this.lootListRadioOnChange(e, i, false)], 1);
       }
@@ -544,7 +547,7 @@ class McsApp {
     // Export Options Card
     {
       this.isExportDisplayed = false;
-      this.exportOptionsCard = new McsCard(this.content, '320px', '100%', '220px', '100px');
+      this.exportOptionsCard = new McsCard(this.content, '320px', '100%', '100px');
       this.exportOptionsCard.addSectionTitle('Export Options');
       this.exportOptionsCard.addRadio('Export Dungeon Monsters?', 25, `DungeonMonsterExportRadio`, ['Yes', 'No'], [(e) => this.exportDungeonMonsterRadioOnChange(e, true), (e) => this.exportDungeonMonsterRadioOnChange(e, false)], 0);
       this.exportOptionsCard.addRadio('Export Non-Simulated?', 25, `NonSimmedExportRadio`, ['Yes', 'No'], [(e) => this.exportNonSimmedRadioOnChange(e, true), (e) => this.exportNonSimmedRadioOnChange(e, false)], 0);
@@ -563,7 +566,7 @@ class McsApp {
     this.plotter = new McsPlotter(this, urls.crossedOut);
     // Individual info card, nested into sim/plot card
     {
-      this.zoneInfoCard = new McsCard(this.simPlotOpts2.container, '100%', '', '100px', '100px');
+      this.zoneInfoCard = new McsCard(this.simPlotOpts2.container, '100%', '', '100px');
       this.zoneInfoCard.container.style.overflow = 'hidden auto';
       this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
       this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
@@ -584,9 +587,9 @@ class McsApp {
       for (let i = 0; i < this.plotter.bars.length; i++) {
         this.plotter.bars[i].onclick = ((e) => this.barOnClick(e, i));
       }
-      /** @type {Array<Number>} */
+      /** @type {Array<number>} */
       this.barMonsterIDs = [];
-      /** @type {Array<Boolean>} */
+      /** @type {Array<boolean>} */
       this.barIsDungeon = [];
 
       combatAreas.forEach((area) => {
@@ -601,7 +604,7 @@ class McsApp {
           this.barIsDungeon.push(false);
         });
       });
-      /** @type {Array<Number>} */
+      /** @type {Array<number>} */
       this.dungeonBarIDs = [];
       for (let i = 0; i < DUNGEONS.length; i++) {
         this.dungeonBarIDs.push(this.barMonsterIDs.length);
@@ -669,7 +672,7 @@ class McsApp {
   /**
    * Callback for when gear dropdown is changed
    * @param {Event} event The change event
-   * @param {Number} gearID The index of gearSelected to change
+   * @param {number} gearID The index of gearSelected to change
    */
   gearDropdownOnChange(event, gearID) {
     const itemID = parseInt(event.currentTarget.selectedOptions[0].value);
@@ -759,7 +762,7 @@ class McsApp {
   /**
    * Callback for when a level input is changed
    * @param {Event} event The change event for an input
-   * @param {String} skillName The key of playerLevels to Change
+   * @param {string} skillName The key of playerLevels to Change
    */
   levelInputOnChange(event, skillName) {
     const newLevel = parseInt(event.currentTarget.value);
@@ -779,7 +782,7 @@ class McsApp {
   /**
    * Callback for when a combat style is changed
    * @param {Event} event The change event for a dropdown
-   * @param {String} combatType The key of styles to change
+   * @param {string} combatType The key of styles to change
    */
   styleDropdownOnChange(event, combatType) {
     const styleID = parseInt(event.currentTarget.selectedOptions[0].value);
@@ -924,7 +927,7 @@ class McsApp {
   /**
    * Callback for when a prayer image button is clicked
    * @param {MouseEvent} event The onclick event for a button
-   * @param {Number} prayerID Index of prayerSelected
+   * @param {number} prayerID Index of prayerSelected
    */
   prayerButtonOnClick(event, prayerID) {
     let prayerChanged = false;
@@ -964,7 +967,7 @@ class McsApp {
   /**
    * Callback for when a potion button is clicked
    * @param {MouseEvent} event The onclick event for a button
-   * @param {Number} potionID The ID of the potion
+   * @param {number} potionID The ID of the potion
    */
   potionImageButtonOnClick(event, potionID) {
     if (this.simulator.potionSelected) {
@@ -1010,7 +1013,7 @@ class McsApp {
   /**
    * Callback for when the use threads toggle is changed
    * @param {Event} event The change event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   useThreadsRadioOnChange(event, newState) {
     this.simulator.useThreads = newState;
@@ -1043,7 +1046,7 @@ class McsApp {
   /**
    * Callback for when the sell bones option is changed
    * @param {Event} event The change event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   sellBonesRadioOnChange(event, newState) {
     this.simulator.sellBones = newState;
@@ -1052,7 +1055,7 @@ class McsApp {
   /**
    * Callback for when the convert shards option is changed
    * @param {Event} event The change event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   convertShardsRadioOnChange(event, newState) {
     this.simulator.convertShards = newState;
@@ -1061,7 +1064,7 @@ class McsApp {
   /**
    * Callback for when the slayer task option is changed
    * @param {Event} event The change event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   slayerTaskRadioOnChange(event, newState) {
     this.simulator.isSlayerTask = newState;
@@ -1070,8 +1073,8 @@ class McsApp {
   /**
    * Callback for when an export data type option is changed
    * @param {Event} event The event for a radio
-   * @param {Boolean} newState The new value for the option
-   * @param {Number} exportIndex The index of the data type
+   * @param {boolean} newState The new value for the option
+   * @param {number} exportIndex The index of the data type
    */
   exportDataTypeRadioOnChange(event, newState, exportIndex) {
     this.simulator.exportDataType[exportIndex] = newState;
@@ -1079,7 +1082,7 @@ class McsApp {
   /**
    * Callback for when the export name option is changed
    * @param {Event} event The event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   exportNameRadioOnChange(event, newState) {
     this.simulator.exportName = newState;
@@ -1087,7 +1090,7 @@ class McsApp {
   /**
    * Callback for when the export dungeon monsters option is changed
    * @param {Event} event The event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   exportDungeonMonsterRadioOnChange(event, newState) {
     this.simulator.exportDungeonMonsters = newState;
@@ -1095,7 +1098,7 @@ class McsApp {
   /**
    * Callback for when the export non simmed option is changed
    * @param {Event} event The event for a radio
-   * @param {Boolean} newState The new value for the option
+   * @param {boolean} newState The new value for the option
    */
   exportNonSimmedRadioOnChange(event, newState) {
     this.simulator.exportNonSimmed = newState;
@@ -1160,8 +1163,8 @@ class McsApp {
   /**
    * The callback for when an item is toggled for sale
    * @param {Event} event The onchange event for a radio
-   * @param {Number} llID Loot list index
-   * @param {Boolean} newState The new value of the option
+   * @param {number} llID Loot list index
+   * @param {boolean} newState The new value of the option
    */
   lootListRadioOnChange(event, llID, newState) {
     this.simulator.lootList[llID].sell = newState;
@@ -1243,7 +1246,7 @@ class McsApp {
   /**
    * The callback for when a plotter bar is clicked
    * @param {MouseEvent} event The onclick event
-   * @param {Number} barID The id of the bar
+   * @param {number} barID The id of the bar
    */
   barOnClick(event, barID) {
     // let barID = parseInt(event.currentTarget.getAttribute('data-barid'),10);
@@ -1265,7 +1268,7 @@ class McsApp {
   }
   /**
    * Turns on the border for a bar
-   * @param {Number} barID The id of the bar
+   * @param {number} barID The id of the bar
    */
   setBarHighlight(barID) {
     if (this.plotter.bars[barID].className == 'mcsBar') {
@@ -1276,14 +1279,14 @@ class McsApp {
   }
   /**
    * Turns off the border for a bar
-   * @param {Number} barID The id of the bar
+   * @param {number} barID The id of the bar
    */
   removeBarhighlight(barID) {
     this.plotter.bars[barID].style.border = 'none';
   }
   /**
    * Callback for when a monster/dungeon image below a bar is clicked
-   * @param {Number} imageID The id of the image that was clicked
+   * @param {number} imageID The id of the image that was clicked
    */
   barImageOnClick(imageID) {
     if (!this.isViewingDungeon) {
@@ -1369,7 +1372,7 @@ class McsApp {
   // Functions that manipulate the UI
   /**
    * Toggles the display of a style dropdown, and the spell selection dropdown off
-   * @param {String} combatType The combat type to disable
+   * @param {string} combatType The combat type to disable
    */
   disableStyleDropdown(combatType) {
     document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'none';
@@ -1379,7 +1382,7 @@ class McsApp {
   }
   /**
    * Toggles the display of a style dropdown, and the spell selection dropdown on
-   * @param {String} combatType The combat type to enable
+   * @param {string} combatType The combat type to enable
    */
   enableStyleDropdown(combatType) {
     document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'inline';
@@ -1389,7 +1392,7 @@ class McsApp {
   }
   /**
    * Updates the list of options in the spell dropdown, based on if the player can use it
-   * @param {Number} magicLevel The magic level the player has
+   * @param {number} magicLevel The magic level the player has
    */
   updateSpellOptions(magicLevel) {
     const spellDropdown = document.getElementById('MCS Spell Dropdown');
@@ -1403,7 +1406,7 @@ class McsApp {
   }
   /**
    * Updates the prayers that display in the prayer selection card, based on if the player can use it
-   * @param {Number} prayerLevel The prayer level the player has
+   * @param {number} prayerLevel The prayer level the player has
    */
   updatePrayerOptions(prayerLevel) {
     for (let i = 0; i < PRAYER.length; i++) {
@@ -1484,7 +1487,7 @@ class McsApp {
   }
   /**
    * Updates the images and tooltips for potions when the potion tier is changed
-   * @param {Number} potionTier The new potion tier
+   * @param {number} potionTier The new potion tier
    */
   updatePotionTier(potionTier) {
     for (let i = 0; i < this.combatPotionIDs.length; i++) {
@@ -1502,7 +1505,7 @@ class McsApp {
   }
   /**
   * Updates the display of the sale list radio options depending on what the user has searched
-  * @param {String} searchString The search query
+  * @param {string} searchString The search query
   */
   updateGPSubset(searchString) {
     searchString = searchString.toLowerCase();
@@ -1533,7 +1536,7 @@ class McsApp {
   // Callback to add to games darkmode settings
   /**
    * Toggles darkmode on and off
-   * @param {Boolean} mode If darkmode should be enabled
+   * @param {boolean} mode If darkmode should be enabled
    */
   darkModeSwitch(mode) {
     if (mode) {
@@ -1558,7 +1561,7 @@ class McsApp {
   }
   /**
    * Changes the background colour of every dropdown option
-   * @param {String} colour The colour to change the option to
+   * @param {string} colour The colour to change the option to
    */
   setDropdownOptionsColor(colour) {
     document.getElementsByClassName('mcsOption').forEach((option) => {
@@ -1568,7 +1571,7 @@ class McsApp {
   // Functions for dungeon display
   /**
    * Changes the simulator to display an individual dungeon
-   * @param {Number} dungeonID the index of the dungeon in DUNGEONS
+   * @param {number} dungeonID the index of the dungeon in DUNGEONS
    */
   setPlotToDungeon(dungeonID) {
     this.isViewingDungeon = true;
@@ -1635,7 +1638,7 @@ class McsApp {
   }
   /**
    * WIP function to change the currently selected gear to what is saved in a gear set
-   * @param {Number} setID The index of the gear set
+   * @param {number} setID The index of the gear set
    */
   setGearToSet(setID) {
     // Set Gearselected to data
@@ -1684,40 +1687,40 @@ class McsApp {
   // Data Sanatizing Functions
   /**
    * Removes HTML from the dungeon name
-   * @param {Number} dungeonID The index of Dungeons
-   * @return {String} The name of a dungeon
+   * @param {number} dungeonID The index of Dungeons
+   * @return {string} The name of a dungeon
    */
   getDungeonName(dungeonID) {
     return this.replaceApostrophe(DUNGEONS[dungeonID].name);
   }
   /**
    * Removes HTML from the potion name
-   * @param {Number} potionID The index of herbloreItemData
-   * @return {String} The name of a potion
+   * @param {number} potionID The index of herbloreItemData
+   * @return {string} The name of a potion
    */
   getPotionName(potionID) {
     return this.replaceApostrophe(herbloreItemData[potionID].name);
   }
   /**
    * Removes HTML from a prayer name
-   * @param {Number} prayerID The index of PRAYER
-   * @return {String} the name of a prayer
+   * @param {number} prayerID The index of PRAYER
+   * @return {string} the name of a prayer
    */
   getPrayerName(prayerID) {
     return this.replaceApostrophe(PRAYER[prayerID].name);
   }
   /**
    * Removes HTML from a spell name
-   * @param {Number} spellID The index of SPELLS
-   * @return {String} The name of a spell
+   * @param {number} spellID The index of SPELLS
+   * @return {string} The name of a spell
    */
   getSpellName(spellID) {
     return this.replaceApostrophe(SPELLS[spellID].name);
   }
   /**
    * Removes HTML from an item name
-   * @param {Number} itemID The index of items
-   * @return {String} The name of an item
+   * @param {number} itemID The index of items
+   * @return {string} The name of an item
    */
   getItemName(itemID) {
     if (itemID == 0) {
@@ -1728,16 +1731,16 @@ class McsApp {
   }
   /**
    * Removes HTML from a monster name
-   * @param {Number} monsterID The index of MONSTERS
-   * @return {String} the name of a monster
+   * @param {number} monsterID The index of MONSTERS
+   * @return {string} the name of a monster
    */
   getMonsterName(monsterID) {
     return this.replaceApostrophe(MONSTERS[monsterID].name);
   }
   /**
    * Replaces &apos; with an actual ' character
-   * @param {String} stringToFix The string to replace
-   * @return {String} the fixed string
+   * @param {string} stringToFix The string to replace
+   * @return {string} the fixed string
    */
   replaceApostrophe(stringToFix) {
     return stringToFix.replace(/&apos;/g, '\'');
@@ -1758,7 +1761,7 @@ class McsPlotter {
   /**
    * Consctructs an instance of the plotting class
    * @param {McsApp} parent Reference to container class
-   * @param {String} crossedOutURL URL from content script
+   * @param {string} crossedOutURL URL from content script
    */
   constructor(parent, crossedOutURL) {
     this.parent = parent;
@@ -1972,7 +1975,7 @@ class McsPlotter {
   /**
    * Toggles the display of a bar tooltip on
    * @param {MouseEvent} event The mouse event
-   * @param {Number} id The ID of the bar
+   * @param {number} id The ID of the bar
    */
   barOnMouseOver(event, id) {
     this.barTooltips[id].style.display = 'block';
@@ -1980,14 +1983,14 @@ class McsPlotter {
   /**
    * Toggles the display of a bar tooltip off
    * @param {MouseEvent} event The mouse event
-   * @param {Number} id The ID of the bar
+   * @param {number} id The ID of the bar
    */
   barOnMouseOut(event, id) {
     this.barTooltips[id].style.display = 'none';
   }
   /**
    * Changes the displayed data
-   * @param {Array<Number>} barData The new data to diplay
+   * @param {Array<number>} barData The new data to diplay
    */
   updateBarData(barData) {
     let barMax = barData[0];
@@ -2051,7 +2054,7 @@ class McsPlotter {
   }
   /**
    * Changes the colour of bars to red if the user cannot enter that area
-   * @param {Array<Boolean>} enterSet The array of areas that can be enetered
+   * @param {Array<boolean>} enterSet The array of areas that can be enetered
    */
   setBarColours(enterSet) {
     for (let i = 0; i < enterSet.length; i++) {
@@ -2081,7 +2084,7 @@ class McsPlotter {
   }
   /**
    * Changes the plot display to individual dungeon monsters
-   * @param {Number} dungeonID The index of DUNGEONS
+   * @param {number} dungeonID The index of DUNGEONS
    */
   displayDungeon(dungeonID) {
     // Loop through each bar and enable/disable as required
@@ -2108,14 +2111,14 @@ class McsPlotter {
   }
   /**
    * Turns the crossout overlay on for a monster/dungeon image
-   * @param {Number} imageID the index of the cross
+   * @param {number} imageID the index of the cross
    */
   crossOutBarImage(imageID) {
     this.xAxisCrosses[imageID].style.display = '';
   }
   /**
    * Turns the crossout overlay off for a monster/dungeon image
-   * @param {Number} imageID The index of the cross
+   * @param {number} imageID The index of the cross
    */
   unCrossOutBarImage(imageID) {
     this.xAxisCrosses[imageID].style.display = 'none';
@@ -2170,35 +2173,60 @@ class McsPlotter {
 /**
  * Simulation result for a single monster
  * @typedef {Object} monsterSimResult
- * @property {Boolean} inQueue
- * @property {Boolean} simDone
- * @property {Boolean} simSuccess
- * @property {Number} xpPerEnemy
- * @property {Number} xpPerSecond
- * @property {Number} xpPerHit
- * @property {Number} hpxpPerEnemy
- * @property {Number} hpPerEnemy
- * @property {Number} hpPerSecond
- * @property {Number} dmgPerSecond
- * @property {Number} avgKillTime
- * @property {Number} attacksMade
- * @property {Number} avgHitDmg
- * @property {Number} killTimeS
- * @property {Number} gpPerKill
- * @property {Number} gpPerSecond
- * @property {Number} prayerXpPerEnemy
- * @property {Number} prayerXpPerSecond
- * @property {Number} slayerXpPerSecond
- * @property {Number} ppConsumedPerSecond
- * @property {Number} herbloreXPPerSecond
- * @property {Number} signetChance
- * @property {Number} gpFromDamage
- * @property {Number} attacksTaken
- * @property {Number} attacksTakenPerSecond
- * @property {Number} attacksMadePerSecond
- * @property {Number} simulationTime
+ * @property {boolean} inQueue
+ * @property {boolean} simDone
+ * @property {boolean} simSuccess
+ * @property {number} xpPerEnemy
+ * @property {number} xpPerSecond
+ * @property {number} xpPerHit
+ * @property {number} hpxpPerEnemy
+ * @property {number} hpPerEnemy
+ * @property {number} hpPerSecond
+ * @property {number} dmgPerSecond
+ * @property {number} avgKillTime
+ * @property {number} attacksMade
+ * @property {number} avgHitDmg
+ * @property {number} killTimeS
+ * @property {number} gpPerKill
+ * @property {number} gpPerSecond
+ * @property {number} prayerXpPerEnemy
+ * @property {number} prayerXpPerSecond
+ * @property {number} slayerXpPerSecond
+ * @property {number} ppConsumedPerSecond
+ * @property {number} herbloreXPPerSecond
+ * @property {number} signetChance
+ * @property {number} gpFromDamage
+ * @property {number} attacksTaken
+ * @property {number} attacksTakenPerSecond
+ * @property {number} attacksMadePerSecond
+ * @property {number} simulationTime
  */
-
+/**
+ * Stats of the player
+ * @typedef {Object} playerStats
+ * @property {number} attackSpeed Attack speed in ms
+ * @property {number} attackType Attack Type Melee:0, Ranged:1, Magic:2
+ * @property {number} maxAttackRoll Accuracy Rating
+ * @property {number} maxHit Maximum Hit of Normal Attack
+ * @property {number} maxDefRoll Melee Evasion Rating
+ * @property {number} maxMagDefRoll Magic Evasion Rating
+ * @property {number} maxRngDefRoll Ranged Evasion Rating
+ * @property {number} xpBonus Fractional bonus to combat xp gain
+ * @property {number} avgHPRegen Average HP gained per regen interval
+ * @property {number} damageReduction Damage Reduction in %
+ * @property {boolean} diamondLuck If player has diamond luck potion active
+ * @property {boolean} hasSpecialAttack If player can special attack
+ * @property {Object} specialData Data of player special attack
+ * @property {number} startingGP Initial GP of player
+ * @property {Object} levels Levels of player
+ * @property {boolean[]} prayerSelected Prayers of PRAYER that player has active
+ * @property {number} activeItems Special items the player has active
+ * @property {number} prayerPointsPerAttack Prayer points consumed per player attack
+ * @property {number} prayerPointsPerEnemy Prayer points consumed per enemy attack
+ * @property {number} prayerPointsPerHeal Prayer points consumed per regen interval
+ * @property {number} prayerXPperDamage Prayer xp gained per point of damage dealt
+ * @property {boolean} isProtected Player has active protection prayer
+ */
 /**
  * Simulator class, used for all simulation work, and storing simulation results and settings
  * @property {Array} monsterSimData
@@ -2207,7 +2235,7 @@ class McsSimulator {
   /**
    *
    * @param {McsApp} parent Reference to container class
-   * @param {String} workerURI URI to simulator web worker
+   * @param {string} workerURI URI to simulator web worker
    */
   constructor(parent, workerURI) {
     this.parent = parent;
@@ -2262,7 +2290,7 @@ class McsSimulator {
       attackType: 0,
     };
     // Prayer Stats
-    /** @type {Array<Boolean>} */
+    /** @type {Array<boolean>} */
     this.prayerSelected = [];
     for (let i = 0; i < PRAYER.length; i++) {
       this.prayerSelected.push(false);
@@ -2351,9 +2379,9 @@ class McsSimulator {
     this.useThreads = true;
     /** Number of hours to farm for signet ring */
     this.signetFarmTime = 1;
-    /** @type {Array<Boolean>} */
+    /** @type {Array<boolean>} */
     this.monsterSimFilter = [];
-    /** @type {Array<Boolean>} */
+    /** @type {Array<boolean>} */
     this.dungeonSimFilter = [];
     // Simulation data;
     /** @type {Array<monsterSimResult>} */
@@ -2422,17 +2450,17 @@ class McsSimulator {
     }
     // Pre Compute Monster Base Stats
     /** @typedef {Object} enemyStats
-     * @property {Number} hitpoints Max Enemy HP
-     * @property {Number} attackSpeed Enemy attack speed (ms)
-     * @property {Number} attackType Enemy attack type
-     * @property {Number} maxHit Normal attack max hit
-     * @property {Number} maxDefRoll Melee Evasion Rating
-     * @property {Number} maxMagDefRoll Magic Evasion Rating
-     * @property {Number} maxRngDefRoll Ranged Evasion Rating
-     * @property {Boolean} hasSpecialAttack If enemy can do special attacks
-     * @property {Array<Number>} specialAttackChances Chance of each special attack
-     * @property {Array<Number>} specialIDs IDs of special attacks
-     * @property {Number} specialLength Number of special attacks
+     * @property {number} hitpoints Max Enemy HP
+     * @property {number} attackSpeed Enemy attack speed (ms)
+     * @property {number} attackType Enemy attack type
+     * @property {number} maxHit Normal attack max hit
+     * @property {number} maxDefRoll Melee Evasion Rating
+     * @property {number} maxMagDefRoll Magic Evasion Rating
+     * @property {number} maxRngDefRoll Ranged Evasion Rating
+     * @property {boolean} hasSpecialAttack If enemy can do special attacks
+     * @property {Array<number>} specialAttackChances Chance of each special attack
+     * @property {Array<number>} specialIDs IDs of special attacks
+     * @property {number} specialLength Number of special attacks
      */
     /** @type {Array<enemyStats>} */
     this.enemyStats = [];
@@ -2469,9 +2497,9 @@ class McsSimulator {
     this.selectedPlotIsTime = true;
     // Condensed monster data for dungeon display
     /** @typedef {Object} dungeonMonster
-     * @property {Number} id
-     * @property {Number} quantity
-     * @property {Boolean} isBoss
+     * @property {number} id
+     * @property {number} quantity
+     * @property {boolean} isBoss
      */
     /** @type {Array<Array<dungeonMonster>>} */
     this.condensedDungeonMonsters = [];
@@ -2508,19 +2536,19 @@ class McsSimulator {
     this.currentJob = 0;
     this.simInProgress = false;
     /** @typedef {Object} simulationJob
-     * @property {Number} monsterID
+     * @property {number} monsterID
      */
     /** @type {Array<simulationJob>} */
     this.simulationQueue = [];
     /** @typedef {Object} simulationWorker
      * @property {Worker} worker
-     * @property {Boolean} inUse
+     * @property {boolean} inUse
     */
     /** @type {Array<simulationWorker>} */
     this.simulationWorkers = [];
     this.maxThreads = window.navigator.hardwareConcurrency;
     for (let i = 0; i < this.maxThreads; i++) {
-      this.createWorker(this.workerURI)
+      this.createWorker()
           .then((worker)=>{
             this.intializeWorker(worker, i);
             const newWorker = {
@@ -2536,10 +2564,9 @@ class McsSimulator {
 
   /**
    * Attempts to create a web worker, with a chrome hack
-   * @param {String} scriptURI
    * @return {Promise<Worker>}
    */
-  createWorker(scriptURI) {
+  createWorker() {
     return new Promise((resolve, reject) => {
       let newWorker;
       try {
@@ -2549,7 +2576,7 @@ class McsSimulator {
         // Chrome Hack
         if (error.name === 'SecurityError' && error.message.includes('Failed to construct \'Worker\': Script')) {
           const workerContent = new XMLHttpRequest();
-          workerContent.open('GET', scriptURI);
+          workerContent.open('GET', this.workerURI);
           workerContent.send();
           workerContent.addEventListener('load', (event)=>{
             const blob = new Blob([event.currentTarget.responseText], {type: 'application/javascript'});
@@ -2564,7 +2591,7 @@ class McsSimulator {
   /**
    * Intializes a simulation worker
    * @param {Worker} worker
-   * @param {Number} i
+   * @param {number} i
    */
   intializeWorker(worker, i) {
     worker.onmessage = (event) => this.processWorkerMessage(event, i);
@@ -2575,7 +2602,6 @@ class McsSimulator {
     worker.postMessage({action: 'RECIEVE_GAMEDATA',
       protectFromValue: protectFromValue,
       numberMultiplier: numberMultiplier,
-      PRAYER: PRAYER,
       enemySpecialAttacks: enemySpecialAttacks,
       enemySpawnTimer: enemySpawnTimer,
       hitpointRegenInterval: hitpointRegenInterval,
@@ -2834,13 +2860,11 @@ class McsSimulator {
       xpBonus: 0,
       avgHPRegen: 1 + Math.floor(this.playerLevels.Hitpoints / 10),
       damageReduction: this.combatStats.damageReduction,
-      reflect: false,
       diamondLuck: this.herbloreBonus.diamondLuck,
       hasSpecialAttack: false,
-      specialData: null,
+      specialData: {},
       startingGP: 50000000,
       levels: Object.assign({}, this.playerLevels), // Shallow copy of player levels
-      prayerSelected: this.prayerSelected.slice(), // Shallow Copy
       activeItems: {
         Hitpoints_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Hitpoints_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
         Ranged_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Ranged_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
@@ -2868,6 +2892,7 @@ class McsSimulator {
       prayerPointsPerAttack: 0,
       prayerPointsPerEnemy: 0,
       prayerPointsPerHeal: 0,
+      prayerXPperDamage: 1 / numberMultiplier / 2,
       isProtected: false,
     };
     // Special Attack
@@ -2888,9 +2913,6 @@ class McsSimulator {
     if (playerStats.activeItems.Gold_Emerald_Ring) {
       playerStats.xpBonus = 0.07;
     }
-    if (playerStats.activeItems.Gold_Sapphire_Ring) {
-      playerStats.reflect = true;
-    }
     this.currentSim.canTopazDrop = false;
     if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
       this.currentSim.gpBonus = 1.15;
@@ -2904,10 +2926,11 @@ class McsSimulator {
     this.currentSim.slayerXPBonus = this.equipStats.slayerXPBonus;
     this.currentSim.herbConvertChance = this.herbloreBonus.luckyHerb / 100;
     this.currentSim.doBonesAutoBury = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
-    // Compute prayer point usage
+    // Compute prayer point usage and xp gain
     const hasPrayerCape = playerStats.activeItems.Prayer_Skillcape;
     for (let i = 0; i < PRAYER.length; i++) {
       if (this.prayerSelected[i]) {
+        // Point Usage
         if (hasPrayerCape) {
           let attQty = Math.floor(PRAYER[i].pointsPerPlayer / 2);
           if (attQty == 0 && PRAYER[i].pointsPerPlayer != 0) {
@@ -2929,6 +2952,8 @@ class McsSimulator {
           playerStats.prayerPointsPerEnemy += PRAYER[i].pointsPerEnemy;
           playerStats.prayerPointsPerHeal += PRAYER[i].pointsPerRegen;
         }
+        // XP Gain
+        playerStats.prayerXPperDamage += 2 * PRAYER[i].pointsPerPlayer / numberMultiplier;
       }
     }
     playerStats.prayerPointsPerAttack *= (1 - this.herbloreBonus.divine / 100);
@@ -3007,7 +3032,7 @@ class McsSimulator {
 
   /**
    * Gets the stats of a monster
-   * @param {Number} monsterID
+   * @param {number} monsterID
    * @return {enemyStats}
    */
   getEnemyStats(monsterID) {
@@ -3097,7 +3122,6 @@ class McsSimulator {
         totTime = 0;
         totalGPFromDamage = 0;
         totalAttacksTaken = 0;
-        totalSimTime = 0;
         for (let j = 0; j < DUNGEONS[i].monsters.length; j++) {
           const mInd = DUNGEONS[i].monsters[j];
           totXp += this.monsterSimData[mInd].xpPerEnemy;
@@ -3110,11 +3134,16 @@ class McsSimulator {
           totPrayerPoints += this.monsterSimData[mInd].ppConsumedPerSecond * this.monsterSimData[mInd].killTimeS;
           totalGPFromDamage += this.monsterSimData[mInd].gpFromDamage;
           totalAttacksTaken += this.monsterSimData[mInd].attacksTaken;
-          totalSimTime += this.monsterSimData[mInd].simulationTime;
+
           if (!this.monsterSimData[mInd].simSuccess) {
             this.dungeonSimData[i].simSuccess = false;
             break;
           }
+        }
+        totalSimTime = 0;
+        for (let j = 0; j < this.condensedDungeonMonsters[i].length; j++) {
+          const mInd = this.condensedDungeonMonsters[i][j].id;
+          totalSimTime += this.monsterSimData[mInd].simulationTime;
         }
         if (this.dungeonSimData[i].simSuccess) {
           this.dungeonSimData[i].xpPerSecond = totXp / totTime * 1000;
@@ -3162,7 +3191,7 @@ class McsSimulator {
   }
 
   /** Starts a job for a given worker
-   * @param {Number} workerID
+   * @param {number} workerID
   */
   startJob(workerID) {
     if (this.currentJob < this.simulationQueue.length) {
@@ -3194,7 +3223,7 @@ class McsSimulator {
 
   /**
    * Modifies the playerStats before starting a job for a specific monster
-   * @param {Number} monsterID Index of MONSTERS
+   * @param {number} monsterID Index of MONSTERS
    */
   modifyCurrentSimStatsForMonster(monsterID) {
     // Do check for protection prayer
@@ -3243,7 +3272,7 @@ class McsSimulator {
   /**
    * Processes a message recieved from one of the simulation workers
    * @param {*} event The event data of the worker
-   * @param {Number} workerID The ID of the worker that sent the message
+   * @param {number} workerID The ID of the worker that sent the message
    */
   processWorkerMessage(event, workerID) {
     // console.log(`Recieved Message from worker: ${workerID}`);
@@ -3265,10 +3294,10 @@ class McsSimulator {
   }
   /**
   * Simulates combat against monsterID, Ntrials times using playerStats. The simulation fails if the number of player hit attempts exceeds Nhitmax.
-  * @param {Number} monsterID The index of the monster in MONSTERS
+  * @param {number} monsterID The index of the monster in MONSTERS
   * @param {*} playerStats The stats of the player
-  * @param {Number} Ntrials The number of times to simulate combat
-  * @param {Number} Nhitmax The maximum number of player hits before timeout
+  * @param {number} Ntrials The number of times to simulate combat
+  * @param {number} Nhitmax The maximum number of player hits before timeout
   */
   simulateMonster(monsterID, playerStats, Ntrials, Nhitmax) {
     // Check if already simulated
@@ -4134,9 +4163,14 @@ class McsSimulator {
   }
   /**
   * Computes the accuracy of attacker vs target
-  * @param {*} attacker
-  * @param {*} target
-  * @return {Number}
+  * @param {Object} attacker
+  * @param {number} attacker.attackType Attack Type Melee:0, Ranged:1, Magic:2
+  * @param {number} attacker.maxAttackRoll Accuracy Rating
+  * @param {Object} target
+  * @param {number} target.maxDefRoll Melee Evasion Rating
+  * @param {number} target.maxRngDefRoll Ranged Evasion Rating
+  * @param {number} target.maxMagDefRoll Magic Evasion Rating
+  * @return {number}
   */
   calculateAccuracy(attacker, target) {
     let targetDefRoll = 0;
@@ -4157,8 +4191,8 @@ class McsSimulator {
   }
   /**
   * Extracts a set of data for plotting that matches the keyValue in monsterSimData and dungeonSimData
-  * @param {String} keyValue
-  * @return {Array<Number>}
+  * @param {string} keyValue
+  * @return {Array<number>}
   */
   getDataSet(keyValue) {
     let dataMultiplier = 1;
@@ -4209,7 +4243,7 @@ class McsSimulator {
   }
   /**
    * Creates a string to paste into your favourite spreadsheet software
-   * @return {String}
+   * @return {string}
    */
   exportData() {
     let exportString = '';
@@ -4297,7 +4331,7 @@ class McsSimulator {
   }
   /**
    * Finds the monsters/dungeons you can currently fight
-   * @return {Array<Boolean>}
+   * @return {Array<boolean>}
    */
   getEnterSet() {
     const enterSet = [];
@@ -4338,24 +4372,24 @@ class McsSimulator {
   }
   /**
   * Computes the average number of coins that a monster drops
-  * @param {Number} monsterID Index of MONSTERS
-  * @return {Number}
+  * @param {number} monsterID Index of MONSTERS
+  * @return {number}
   */
   computeAverageCoins(monsterID) {
     return (MONSTERS[monsterID].dropCoins[1] + MONSTERS[monsterID].dropCoins[0] - 1) * this.currentSim.gpBonus / 2;
   }
   /**
   * Computes the chance that a monster will drop loot when it dies
-  * @param {Number} monsterID
-  * @return {Number}
+  * @param {number} monsterID
+  * @return {number}
   */
   computeLootChance(monsterID) {
     return ((MONSTERS[monsterID].lootChance != undefined) ? MONSTERS[monsterID].lootChance / 100 : 1);
   }
   /**
   * Computes the value of a monsters drop table respecting the loot sell settings
-  * @param {Number} monsterID
-  * @return {Number}
+  * @param {number} monsterID
+  * @return {number}
   */
   computeDropTableValue(monsterID) {
     // lootTable[x][0]: Item ID, [x][1]: Weight [x][2]: Max Qty
@@ -4404,7 +4438,7 @@ class McsSimulator {
   /**
   * Determines if an itemID should be sold and turns true/false
   * @param {number} itemID
-  * @return {Boolean}
+  * @return {boolean}
   */
   shouldSell(itemID) {
     return this.saleList[itemID].sell;
@@ -4638,8 +4672,8 @@ class McsSimulator {
   }
   /**
   * Computes the value of the contents of a chest respecting the loot sell settings
-  * @param {Number} chestID
-  * @return {Number}
+  * @param {number} chestID
+  * @return {number}
   */
   computeChestOpenValue(chestID) {
     if (this.sellLoot != 'None') {
@@ -4674,8 +4708,8 @@ class McsSimulator {
   }
   /**
   * Computes the average amount of GP earned when killing a monster, respecting the loot sell settings
-  * @param {Number} monsterID
-  * @return {Number}
+  * @param {number} monsterID
+  * @return {number}
   */
   computeMonsterValue(monsterID) {
     let monsterValue = 0;
@@ -4693,9 +4727,9 @@ class McsSimulator {
 
   /**
    * Computes the average amount of potional herblore xp from killing a monster
-   * @param {Number} monsterID Index of MONSTERS
-   * @param {Number} convertChance The chance to convert seeds into herbs
-   * @return {Number}
+   * @param {number} monsterID Index of MONSTERS
+   * @param {number} convertChance The chance to convert seeds into herbs
+   * @return {number}
    */
   computeMonsterHerbXP(monsterID, convertChance) {
     let herbWeight = 0;
@@ -4712,8 +4746,8 @@ class McsSimulator {
   }
   /**
   * Computes the average amount of GP earned when completing a dungeon, respecting the loot sell settings
-  * @param {Number} dungeonID
-  * @return {Number}
+  * @param {number} dungeonID
+  * @return {number}
   */
   computeDungeonValue(dungeonID) {
     let dungeonValue = 0;
@@ -4922,16 +4956,16 @@ class McsSimulator {
   }
   /**
    * Calculates the drop chance of a signet half from a monster
-   * @param {Number} monsterID The index of MONSTERS
-   * @return {Number}
+   * @param {number} monsterID The index of MONSTERS
+   * @return {number}
    */
   getSignetDropRate(monsterID) {
     return this.getMonsterCombatLevel(monsterID) * this.computeLootChance(monsterID) / 500000;
   }
   /**
    * Calculates the combat level of a monster
-   * @param {Number} monsterID The index of MONSTERS
-   * @return {Number}
+   * @param {number} monsterID The index of MONSTERS
+   * @return {number}
    */
   getMonsterCombatLevel(monsterID) {
     const prayer = 1;
@@ -4951,22 +4985,19 @@ class McsCard {
   /**
    * Constructs an instance of McsCard
    * @param {HTMLElement} parentElement The parent element the card should be appended to
-   * @param {*} width The width of the card
-   * @param {*} height The height of the card
-   * @param {*} labelWidth The width of labels for the card's ui elements
-   * @param {*} inputWidth The width of inputs for the card's ui elements
+   * @param {string} width The width of the card
+   * @param {string} height The height of the card
+   * @param {string} inputWidth The width of inputs for the card's ui elements
    */
-  constructor(parentElement, width, height, labelWidth, inputWidth) {
+  constructor(parentElement, width, height, inputWidth) {
     this.container = document.createElement('div');
     this.container.className = 'mcsCardContainer';
     this.container.style.minWidth = width;
     this.container.style.height = height;
     parentElement.appendChild(this.container);
-    this.labelWidth = labelWidth;
     this.inputWidth = inputWidth;
     this.width = width;
     this.height = height;
-
     this.dropDowns = [];
     this.buttons = [];
     this.numOutputs = [];
@@ -4974,10 +5005,10 @@ class McsCard {
 
   /**
   * Creates a new button and appends it to the container. Autoadds callbacks to change colour
-  * @param {String} buttonText Text to display on button
+  * @param {string} buttonText Text to display on button
   * @param {Function} onclickCallback Callback to excute when pressed
-  * @param {Number} width Width of button in px
-  * @param {Number} height Height of button in px
+  * @param {number} width Width of button in px
+  * @param {number} height Height of button in px
   */
   addButton(buttonText, onclickCallback, width, height) {
     const newButton = document.createElement('button');
@@ -4993,11 +5024,11 @@ class McsCard {
   }
   /**
   * Creates a new button with the image
-  * @param {String} imageSource Source of the image on the button
-  * @param {String} idText Text to put in the id of the button
+  * @param {string} imageSource Source of the image on the button
+  * @param {string} idText Text to put in the id of the button
   * @param {Function} onclickCallback Callback when clicking the button
-  * @param {Number} width Width of the button and image in px
-  * @param {Number} height Height of the button and image in px
+  * @param {number} width Width of the button and image in px
+  * @param {number} height Height of the button and image in px
   * @param {HTMLElement} tooltip
   * @return {HTMLButtonElement} The created button element
   */
@@ -5018,10 +5049,10 @@ class McsCard {
   }
   /**
    * Creates multiple image button in an array
-   * @param {Array<String>} sources The image source paths
-   * @param {Array<String>} idtexts The ids for the buttons
-   * @param {*} height The height of the buttons
-   * @param {*} width The width of the buttons
+   * @param {Array<string>} sources The image source paths
+   * @param {Array<string>} idtexts The ids for the buttons
+   * @param {number} height The height of the buttons in px
+   * @param {number} width The width of the buttons in px
    * @param {Array<Function>} onclickCallbacks The callbacks for the buttons
    * @return {Array<HTMLDivElement>} The tooltips of the buttons
    */
@@ -5039,10 +5070,10 @@ class McsCard {
   }
   /**
   * Adds a dropdown to the card
-  * @param {String} labelText The text to label the dropdown with
-  * @param {Array<String>} optionText The text of the dropdown's options
+  * @param {string} labelText The text to label the dropdown with
+  * @param {Array<string>} optionText The text of the dropdown's options
   * @param {Array} optionValues The values of the dropdown's options
-  * @param {Number} height The height of the dropdown
+  * @param {number} height The height of the dropdown
   * @param {Function} onChangeCallback The callback for when the option is changed
   */
   addDropdown(labelText, optionText, optionValues, height, onChangeCallback) {
@@ -5056,9 +5087,9 @@ class McsCard {
   }
   /**
    * Adds a dropdown to the card, but also returns a reference to it
-   * @param {Array<String>} optionText The text of the dropdown's options
+   * @param {Array<string>} optionText The text of the dropdown's options
    * @param {Array} optionValues The values of the dropdown's options
-   * @param {String} dropDownID The id of the dropdown
+   * @param {string} dropDownID The id of the dropdown
    * @param {Function} onChangeCallback The callback for when the option is changed
    * @return {HTMLSelectElement}
    */
@@ -5080,11 +5111,11 @@ class McsCard {
   }
   /**
    * Adds an input to the card for a number
-   * @param {String} labelText The text for the input's label
-   * @param {Number} startValue The initial value
-   * @param {*} height The height of the input
-   * @param {Number} min The minimum value of the input
-   * @param {Number} max The maximum value of the input
+   * @param {string} labelText The text for the input's label
+   * @param {number} startValue The initial value
+   * @param {number} height The height of the input in pixels
+   * @param {number} min The minimum value of the input
+   * @param {number} max The maximum value of the input
    * @param {Function} onChangeCallback The callback for when the input changes
    */
   addNumberInput(labelText, startValue, height, min, max, onChangeCallback) {
@@ -5105,9 +5136,9 @@ class McsCard {
   }
   /**
    * Adds an input to the card for text
-   * @param {String} labelText The text for the input's label
-   * @param {String} startValue The iniial text in the input
-   * @param {*} height The height of the input
+   * @param {string} labelText The text for the input's label
+   * @param {string} startValue The iniial text in the input
+   * @param {number} height The height of the input in pixels
    * @param {Function} onInputCallback The callback for when the input changes
    */
   addTextInput(labelText, startValue, height, onInputCallback) {
@@ -5126,12 +5157,12 @@ class McsCard {
   }
   /**
    * Adds a number output to the card
-   * @param {String} labelText The text for the output's label
-   * @param {String} initialValue The intial text of the output
-   * @param {*} height The height of the output
-   * @param {String} imageSrc An optional source for an image, if left as '', an image will not be added
-   * @param {String} outputID The id of the output field
-   * @param {Boolean} setLabelID Whether or not to assign an ID to the label
+   * @param {string} labelText The text for the output's label
+   * @param {string} initialValue The intial text of the output
+   * @param {number} height The height of the output in pixels
+   * @param {string} imageSrc An optional source for an image, if left as '', an image will not be added
+   * @param {string} outputID The id of the output field
+   * @param {boolean} setLabelID Whether or not to assign an ID to the label
    */
   addNumberOutput(labelText, initialValue, height, imageSrc, outputID, setLabelID = false) {
     if (!outputID) {
@@ -5158,8 +5189,8 @@ class McsCard {
   }
   /**
    * Adds a title to the card
-   * @param {String} titleText The text for the title
-   * @param {String} titleID An optional id for the title, if left as '' an ID will not be assigned
+   * @param {string} titleText The text for the title
+   * @param {string} titleID An optional id for the title, if left as '' an ID will not be assigned
    */
   addSectionTitle(titleText, titleID) {
     const newSectionTitle = document.createElement('div');
@@ -5173,9 +5204,9 @@ class McsCard {
   }
   /**
    * Adds an array of buttons to the card
-   * @param {Array<String>} buttonText The text to put on the buttons
-   * @param {*} height The height of the buttons
-   * @param {*} width The width of the buttons
+   * @param {Array<string>} buttonText The text to put on the buttons
+   * @param {number} height The height of the buttons in pixels
+   * @param {number} width The width of the buttons in pixels
    * @param {Array<Function>} buttonCallbacks The callback function for when the buttons are clicked
    */
   addMultiButton(buttonText, height, width, buttonCallbacks) {
@@ -5199,13 +5230,13 @@ class McsCard {
   }
   /**
    * Adds a radio option to the card
-   * @param {String} labelText The text for the option's label
-   * @param {*} height The height of the radios
-   * @param {String} radioName The name of the radio
-   * @param {Array<String>} radioLabels The labels for the individual radio buttons
+   * @param {string} labelText The text for the option's label
+   * @param {number} height The height of the radios in pixels
+   * @param {string} radioName The name of the radio
+   * @param {Array<string>} radioLabels The labels for the individual radio buttons
    * @param {Array<Function>} radioCallbacks The callbacks for the individual radio buttons
-   * @param {Number} initialRadio The intial radio that is on
-   * @param {String} imageSrc An optional string to specify the source of a label image, if '' an image is not added
+   * @param {number} initialRadio The intial radio that is on
+   * @param {string} imageSrc An optional string to specify the source of a label image, if '' an image is not added
    */
   addRadio(labelText, height, radioName, radioLabels, radioCallbacks, initialRadio, imageSrc) {
     const newCCContainer = this.createCCContainer(height);
@@ -5226,10 +5257,10 @@ class McsCard {
   }
   /**
    * Creates a radio input element
-   * @param {String} radioName The name of the radio collection
-   * @param {String} radioLabel The text of the radio
-   * @param {String} radioID The id of the radio
-   * @param {Boolean} checked If the radio is checked or not
+   * @param {string} radioName The name of the radio collection
+   * @param {string} radioLabel The text of the radio
+   * @param {string} radioID The id of the radio
+   * @param {boolean} checked If the radio is checked or not
    * @param {Function} radioCallback Callback for when the radio is clicked
    * @return {HTMLDivElement}
    */
@@ -5250,7 +5281,7 @@ class McsCard {
 
   /**
    * Creates a Card Container Container div
-   * @param {Number} height The height of the container in pixels
+   * @param {number} height The height of the container in pixels
    * @return {HTMLDivElement}
    */
   createCCContainer(height) {
@@ -5264,22 +5295,21 @@ class McsCard {
   }
   /**
    * Creates a label element
-   * @param {String} labelText The text of the label
-   * @param {String} referenceID The element the label references
+   * @param {string} labelText The text of the label
+   * @param {string} referenceID The element the label references
    * @return {HTMLLabelElement}
    */
   createLabel(labelText, referenceID) {
     const newLabel = document.createElement('label');
     newLabel.className = 'mcsLabel';
-    // newLabel.style.width = this.labelWidth;
     newLabel.textContent = labelText;
     newLabel.for = referenceID;
     return newLabel;
   }
   /**
   * Creates an image element
-  * @param {String} imageSrc source of image
-  * @param {Number} height in pixels
+  * @param {string} imageSrc source of image
+  * @param {number} height in pixels
   * @return {HTMLImageElement} The newly created image element
   */
   createImage(imageSrc, height) {
@@ -5322,9 +5352,9 @@ class McsCard {
 }
 /**
  * @description Formats a number with the specified number of sigfigs, Addings suffixes as required
- * @param {Number} numberToFormat Number
- * @param {Number} numDigits Number of significant digits
- * @return {String}
+ * @param {number} numberToFormat Number
+ * @param {number} numDigits Number of significant digits
+ * @return {string}
  */
 function mcsFormatNum(numberToFormat, numDigits) {
   let outStr;

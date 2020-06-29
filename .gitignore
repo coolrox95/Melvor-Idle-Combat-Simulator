@@ -1,5 +1,6 @@
 Extension/node_modules
 *.rtf
+Extension/out
 Extension/.eslintrc.js
 Extension/package-lock.json
 Extension/package.json

@@ -17,21 +17,46 @@
 */
 
 /** @typedef {Object} enemyStats
-* @property {Number} hitpoints Max Enemy HP
-* @property {Number} attackSpeed Enemy attack speed (ms)
-* @property {Number} attackType Enemy attack type
-* @property {Number} maxHit Normal attack max hit
-* @property {Number} maxDefRoll Melee Evasion Rating
-* @property {Number} maxMagDefRoll Magic Evasion Rating
-* @property {Number} maxRngDefRoll Ranged Evasion Rating
-* @property {Boolean} hasSpecialAttack If enemy can do special attacks
-* @property {Array<Number>} specialAttackChances Chance of each special attack
-* @property {Array<Number>} specialIDs IDs of special attacks
-* @property {Number} specialLength Number of special attacks
+* @property {number} hitpoints Max Enemy HP
+* @property {number} attackSpeed Enemy attack speed (ms)
+* @property {number} attackType Enemy attack type
+* @property {number} maxHit Normal attack max hit
+* @property {number} maxDefRoll Melee Evasion Rating
+* @property {number} maxMagDefRoll Magic Evasion Rating
+* @property {number} maxRngDefRoll Ranged Evasion Rating
+* @property {boolean} hasSpecialAttack If enemy can do special attacks
+* @property {Array<number>} specialAttackChances Chance of each special attack
+* @property {Array<number>} specialIDs IDs of special attacks
+* @property {number} specialLength Number of special attacks
 */
+/**
+ * Stats of the player
+ * @typedef {Object} playerStats
+ * @property {number} attackSpeed Attack speed in ms
+ * @property {number} attackType Attack Type Melee:0, Ranged:1, Magic:2
+ * @property {number} maxAttackRoll Accuracy Rating
+ * @property {number} maxHit Maximum Hit of Normal Attack
+ * @property {number} maxDefRoll Melee Evasion Rating
+ * @property {number} maxMagDefRoll Magic Evasion Rating
+ * @property {number} maxRngDefRoll Ranged Evasion Rating
+ * @property {number} xpBonus Fractional bonus to combat xp gain
+ * @property {number} avgHPRegen Average HP gained per regen interval
+ * @property {number} damageReduction Damage Reduction in %
+ * @property {boolean} diamondLuck If player has diamond luck potion active
+ * @property {boolean} hasSpecialAttack If player can special attack
+ * @property {Object} specialData Data of player special attack
+ * @property {number} startingGP Initial GP of player
+ * @property {Object} levels Levels of player
+ * @property {boolean[]} prayerSelected Prayers of PRAYER that player has active
+ * @property {number} activeItems Special items the player has active
+ * @property {number} prayerPointsPerAttack Prayer points consumed per player attack
+ * @property {number} prayerPointsPerEnemy Prayer points consumed per enemy attack
+ * @property {number} prayerPointsPerHeal Prayer points consumed per regen interval
+ * @property {number} prayerXPperDamage Prayer xp gained per point of damage dealt
+ * @property {boolean} isProtected Player has active protection prayer
+ */
 let protectFromValue;
 let numberMultiplier;
-let PRAYER;
 let enemySpecialAttacks;
 let enemySpawnTimer;
 let hitpointRegenInterval;
@@ -48,7 +73,6 @@ onmessage = (event) => {
       // console.log(event.data);
       protectFromValue = event.data.protectFromValue;
       numberMultiplier = event.data.numberMultiplier;
-      PRAYER = event.data.PRAYER;
       enemySpecialAttacks = event.data.enemySpecialAttacks;
       enemySpawnTimer = event.data.enemySpawnTimer;
       hitpointRegenInterval = event.data.hitpointRegenInterval;
@@ -69,9 +93,9 @@ onmessage = (event) => {
 /**
  * Simulation Method for a single monster
  * @param {enemyStats} enemyStats
- * @param {*} playerStats
- * @param {*} Ntrials
- * @param {*} Nhitmax
+ * @param {playerStats} playerStats
+ * @param {number} Ntrials
+ * @param {number} Nhitmax
  * @return {*}
  */
 function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
@@ -88,8 +112,6 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // Start Monte Carlo simulation
   let enemyKills = 0;
   let xpToAdd = 0;
-  let hpXpToAdd = 0;
-  let prayerXpToAdd = 0;
 
   let simSuccess = true;
   let damageToEnemy = 0;
@@ -379,21 +401,9 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (damageToEnemy > 0) {
             xpToAdd = damageToEnemy / numberMultiplier * 4;
             if (xpToAdd < 4) xpToAdd = 4;
-            hpXpToAdd = damageToEnemy / numberMultiplier * 1.33;
-            prayerXpToAdd = damageToEnemy / numberMultiplier / 2;
-            // Active Prayer Bonus
-            for (let i = 0; i < playerStats.prayerSelected.length; i++) {
-              if (playerStats.prayerSelected[i]) {
-                prayerXpToAdd += damageToEnemy / numberMultiplier * 2 * PRAYER[i].pointsPerPlayer;
-              }
-            }
-            stats.totalHpXP += hpXpToAdd;
-            stats.totalPrayerXP += prayerXpToAdd;
-            if (playerStats.halfXP) {
-              stats.totalCombatXP += Math.floor(xpToAdd / 2);
-            } else {
-              stats.totalCombatXP += xpToAdd;
-            }
+            stats.totalHpXP += damageToEnemy / numberMultiplier * 1.33;
+            stats.totalPrayerXP += damageToEnemy * playerStats.prayerXPperDamage;
+            stats.totalCombatXP += xpToAdd;
           }
           // Apply Stun
           if (canStun && !enemy.isStunned) {
@@ -483,21 +493,9 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
         if (damageToEnemy > 0) {
           xpToAdd = damageToEnemy / numberMultiplier * 4;
           if (xpToAdd < 4) xpToAdd = 4;
-          hpXpToAdd = damageToEnemy / numberMultiplier * 1.33;
-          prayerXpToAdd = damageToEnemy / numberMultiplier / 2;
-          // Active Prayer Bonus
-          for (let i = 0; i < playerStats.prayerSelected.length; i++) {
-            if (playerStats.prayerSelected[i]) {
-              prayerXpToAdd += damageToEnemy / numberMultiplier * 2 * PRAYER[i].pointsPerPlayer;
-            }
-          }
-          stats.totalHpXP += hpXpToAdd;
-          stats.totalPrayerXP += prayerXpToAdd;
-          if (playerStats.halfXP) {
-            stats.totalCombatXP += Math.floor(xpToAdd / 2);
-          } else {
-            stats.totalCombatXP += xpToAdd;
-          }
+          stats.totalHpXP += damageToEnemy / numberMultiplier * 1.33;
+          stats.totalPrayerXP += damageToEnemy * playerStats.prayerXPperDamage;
+          stats.totalCombatXP += xpToAdd;
         }
         // Apply Stun
         if (canStun && !enemy.isStunned) {
@@ -918,9 +916,14 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
 
 /**
   * Computes the accuracy of attacker vs target
-  * @param {*} attacker
-  * @param {*} target
-  * @return {Number}
+  * @param {Object} attacker
+  * @param {number} attacker.attackType Attack Type Melee:0, Ranged:1, Magic:2
+  * @param {number} attacker.maxAttackRoll Accuracy Rating
+  * @param {Object} target
+  * @param {number} target.maxDefRoll Melee Evasion Rating
+  * @param {number} target.maxRngDefRoll Ranged Evasion Rating
+  * @param {number} target.maxMagDefRoll Magic Evasion Rating
+  * @return {number}
   */
 function calculateAccuracy(attacker, target) {
   let targetDefRoll = 0;
