@@ -139,7 +139,6 @@ class McsApp {
         });
       };
     }
-
     this.skillKeys = ['Attack', 'Strength', 'Defence', 'Hitpoints', 'Ranged', 'Magic', 'Prayer', 'Slayer'];
     // Simulation Object
     this.simulator = new McsSimulator(this, urls.simulationWorker);
@@ -564,6 +563,8 @@ class McsApp {
       this.exportOptionsCard.container.style.display = 'none';
     }
     // Bar Chart Card
+    this.monsterToggleState = true;
+    this.dungeonToggleState = true;
     this.plotter = new McsPlotter(this, urls.crossedOut);
     // Individual info card, nested into sim/plot card
     {
@@ -1323,6 +1324,38 @@ class McsApp {
     }
   }
   /**
+   * Cabllback to toggle the simulation of dungeons
+   */
+  toggleDungeonSims() {
+    const newState = !this.dungeonToggleState;
+    this.dungeonToggleState = newState;
+    for (let i = 0; i < DUNGEONS.length; i++) {
+      this.simulator.dungeonSimFilter[i] = newState;
+    }
+    this.updatePlotData();
+    this.plotter.crossImagesPerSetting();
+  }
+  /**
+   * Callback to toggle the simulation of monsters in combat and slayer areas
+   */
+  toggleMonsterSims() {
+    const newState = !this.monsterToggleState;
+    this.monsterToggleState = newState;
+    // Create List of non-dungeon monsters
+    combatAreas.forEach((area)=>{
+      area.monsters.forEach((monsterID)=>{
+        this.simulator.monsterSimFilter[monsterID] = newState;
+      });
+    });
+    slayerAreas.forEach((area)=>{
+      area.monsters.forEach((monsterID)=>{
+        this.simulator.monsterSimFilter[monsterID] = newState;
+      });
+    });
+    this.updatePlotData();
+    this.plotter.crossImagesPerSetting();
+  }
+  /**
    * Updates the bars in the plot to the currently selected plot type
    */
   updatePlotData() {
@@ -1928,6 +1961,31 @@ class McsPlotter {
       this.parent.stopInspectOnClick();
     };
     this.xAxis.appendChild(this.stopInspectButton);
+    // Add toggle buttons
+    this.toggleMonsterButton = document.createElement('button');
+    this.toggleMonsterButton.className = 'mcsButton';
+    this.toggleMonsterButton.textContent = 'Toggle Monsters';
+    this.toggleMonsterButton.style.position = 'absolute';
+    this.toggleMonsterButton.style.top = '0';
+    this.toggleMonsterButton.style.width = '150px';
+    this.toggleMonsterButton.style.left = '85px';
+    this.toggleMonsterButton.style.whiteSpace = 'nowrap';
+    this.toggleMonsterButton.onclick = () => {
+      this.parent.toggleMonsterSims(false);
+    };
+    this.plotContainer.appendChild(this.toggleMonsterButton);
+    this.toggleDungeonButton = document.createElement('button');
+    this.toggleDungeonButton.className = 'mcsButton';
+    this.toggleDungeonButton.textContent = 'Toggle Dungeons';
+    this.toggleDungeonButton.style.position = 'absolute';
+    this.toggleDungeonButton.style.top = '0';
+    this.toggleDungeonButton.style.width = '150px';
+    this.toggleDungeonButton.style.left = '240px';
+    this.toggleDungeonButton.style.whiteSpace = 'nowrap';
+    this.toggleDungeonButton.onclick = () => {
+      this.parent.toggleDungeonSims(false);
+    };
+    this.plotContainer.appendChild(this.toggleDungeonButton);
     // Do tickmarks
     this.tickMarks = [];
     for (let i = 0; i < 20; i++) {
@@ -2091,6 +2149,8 @@ class McsPlotter {
     this.showZoneLabels();
     this.crossImagesPerSetting();
     this.stopInspectButton.style.display = 'none';
+    this.toggleDungeonButton.style.display = '';
+    this.toggleMonsterButton.style.display = '';
   }
   /**
    * Changes the plot display to individual dungeon monsters
@@ -2118,6 +2178,8 @@ class McsPlotter {
     this.hideZoneLabels();
     this.unCrossAllImages();
     this.stopInspectButton.style.display = '';
+    this.toggleDungeonButton.style.display = 'none';
+    this.toggleMonsterButton.style.display = 'none';
   }
   /**
    * Turns the crossout overlay on for a monster/dungeon image
@@ -2170,7 +2232,7 @@ class McsPlotter {
     for (let i = 0; i < this.parent.barIsDungeon.length; i++) {
       if (this.parent.barIsDungeon[i] && !this.parent.simulator.dungeonSimFilter[this.parent.barMonsterIDs[i]]) {
         this.xAxisCrosses[i].style.display = '';
-      } else if (!this.parent.simulator.monsterSimFilter[this.parent.barMonsterIDs[i]]) {
+      } else if (!this.parent.barIsDungeon[i] && !this.parent.simulator.monsterSimFilter[this.parent.barMonsterIDs[i]]) {
         this.xAxisCrosses[i].style.display = '';
       } else {
         this.xAxisCrosses[i].style.display = 'none';
