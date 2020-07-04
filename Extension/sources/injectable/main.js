@@ -3105,8 +3105,8 @@ class McsSimulator {
       return jobBComplex - jobAComplex;
     });
     // Start simulation workers
-    this.initializeSimulationJobs();
     document.getElementById('MCS Simulate Button').textContent = `Simulating... (0/${this.simulationQueue.length})`;
+    this.initializeSimulationJobs();
   }
 
   /**
@@ -3256,15 +3256,20 @@ class McsSimulator {
   /** Starts processing simulation jobs */
   initializeSimulationJobs() {
     if (!this.simInProgress) {
-      this.simInProgress = true;
-      this.currentJob = 0;
-      for (let i = 0; i < this.simulationWorkers.length; i++) {
-        this.simulationWorkers[i].selfTime = 0;
-        if (i < this.simulationQueue.length) {
-          this.startJob(i);
-        } else {
-          break;
+      if (this.simulationQueue.length > 0) {
+        this.simInProgress = true;
+        this.currentJob = 0;
+        for (let i = 0; i < this.simulationWorkers.length; i++) {
+          this.simulationWorkers[i].selfTime = 0;
+          if (i < this.simulationQueue.length) {
+            this.startJob(i);
+          } else {
+            break;
+          }
         }
+      } else {
+        this.performPostSimAnalysis();
+        this.parent.updateDisplayPostSim();
       }
     }
   }
