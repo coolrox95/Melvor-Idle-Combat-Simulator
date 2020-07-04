@@ -63,6 +63,7 @@ let hitpointRegenInterval;
 let deadeyeAmulet;
 let confettiCrossbow;
 let warlockAmulet;
+let cancelStatus = false;
 // Item Data we actually need:
 
 onmessage = (event) => {
@@ -83,9 +84,14 @@ onmessage = (event) => {
     case 'START_SIMULATION':
       // console.log(`Simulation started for monster with ID: ${event.data.monsterID}`);
       const startTime = performance.now();
-      const simResult = simulateMonster(event.data.monsterStats, event.data.playerStats, event.data.simOptions.Ntrials, event.data.simOptions.Nhitmax);
-      const timeTaken = performance.now() - startTime;
-      postMessage({action: 'FINISHED_SIM', monsterID: event.data.monsterID, simResult: simResult, selfTime: timeTaken});
+      cancelStatus = false;
+      simulateMonster(event.data.monsterStats, event.data.playerStats, event.data.simOptions.Ntrials, event.data.simOptions.Nhitmax).then((simResult)=>{
+        const timeTaken = performance.now() - startTime;
+        postMessage({action: 'FINISHED_SIM', monsterID: event.data.monsterID, simResult: simResult, selfTime: timeTaken});
+      });
+      break;
+    case 'CANCEL_SIMULATION':
+      cancelStatus = true;
       break;
   }
 };
@@ -96,9 +102,9 @@ onmessage = (event) => {
  * @param {playerStats} playerStats
  * @param {number} Ntrials
  * @param {number} Nhitmax
- * @return {Object}
+ * @return {Promise<Object>}
  */
-function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
+async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // Calculate Accuracy
   // Need to brind in calculate accuracy so it is no longer undefined here
   let playerAccuracy = calculateAccuracy(playerStats, enemyStats);
@@ -129,6 +135,29 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     gpGainedFromDamage: 0,
     playerActions: 0,
     enemyActions: 0,
+  };
+  // Final Result from simulation
+  const simResult = {
+    simSuccess: false,
+    attacksMade: 0,
+    avgHitDmg: 0,
+    avgKillTime: 0,
+    hpPerEnemy: 0,
+    hpPerSecond: 0,
+    dmgPerSecond: 0,
+    xpPerEnemy: 0,
+    xpPerHit: 0,
+    xpPerSecond: 0,
+    hpxpPerEnemy: 0,
+    hpxpPerSecond: 0,
+    killTimeS: 0,
+    prayerXpPerEnemy: 0,
+    prayerXpPerSecond: 0,
+    ppConsumedPerSecond: 0,
+    gpFromDamage: 0,
+    attacksTaken: 0,
+    attacksTakenPerSecond: 0,
+    attacksMadePerSecond: 0,
   };
 
   // Variables for player and enemy to track status
@@ -188,6 +217,10 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // var enemyReflectDamage = 0; //Damage caused by reflect
   // Start simulation for each trial
   while (enemyKills < Ntrials && simSuccess) {
+    // Check Cancellation every 250th trial
+    if (enemyKills % 250 == 0 && await cancelCheck()) {
+      return simResult;
+    }
     // Reset Timers and statuses
     player.hitpoints = 0;
     player.isStunned = false;
@@ -849,29 +882,6 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   }
   // Compute stats from simulation
   // Need to package this inside an object and send the result back to main script
-  const simResult = {
-    simSuccess: false,
-    attacksMade: 0,
-    avgHitDmg: 0,
-    avgKillTime: 0,
-    hpPerEnemy: 0,
-    hpPerSecond: 0,
-    dmgPerSecond: 0,
-    xpPerEnemy: 0,
-    xpPerHit: 0,
-    xpPerSecond: 0,
-    hpxpPerEnemy: 0,
-    hpxpPerSecond: 0,
-    killTimeS: 0,
-    prayerXpPerEnemy: 0,
-    prayerXpPerSecond: 0,
-    ppConsumedPerSecond: 0,
-    gpFromDamage: 0,
-    attacksTaken: 0,
-    attacksTakenPerSecond: 0,
-    attacksMadePerSecond: 0,
-    simDone: false,
-  };
   simResult.simSuccess = simSuccess;
   if (simSuccess) {
     // Apply XP Bonuses
@@ -910,7 +920,6 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     simResult.attacksTakenPerSecond = stats.enemyAttackCalls / Ntrials / simResult.killTimeS;
     simResult.attacksMadePerSecond = stats.playerAttackCalls / Ntrials / simResult.killTimeS;
   }
-  simResult.simDone = true;
   return simResult;
 };
 
@@ -941,4 +950,16 @@ function calculateAccuracy(attacker, target) {
     accuracy = (1 - 0.5 * targetDefRoll / attacker.maxAttackRoll) * 100;
   }
   return accuracy;
+}
+
+/**
+ * Checks if the simulation has been messaged to be cancelled
+ * @return {Promise<boolean>}
+ */
+async function cancelCheck() {
+  return new Promise((resolve)=>{
+    setTimeout(()=>{
+      resolve(cancelStatus);
+    });
+  });
 }

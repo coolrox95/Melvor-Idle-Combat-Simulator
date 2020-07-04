@@ -501,6 +501,7 @@ class McsApp {
       this.simPlotOpts2.addDropdown('Plot Type', dropDownOptionNames, this.plotTypeDropdownValues, 25, (event) => this.plottypeDropdownOnChange(event));
       this.simPlotOpts2.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [(e) => this.slayerTaskRadioOnChange(e, true), (e) => this.slayerTaskRadioOnChange(e, false)], 1);
       this.simPlotOpts2.addButton('Simulate', (event) => this.simulateButtonOnClick(event), 250, 25);
+      this.simPlotOpts2.addButton('Cancel', () => this.cancelButtonOnClick(), 250, 25);
       this.simPlotOpts2.addButton('Export Data', (event) => this.exportDataOnClick(event), 250, 25);
       this.simPlotOpts2.addButton('Show Export Options >', (event) => this.exportOptionsOnClick(event), 250, 25);
       this.simPlotOpts2.addSectionTitle('GP/s Options');
@@ -623,6 +624,7 @@ class McsApp {
     document.getElementById('main-container').appendChild(this.content);
     // document.body.appendChild(this.container);
     // Push an update to the displays
+    document.getElementById('MCS Cancel Button').style.display = 'none';
     document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
     document.getElementById('MCS Edit Subset Button').style.display = 'none';
     this.simulator.computeEquipStats();
@@ -1032,9 +1034,23 @@ class McsApp {
     } else {
       if (!this.simulator.simInProgress && this.simulator.simulationWorkers.length === this.simulator.maxThreads) {
         document.getElementById('MCS Simulate Button').disabled = true;
+        const cancelButton = document.getElementById('MCS Cancel Button');
+        cancelButton.style.display = '';
+        cancelButton.disabled = false;
+        cancelButton.textContent = 'Cancel';
         this.simulator.simulateCombat();
       }
     }
+  }
+  /**
+   * Callback for when the cancel simulation button is clicked
+   * @memberof McsApp
+   */
+  cancelButtonOnClick() {
+    const cancelButton = document.getElementById('MCS Cancel Button');
+    cancelButton.disabled = true;
+    cancelButton.textContent = 'Cancelling...';
+    this.simulator.cancelSimulation();
   }
   /**
    * Callback for when the sell bones option is changed
@@ -1745,6 +1761,7 @@ class McsApp {
     this.updateZoneInfoCard();
     document.getElementById('MCS Simulate Button').disabled = false;
     document.getElementById('MCS Simulate Button').textContent = 'Simulate';
+    document.getElementById('MCS Cancel Button').style.display = 'none';
   }
 }
 /**
@@ -2167,7 +2184,6 @@ class McsPlotter {
  * Simulation result for a single monster
  * @typedef {Object} monsterSimResult
  * @property {boolean} inQueue
- * @property {boolean} simDone
  * @property {boolean} simSuccess
  * @property {number} xpPerEnemy
  * @property {number} xpPerSecond
@@ -2380,7 +2396,6 @@ class McsSimulator {
     for (let i = 0; i < MONSTERS.length; i++) {
       this.monsterSimData.push({
         inQueue: false,
-        simDone: false,
         simSuccess: false,
         xpPerEnemy: 0,
         xpPerSecond: 0,
@@ -2522,6 +2537,10 @@ class McsSimulator {
     for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
       this.exportDataType.push(true);
     }
+    // Test Settings
+    this.isTestMode = false;
+    this.testMax = 10;
+    this.testCount = 0;
     // Simulation queue and webworkers
     this.workerURL = workerURL;
     this.currentJob = 0;
@@ -2539,8 +2558,22 @@ class McsSimulator {
     this.simulationWorkers = [];
     this.maxThreads = window.navigator.hardwareConcurrency;
     this.simStartTime = 0;
+    /** If the current sim has been cancelled */
+    this.simCancelled = false;
     // Create Web workers
     this.createWorkers();
+  }
+
+  /**
+   * Initializes a performance test
+   * @param {number} numSims number of simulations to run in a row
+   * @memberof McsSimulator
+   */
+  runTest(numSims) {
+    this.testCount = 0;
+    this.isTestMode = true;
+    this.testMax = numSims;
+    this.simulateCombat();
   }
 
   /**
@@ -2846,6 +2879,7 @@ class McsSimulator {
   */
   simulateCombat() {
     this.simStartTime = performance.now();
+    this.simCancelled = false;
     // Start by grabbing the player stats
     const playerStats = {
       attackSpeed: this.combatStats.attackSpeed,
@@ -2978,8 +3012,6 @@ class McsSimulator {
         if (this.monsterSimFilter[monsterID] && !this.monsterSimData[monsterID].inQueue) {
           this.monsterSimData[monsterID].inQueue = true;
           this.simulationQueue.push({monsterID: monsterID});
-        } else {
-          this.monsterSimData[monsterID].simSuccess = false;
         }
       });
     });
@@ -2989,8 +3021,6 @@ class McsSimulator {
         if (this.monsterSimFilter[monsterID] && !this.monsterSimData[monsterID].inQueue) {
           this.monsterSimData[monsterID].inQueue = true;
           this.simulationQueue.push({monsterID: monsterID});
-        } else {
-          this.monsterSimData[monsterID].simSuccess = false;
         }
       });
     });
@@ -3181,7 +3211,7 @@ class McsSimulator {
    * @param {number} workerID
   */
   startJob(workerID) {
-    if (this.currentJob < this.simulationQueue.length) {
+    if (this.currentJob < this.simulationQueue.length && !this.simCancelled) {
       const monsterID = this.simulationQueue[this.currentJob].monsterID;
       this.modifyCurrentSimStatsForMonster(monsterID);
       this.simulationWorkers[workerID].worker.postMessage({action: 'START_SIMULATION',
@@ -3203,6 +3233,14 @@ class McsSimulator {
         this.simInProgress = false;
         this.performPostSimAnalysis();
         this.parent.updateDisplayPostSim();
+        if (this.isTestMode) {
+          this.testCount++;
+          if (this.testCount < this.testMax) {
+            this.simulateCombat();
+          } else {
+            this.isTestMode = false;
+          }
+        }
         // console.log(this.simulationWorkers);
       }
     }
@@ -3255,6 +3293,17 @@ class McsSimulator {
       this.currentSim.playerStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + meleeStrengthBonus / 80 + effectiveStrengthLevel * meleeStrengthBonus / 640) * (1 + (this.currentSim.prayerBonus.meleeDamage / 100)) * (1 + this.currentSim.herbloreBonus.meleeStrength / 100)));
     }
   }
+  /**
+   * Attempts to cancel the currently running simulation and sends a cancelation message to each of the active workers
+   */
+  cancelSimulation() {
+    this.simCancelled = true;
+    this.simulationWorkers.forEach((simWorker)=>{
+      if (simWorker.inUse) {
+        simWorker.worker.postMessage({action: 'CANCEL_SIMULATION'});
+      }
+    });
+  }
 
   /**
    * Processes a message recieved from one of the simulation workers
@@ -3284,8 +3333,8 @@ class McsSimulator {
   */
   resetSimDone() {
     for (let i = 0; i < MONSTERS.length; i++) {
-      this.monsterSimData[i].simDone = false;
       this.monsterSimData[i].inQueue = false;
+      this.monsterSimData[i].simSuccess = false;
     }
   }
   /**
