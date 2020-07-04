@@ -233,7 +233,8 @@ class McsApp {
         spellVals.push(i);
       }
       this.gearSelecter.addDropdown('Spell', spellOpts, spellVals, 25, (event) => this.spellDropdownOnChange(event));
-      this.gearSelecter.addButton('Import from Game', (event) => this.importButtonOnClick(event), 280, 25);
+      this.gearSelecter.addSectionTitle('Import Gear Set');
+      this.gearSelecter.addMultiButton(['1', '2', '3'], 25, 80, [()=>this.importButtonOnClick(0), ()=>this.importButtonOnClick(1), ()=>this.importButtonOnClick(2)]);
     }
     // Potion & Prayer Selection Card:
     {
@@ -801,11 +802,13 @@ class McsApp {
   }
   /**
    * Callback for when the import button is clicked
+   * @param {number} setID Index of equipmentSets from 0-2 to import
    */
-  importButtonOnClick() {
+  importButtonOnClick(setID) {
     let gearID;
+    const setToImport = equipmentSets[setID].equipment;
     for (let i = 0; i < this.slotKeys.length; i++) {
-      gearID = equippedItems[CONSTANTS.equipmentSlot[this.slotKeys[i]]];
+      gearID = setToImport[CONSTANTS.equipmentSlot[this.slotKeys[i]]];
       this.gearSelected[i] = gearID;
       if (gearID != 0) {
         for (let j = 0; j < this.gearSubsets[i].length; j++) {
@@ -849,17 +852,16 @@ class McsApp {
       document.getElementById(`MCS ${key} Input`).value = skillLevel[CONSTANTS.skill[key]];
       this.simulator.playerLevels[key] = skillLevel[CONSTANTS.skill[key]];
     });
-    // Update attack style
-    if (attackStyle <= 2) {
-      this.simulator.attackStyle.Melee = attackStyle;
-      document.getElementById('MCS Melee Style Dropdown').selectedIndex = attackStyle;
-    } else if (attackStyle <= 5) {
-      this.simulator.attackStyle.Ranged = attackStyle - 3;
-      document.getElementById('MCS Ranged Style Dropdown').selectedIndex = attackStyle - 3;
-    } else {
-      this.simulator.attackStyle.Magic = attackStyle - 6;
-      document.getElementById('MCS Magic Style Dropdown').selectedIndex = attackStyle - 6;
-    }
+    // Set attack styles for each combat type:
+    const meleeStyle = selectedAttackStyle[0];
+    this.simulator.attackStyle.Melee = meleeStyle;
+    document.getElementById('MCS Melee Style Dropdown').selectedIndex = meleeStyle;
+    const rangedStyle = selectedAttackStyle[1];
+    this.simulator.attackStyle.Ranged = rangedStyle - 3;
+    document.getElementById('MCS Ranged Style Dropdown').selectedIndex = rangedStyle - 3;
+    const magicStyle = selectedAttackStyle[2];
+    this.simulator.attackStyle.Magic = magicStyle - 6;
+    document.getElementById('MCS Magic Style Dropdown').selectedIndex = magicStyle - 6;
     // Update spells
     document.getElementById('MCS Spell Dropdown').selectedIndex = selectedSpell;
     this.simulator.selectedSpell = selectedSpell;
@@ -2226,9 +2228,9 @@ class McsSimulator {
   /**
    *
    * @param {McsApp} parent Reference to container class
-   * @param {string} workerURI URI to simulator web worker
+   * @param {string} workerURL URL to simulator web worker
    */
-  constructor(parent, workerURI) {
+  constructor(parent, workerURL) {
     this.parent = parent;
     // Player combat stats
     this.playerLevels = {
@@ -2521,7 +2523,7 @@ class McsSimulator {
       this.exportDataType.push(true);
     }
     // Simulation queue and webworkers
-    this.workerURI = workerURI;
+    this.workerURL = workerURL;
     this.currentJob = 0;
     this.simInProgress = false;
     /** @typedef {Object} simulationJob
@@ -2536,40 +2538,47 @@ class McsSimulator {
     /** @type {Array<simulationWorker>} */
     this.simulationWorkers = [];
     this.maxThreads = window.navigator.hardwareConcurrency;
-    for (let i = 0; i < this.maxThreads; i++) {
-      this.createWorker()
-          .then((worker)=>{
-            this.intializeWorker(worker, i);
-            const newWorker = {
-              worker: worker,
-              inUse: false,
-              selfTime: 0,
-            };
-            this.simulationWorkers.push(newWorker);
-          });
-    }
     this.simStartTime = 0;
+    // Create Web workers
+    this.createWorkers();
   }
 
   /**
-   * Attempts to create a web worker, with a chrome hack
+   * Creates the webworkers for simulation jobs
+   */
+  async createWorkers() {
+    for (let i = 0; i < this.maxThreads; i++) {
+      const worker = await this.createWorker();
+      this.intializeWorker(worker, i);
+      const newWorker = {
+        worker: worker,
+        inUse: false,
+        selfTime: 0,
+      };
+      this.simulationWorkers.push(newWorker);
+    }
+  }
+
+  /**
+   * Attempts to create a web worker, if it fails uses a chrome hack to get a URL that works
    * @return {Promise<Worker>}
    */
   createWorker() {
     return new Promise((resolve, reject) => {
       let newWorker;
       try {
-        newWorker = new Worker(this.workerURI);
+        newWorker = new Worker(this.workerURL);
         resolve(newWorker);
       } catch (error) {
         // Chrome Hack
         if (error.name === 'SecurityError' && error.message.includes('Failed to construct \'Worker\': Script')) {
           const workerContent = new XMLHttpRequest();
-          workerContent.open('GET', this.workerURI);
+          workerContent.open('GET', this.workerURL);
           workerContent.send();
           workerContent.addEventListener('load', (event)=>{
             const blob = new Blob([event.currentTarget.responseText], {type: 'application/javascript'});
-            resolve(new Worker(URL.createObjectURL(blob)));
+            this.workerURL = URL.createObjectURL(blob);
+            resolve(new Worker(this.workerURL));
           });
         } else { // Other Error
           reject(error);
@@ -3249,7 +3258,7 @@ class McsSimulator {
 
   /**
    * Processes a message recieved from one of the simulation workers
-   * @param {*} event The event data of the worker
+   * @param {MessageEvent} event The event data of the worker
    * @param {number} workerID The ID of the worker that sent the message
    */
   processWorkerMessage(event, workerID) {

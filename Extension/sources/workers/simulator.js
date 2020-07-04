@@ -96,7 +96,7 @@ onmessage = (event) => {
  * @param {playerStats} playerStats
  * @param {number} Ntrials
  * @param {number} Nhitmax
- * @return {*}
+ * @return {Object}
  */
 function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // Calculate Accuracy
@@ -242,13 +242,13 @@ function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
       // Determine the smallest timer:
       let enemyAlive = true;
       let timeStep = Infinity;
-      if (player.isActing && player.actionTimer < timeStep) timeStep = player.actionTimer;
-      if (player.isAttacking && player.attackTimer < timeStep) timeStep = player.attackTimer;
-      if (player.isBurning && player.burnTimer < timeStep) timeStep = player.burnTimer;
-      if (player.isRecoiling && player.recoilTimer < timeStep) timeStep = player.recoilTimer;
-      if (enemy.isActing && enemy.actionTimer < timeStep) timeStep = enemy.actionTimer;
-      if (enemy.isAttacking && enemy.attackTimer < timeStep) timeStep = enemy.attackTimer;
-      if (enemy.isBleeding && enemy.bleedTimer < timeStep) timeStep = enemy.bleedTimer;
+      if (player.isActing) timeStep = Math.min(timeStep, player.actionTimer);
+      if (player.isAttacking) timeStep = Math.min(timeStep, player.attackTimer);
+      if (player.isBurning) timeStep = Math.min(timeStep, player.burnTimer);
+      if (player.isRecoiling) timeStep = Math.min(timeStep, player.recoilTimer);
+      if (enemy.isActing) timeStep = Math.min(timeStep, enemy.actionTimer);
+      if (enemy.isAttacking) timeStep = Math.min(timeStep, enemy.attackTimer);
+      if (enemy.isBleeding) timeStep = Math.min(timeStep, enemy.bleedTimer);
       if (timeStep == 0) {
         throw Error('Error: Timestep zero.');
       }
