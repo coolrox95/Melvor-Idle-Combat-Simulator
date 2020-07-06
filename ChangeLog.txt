@@ -1,3 +1,15 @@
+v0.9.0:
+Updated Combat Sim for game version Alpha v0.15.4
+New: The Combat simulator has now been multithreaded, and should now no longer freeze the game or tab when simulating. 
+  - There may be a significant decrease in simulation time for those with mult-core CPUs, and it should be possible to run longer simulations
+New: Added a Cancel Button for simulations that are currently running
+New: Added Buttons for choosing which of your gear sets to import from the game
+New: Added Buttons for toggling all monsters or dungeons
+Change: Default number of trials has been changed to 10000
+Change: Adjusted XP Calculations to account for xp rounding change
+Change: Adjusted Magic Evasion Calculation to reflect game change
+Fix: Changed Gold Emerald Ring Bonus to 7% from 10%
+
 v0.8.4:
 Fix: Fixed Water Surge not recieving max hit bonus from Cloudburst Staff
 

@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.8.4
+# Melvor-Idle-Combat-Simulator v0.9.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.15.3 of Melvor Idle.
+This extension was built for version: Alpha v0.15.4 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -11,7 +11,7 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
-1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.8.4.zip) the latest version of the simulator.
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.9.0.zip) the latest version of the simulator.
 2. Unzip the files.
 3. Navigate to: chrome://extensions and toggle Developer mode on.
 ![Toggling developer mode](Media/chromeInstall1.png)
@@ -37,8 +37,8 @@ Currently not available on the chrome webstore, but you can download the sources
    - Selecting Set Discovered will change the subset to keep undiscovered items.
    - Hitting Cancel will prevent the subset from changing
    - Hitting Save will confirm the current settings.
-4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot.
-5. Hit the Simulate button.
+4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot or toggle groups by clicking the Toggle Dungeon/Monster buttons.
+5. Hit the Simulate button, and wait for the simulation to finish. The Cancel button can be pressed to cancel a simulation early.
 6. Select the Plot Type to visualize your simulation results.
  - XP per second: Experience points per second for selected combat style's skills.
  - HP XP per second: Experience points per second for the Hitpoints skill.
@@ -56,6 +56,7 @@ Currently not available on the chrome webstore, but you can download the sources
  - Signet Ring Chance (%): The probability to gain at least 1 Signet Ring Half B after fighting a monster for Signet Time (h) hours.
  - Attacks Made per second: Average number of calls to attackEnemy() per second. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
  - Attacks Taken per second: Average number of calls to attackPlayer() per second. This can be used to determine potion charge usage for combat potions that consume charges on enemy attacks.
+ - Simulation Time: The amount of time it took to simulate the monster/dungeon in ms. Useful for disabling areas that take a long time to simulate. Note that this is the time the simulation of a single monster takes on a simulation worker/thread.
 7. Click on a bar to view detailed information about that monster/dungeon.
  - You can click Inspect Dungeon to view the simulation results for individual monsters inside a dungeon. Note that the average time in this view is the time required to defeat the quantity of that monster in the dungeon.
 8. Export Data to your Clip Board by clicking the Export Data button.
