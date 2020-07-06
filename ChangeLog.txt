@@ -1,3 +1,6 @@
+v0.9.1:
+Fixed a bug where incorrect player stats were being used for simulations when using Stormsnap, Slayer's Crossbow and Big Ol Ron.
+
 v0.9.0:
 Updated Combat Sim for game version Alpha v0.15.4
 New: The Combat simulator has now been multithreaded, and should now no longer freeze the game or tab when simulating. 
