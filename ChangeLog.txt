@@ -4,6 +4,7 @@ New: The Combat simulator has now been multithreaded, and should now no longer f
   - There may be a significant decrease in simulation time for those with mult-core CPUs, and it should be possible to run longer simulations
 New: Added a Cancel Button for simulations that are currently running
 New: Added Buttons for choosing which of your gear sets to import from the game
+New: Added Buttons for toggling all monsters or dungeons
 Change: Default number of trials has been changed to 10000
 Change: Adjusted XP Calculations to account for xp rounding change
 Change: Adjusted Magic Evasion Calculation to reflect game change
