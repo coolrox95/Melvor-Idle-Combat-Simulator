@@ -481,7 +481,7 @@ class McsApp {
       this.simPlotOpts2 = new McsCard(this.content, '275px', '100%', '150px');
       this.simPlotOpts2.addSectionTitle('Simulation Options');
       this.simPlotOpts2.addNumberInput('Max Hits', 1000, 25, 1, 10000, (event) => this.maxhitsInputOnChange(event));
-      this.simPlotOpts2.addNumberInput('# Trials', 1000, 25, 1, 100000, (event) => this.numtrialsInputOnChange(event));
+      this.simPlotOpts2.addNumberInput('# Trials', 10000, 25, 1, 100000, (event) => this.numtrialsInputOnChange(event));
       this.timeOptions = ['Second', 'Minute', 'Hour', 'Day'];
       this.timeShorthand = ['s', 'm', 'h', 'd'];
       this.selectedTimeUnit = this.timeOptions[0];
@@ -2445,7 +2445,7 @@ class McsSimulator {
     /** Max number of player hits to attempt before timeout */
     this.Nhitmax = 1000;
     /** Number of enemy kills to simulate */
-    this.Ntrials = 1000;
+    this.Ntrials = 10000;
     /** Number of hours to farm for signet ring */
     this.signetFarmTime = 1;
     /** @type {Array<boolean>} */

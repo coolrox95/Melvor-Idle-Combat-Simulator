@@ -37,8 +37,8 @@ Currently not available on the chrome webstore, but you can download the sources
    - Selecting Set Discovered will change the subset to keep undiscovered items.
    - Hitting Cancel will prevent the subset from changing
    - Hitting Save will confirm the current settings.
-4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot.
-5. Hit the Simulate button.
+4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot or toggle groups by clicking the Toggle Dungeon/Monster buttons.
+5. Hit the Simulate button, and wait for the simulation to finish. The Cancel button can be pressed to cancel a simulation early.
 6. Select the Plot Type to visualize your simulation results.
  - XP per second: Experience points per second for selected combat style's skills.
  - HP XP per second: Experience points per second for the Hitpoints skill.
