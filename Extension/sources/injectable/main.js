@@ -632,15 +632,7 @@ class McsApp {
     this.updateEquipStats();
     this.simulator.computeCombatStats();
     this.updateCombatStats();
-    if (darkMode) {
-      this.darkModeSwitch(true);
-    } else {
-      this.darkModeSwitch(false);
-    }
     this.plotter.updateBarData(this.simulator.getDataSet('xpPerSecond'));
-    // Add hooks into darkmode buttons
-    document.getElementById('setting-darkmode-enable').addEventListener('click', (event) => this.darkModeSwitch(true, event));
-    document.getElementById('setting-darkmode-disable').addEventListener('click', (event) => this.darkModeSwitch(false, event));
     // Export Options element
     this.exportOptionsButton = document.getElementById('MCS Show Export Options > Button');
     // Saving and loading of Gear Sets
@@ -1573,41 +1565,6 @@ class McsApp {
         document.getElementById(`MCS ${item.name} Radio Yes`).checked = false;
         document.getElementById(`MCS ${item.name} Radio No`).checked = true;
       }
-    });
-  }
-  // Callback to add to games darkmode settings
-  /**
-   * Toggles darkmode on and off
-   * @param {boolean} mode If darkmode should be enabled
-   */
-  darkModeSwitch(mode) {
-    if (mode) {
-      this.content.className = 'mcsTabContent mcsDarkMode';
-      this.setDropdownOptionsColor('#2c343f');
-      this.plotter.bars.forEach((bar) => {
-        bar.style.color = 'steelblue';
-      });
-      this.plotter.gridLine.forEach((line) => {
-        line.style.borderColor = 'lightslategray';
-      });
-    } else {
-      this.content.className = 'mcsTabContent mcsContainer';
-      this.setDropdownOptionsColor('white');
-      this.plotter.bars.forEach((bar) => {
-        bar.style.color = '#0072BD';
-      });
-      this.plotter.gridLine.forEach((line) => {
-        line.style.borderColor = 'lightgray';
-      });
-    }
-  }
-  /**
-   * Changes the background colour of every dropdown option
-   * @param {string} colour The colour to change the option to
-   */
-  setDropdownOptionsColor(colour) {
-    document.getElementsByClassName('mcsOption').forEach((option) => {
-      option.style.backgroundColor = colour;
     });
   }
   // Functions for dungeon display
