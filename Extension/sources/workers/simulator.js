@@ -64,7 +64,36 @@ let deadeyeAmulet;
 let confettiCrossbow;
 let warlockAmulet;
 let cancelStatus = false;
-// Item Data we actually need:
+/**
+ * [playerType][enemyType]
+ * 0:Melee 1:Ranged 2:Magic
+ */
+const combatTriangle = {
+  normal: {
+    damageModifier: [
+      [1, 1.1, 0.9],
+      [0.9, 1, 1.1],
+      [1.1, 0.9, 1],
+    ],
+    reductionModifier: [
+      [1, 1.25, 0.5],
+      [0.95, 1, 1.25],
+      [1.25, 0.85, 1],
+    ],
+  },
+  hardcore: {
+    damageModifier: [
+      [1, 1.1, 0.8],
+      [0.8, 1, 1.1],
+      [1.1, 0.8, 1],
+    ],
+    reductionModifier: [
+      [1, 1.25, 0.25],
+      [0.75, 1, 1.25],
+      [1.25, 0.75, 1],
+    ],
+  },
+};
 
 onmessage = (event) => {
   // console.log('Message Recieved from Simulator');
@@ -106,14 +135,23 @@ onmessage = (event) => {
  */
 async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // Calculate Accuracy
-  // Need to brind in calculate accuracy so it is no longer undefined here
   let playerAccuracy = calculateAccuracy(playerStats, enemyStats);
   let enemyAccuracy;
-  // Add a definition for if the player is using a proper protection prayer in playerStats, defined on job creation
+  // Set accuracy if using protection prayer
   if (playerStats.isProtected) {
     enemyAccuracy = 100 - protectFromValue;
   } else {
     enemyAccuracy = calculateAccuracy(enemyStats, playerStats);
+  }
+  let reductionModifier;
+  let damageModifier;
+  // Set Combat Triangle
+  if (playerStats.hardcore) {
+    reductionModifier = combatTriangle.hardcore.reductionModifier[playerStats.attackType][enemyStats.attackType];
+    damageModifier = combatTriangle.hardcore.damageModifier[playerStats.attackType][enemyStats.attackType];
+  } else {
+    reductionModifier = combatTriangle.normal.reductionModifier[playerStats.attackType][enemyStats.attackType];
+    damageModifier = combatTriangle.normal.damageModifier[playerStats.attackType][enemyStats.attackType];
   }
   // Start Monte Carlo simulation
   let enemyKills = 0;
@@ -178,6 +216,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     burnInterval: 500,
     currentSpeed: 0,
     reductionBuff: 0,
+    damageReduction: Math.floor(playerStats.damageReduction * reductionModifier),
     attackCount: 0,
     countMax: 0,
     isSlowed: false,
@@ -343,9 +382,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 const chance = Math.floor(Math.random() * 100);
                 if (chance < deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
               }
+              damageToEnemy *= damageModifier;
               if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
               if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-              enemy.hitpoints -= damageToEnemy;
+              enemy.hitpoints -= Math.floor(damageToEnemy);
               if (playerStats.specialData.canBleed && !enemy.isBleeding) {
                 // Start bleed effect
                 enemy.isBleeding = true;
@@ -411,9 +451,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 const chance = Math.floor(Math.random() * 100);
                 if (chance > deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
               }
+              damageToEnemy *= damageModifier;
               if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
               if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-              enemy.hitpoints -= damageToEnemy;
+              enemy.hitpoints -= Math.floor(damageToEnemy);
               if (enemy.reflectMelee > 0) stats.damageTaken += enemy.reflectMelee * numberMultiplier;
               if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.75) {
                 canStun = true;
@@ -482,13 +523,14 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
           else if (playerStats.specialData.stormsnap) damageToEnemy = 6 + 6 * playerStats.levels.Magic;
           else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
+          damageToEnemy *= damageModifier;
           if (playerStats.activeItems.Deadeye_Amulet) {
             const chance = Math.floor(Math.random() * 100);
             if (chance > deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
           }
           if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
           if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-          enemy.hitpoints -= damageToEnemy;
+          enemy.hitpoints -= Math.floor(damageToEnemy);
           if (playerStats.specialData.canBleed && !enemy.isBleeding) {
             // Start bleed effect
             enemy.isBleeding = true;
@@ -645,7 +687,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
               }
               if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
-              damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+              damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
               stats.damageTaken += damageToPlayer;
               if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
                 const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -656,7 +698,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                   player.recoilTimer = 2000;
                 }
               }
-              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {};
               // Apply Stun
               if (currentSpecial.canStun && !player.isStunned) {
                 player.isStunned = true;
@@ -698,7 +740,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             }
             if (attackHits) {
               let damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
-              damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+              damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
               stats.damageTaken += damageToPlayer;
               if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
                 const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -709,7 +751,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                   player.recoilTimer = 2000;
                 }
               }
-              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {
+                player.reductionBuff += 2;
+                player.damageReduction = Math.floor((playerStats.damageReduction + player.reductionBuff) * reductionModifier);
+              }
             }
             enemy.actionTimer = enemy.currentSpeed;
           }
@@ -797,7 +842,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
           }
           if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
-          damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+          damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
           stats.damageTaken += damageToPlayer;
           if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
             const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -808,7 +853,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               player.recoilTimer = 2000;
             }
           }
-          if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+          if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {
+            player.reductionBuff += 2;
+            player.damageReduction = Math.floor((playerStats.damageReduction + player.reductionBuff) * reductionModifier);
+          }
           // Apply Stun
           if (currentSpecial.canStun && !player.isStunned) {
             player.isStunned = true;
