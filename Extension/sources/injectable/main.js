@@ -501,14 +501,14 @@ class McsApp {
       const petNames = combatPets.map((pet)=>{
         return pet.name;
       });
-      const petButtonCallbacks = combatPets.map((_pet, petID)=>{
-        return (e)=>this.petButtonOnClick(e, petID);
+      const petButtonCallbacks = combatPets.map((_pet, subID)=>{
+        return (e)=>this.petButtonOnClick(e, combatPetsIds[subID]);
       });
       const petTooltips = this.petSelectCard.addMultiImageButton(petImageSources, petNames, 24, 24, petButtonCallbacks, 176);
-      petTooltips.forEach((tooltip, petID)=>{
+      petTooltips.forEach((tooltip, subID)=>{
         const newSpan = document.createElement('span');
         newSpan.className = 'mcsTTTitle';
-        newSpan.textContent = petNames[petID];
+        newSpan.textContent = petNames[subID];
         tooltip.appendChild(newSpan);
       });
     }
@@ -1374,6 +1374,8 @@ class McsApp {
       this.simulator.petOwned[petID] = true;
       event.currentTarget.className = 'mcsImageButton mcsButtonImageSelected';
     }
+    this.simulator.computeCombatStats();
+    this.updateCombatStats();
   }
   // Callback Functions for the Sim Options Card
   /**
@@ -2688,6 +2690,7 @@ class McsSimulator {
       magicLevelRequired: 1,
       slayerXPBonus: 0,
       chanceToDoubleLoot: 0,
+      maxHitpointsBonus: 0,
     };
     // Spell Selection
     this.selectedSpell = 0;
@@ -2714,7 +2717,9 @@ class McsSimulator {
       },
     };
     // Pet Selection
-    this.petOwned = [false, false, false, false, false, false, false, false, false];
+    this.petOwned = PETS.map(()=>{
+      return false;
+    });
     // Style Selection
     this.attackStyle = {
       Melee: 0,
@@ -2731,6 +2736,7 @@ class McsSimulator {
       maxMagDefRoll: 0,
       damageReduction: 0,
       attackType: 0,
+      maxHitpoints: 0,
     };
     // Prayer Stats
     /** @type {Array<boolean>} */
@@ -3107,6 +3113,7 @@ class McsSimulator {
       this.equipStats.magicDefenceBonus += (curItem.magicDefenceBonus) ? curItem.magicDefenceBonus : 0;
       this.equipStats.slayerXPBonus += (curItem.slayerBonusXP) ? curItem.slayerBonusXP : 0;
       this.equipStats.chanceToDoubleLoot += (curItem.chanceToDoubleLoot) ? curItem.chanceToDoubleLoot : 0;
+      this.equipStats.maxHitpointsBonus += (curItem.increasedMaxHitpoints) ? curItem.increasedMaxHitpoints : 0;
 
       if (((curItem.attackLevelRequired) ? curItem.attackLevelRequired : 1) > this.equipStats.attackLevelRequired) {
         this.equipStats.attackLevelRequired = curItem.attackLevelRequired;
@@ -3136,7 +3143,7 @@ class McsSimulator {
     const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
     // Ranged
     if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
-      this.combatStats.attackType = 1;
+      this.combatStats.attackType = CONSTANTS.attackType.Ranged;
       if (this.attackStyle.Ranged == 0) {
         attackStyleBonus += 3;
         this.combatStats.attackSpeed = this.equipStats.attackSpeed;
@@ -3153,7 +3160,7 @@ class McsSimulator {
       this.combatStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.equipStats.rangedStrengthBonus / 80 + effectiveStrengthLevel * this.equipStats.rangedStrengthBonus / 640) * (1 + (this.prayerBonus.rangedDamage / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
       // Magic
     } else if (items[weaponID].isMagic) {
-      this.combatStats.attackType = 2;
+      this.combatStats.attackType = CONSTANTS.attackType.Magic;
       effectiveAttackLevel = Math.floor(this.playerLevels.Magic + 8 + attackStyleBonus);
       this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.magicAttackBonus + 64) * (1 + (this.prayerBonus.magicAccuracy / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
       this.combatStats.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.selectedSpell].maxHit + SPELLS[this.selectedSpell].maxHit * (this.equipStats.magicDamageBonus / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonus.magicDamage / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
@@ -3164,11 +3171,13 @@ class McsSimulator {
       this.combatStats.attackSpeed = this.equipStats.attackSpeed;
       // Melee
     } else {
-      this.combatStats.attackType = 0;
+      this.combatStats.attackType = CONSTANTS.attackType.Melee;
+      if (this.petOwned[12]) attackStyleBonus += 3;
       effectiveAttackLevel = Math.floor(this.playerLevels.Attack + 8 + attackStyleBonus);
       this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.attackBonus[this.attackStyle.Melee] + 64) * (1 + (this.prayerBonus.meleeAccuracy / 100)) * (1 + this.herbloreBonus.meleeAccuracy / 100));
-
-      effectiveStrengthLevel = Math.floor(this.playerLevels.Strength + 8 + 1);
+      let strengthLevelBonus = 1;
+      if (this.petOwned[13]) strengthLevelBonus += 3;
+      effectiveStrengthLevel = Math.floor(this.playerLevels.Strength + 8 + strengthLevelBonus);
       this.combatStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.equipStats.strengthBonus / 80 + effectiveStrengthLevel * this.equipStats.strengthBonus / 640) * (1 + (this.prayerBonus.meleeDamage / 100)) * (1 + this.herbloreBonus.meleeStrength / 100)));
       this.combatStats.attackSpeed = this.equipStats.attackSpeed;
     }
@@ -3176,10 +3185,14 @@ class McsSimulator {
     this.combatStats.maxDefRoll = Math.floor(effectiveDefenceLevel * (this.equipStats.defenceBonus + 64) * (1 + (this.prayerBonus.meleeEvasion) / 100) * (1 + this.herbloreBonus.meleeEvasion / 100));
     const effectiveRngDefenceLevel = Math.floor(this.playerLevels.Defence + 8 + 1);
     this.combatStats.maxRngDefRoll = Math.floor(effectiveRngDefenceLevel * (this.equipStats.rangedDefenceBonus + 64) * (1 + (this.prayerBonus.rangedEvasion) / 100) * (1 + this.herbloreBonus.rangedEvasion / 100));
-    // This might be changed because it is currently a bug
     const effectiveMagicDefenceLevel = Math.floor(this.playerLevels.Magic * 0.7 + this.playerLevels.Defence * 0.3 + 9);
     this.combatStats.maxMagDefRoll = Math.floor(effectiveMagicDefenceLevel * (this.equipStats.magicDefenceBonus + 64) * (1 + (this.prayerBonus.magicEvasion / 100)) * (1 + this.herbloreBonus.magicEvasion / 100));
     this.combatStats.damageReduction = this.equipStats.damageReduction + this.herbloreBonus.damageReduction + this.prayerBonus.damageReduction;
+    if (this.petOwned[14]) this.combatStats.damageReduction++;
+    // Max Hitpoints
+    this.combatStats.maxHitpoints = this.playerLevels.Hitpoints + this.equipStats.maxHitpointsBonus;
+    if (this.petOwned[15]) this.combatStats.maxHitpoints++;
+    this.combatStats.maxHitpoints *= numberMultiplier;
   }
   /**
   * @description Computes the prayer bonuses for the selected prayers
@@ -3308,6 +3321,7 @@ class McsSimulator {
     this.equipStats.defenceLevelRequired = 1;
     this.equipStats.slayerXPBonus = 0;
     this.equipStats.chanceToDoubleLoot = 0;
+    this.equipStats.maxHitpointsBonus = 0;
   }
   /**
   * Iterate through all the combatAreas and DUNGEONS to create a set of monsterSimData and dungeonSimData
@@ -3391,6 +3405,7 @@ class McsSimulator {
     }
     Object.assign(this.currentSim.equipStats, this.equipStats);
     this.currentSim.lootBonus = 1 + this.equipStats.chanceToDoubleLoot / 100;
+    if (this.petOwned[20]) this.currentSim.lootBonus += 0.01;
     this.currentSim.slayerXPBonus = this.equipStats.slayerXPBonus;
     this.currentSim.herbConvertChance = this.herbloreBonus.luckyHerb / 100;
     this.currentSim.doBonesAutoBury = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
@@ -3423,6 +3438,11 @@ class McsSimulator {
         // XP Gain
         playerStats.prayerXPperDamage += 2 * PRAYER[i].pointsPerPlayer / numberMultiplier;
       }
+    }
+    if (this.petOwned[18]) {
+      playerStats.prayerPointsPerAttack *= 0.95;
+      playerStats.prayerPointsPerEnemy *= 0.95;
+      playerStats.prayerPointsPerHeal *= 0.95;
     }
     playerStats.prayerPointsPerAttack *= (1 - this.herbloreBonus.divine / 100);
     playerStats.prayerPointsPerEnemy *= (1 - this.herbloreBonus.divine / 100);
