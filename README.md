@@ -1,6 +1,6 @@
-# Melvor-Idle-Combat-Simulator v0.9.1
+# Melvor-Idle-Combat-Simulator v0.10.0
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
-This extension was built for version: Alpha v0.15.4 of Melvor Idle.
+This extension was built for version: Alpha v0.16 of Melvor Idle.
 
 ## How to Install
 While this extension has been tested, it is still recommended to create a backup of your save file first.
@@ -11,7 +11,7 @@ Install from the [Firefox Addons Site](https://addons.mozilla.org/en-US/firefox/
 
 ### Chrome:
 Currently not available on the chrome webstore, but you can download the sources here and add it as a [temporary addon](https://developer.chrome.com/extensions/getstarted).
-1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.9.1.zip) the latest version of the simulator.
+1. [Download](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/raw/master/Releases/v0.10.0.zip) the latest version of the simulator.
 2. Unzip the files.
 3. Navigate to: chrome://extensions and toggle Developer mode on.
 ![Toggling developer mode](Media/chromeInstall1.png)
@@ -22,13 +22,30 @@ Currently not available on the chrome webstore, but you can download the sources
 ![Disabling or Removing the Extension](Media/chromeInstall3.png)
 
 ## Instructions:
-1. Toggle the display of the simulator using the option on the game's sidebar.
-2. Select your gear using the drop down menus, or import it from the game. Select Prayers using the prayer menu. Select potions from the potions menu.
-3. Select simulation options:
+1. Switch to the simulator page using the Combat Simulator option under the new Tools section in the game's sidebar.
+2. Select the tabs of the simulator and adjust the settings for your simulation
+ - Equipment Tab: Allows you to change your equipment, combat style, and import gear sets from the game
+  - To change equipment simply click on the slot you want to change and select equipment from the popup menu
+  - To Import Gear Sets from the game click on the numbered buttons to import the corresponding gear set
+    - Player Levels, Spells, Prayers, Potions and Pets will also be imported
+  - Use the Combat Style dropdown menu to change the style for that weapon type
+ - Levels Tab: Allows you to adjust the levels used in the simulation
+  - Levels may be set to 'virtual' values above 99, these will not provide benefits to your stats, but factor into the calculation of pet chances
+- Spells Tab: Allows you to select Standard Spells, Curses, Auroras, and Ancient Magicks from their respective sub tabs.
+  - The level and item requirements of spells are respected
+- Prayers Tab: Allows you to select up to 2 Prayers that you meet the level requirements for
+- Potions Tab: Allows you to select a single combat potion
+  - Use the Potion Tier dropdown to change the tier
+  - Click on the potion icons to select the type
+- Pets Tab: Allows you to select which pets you own. Only the relevant pets are listed.
+- Sim. Options Tab: Allows you to select advanced and assorted simulation options
  - Max Hits: Controls the maximum number of attempts to hit an enemy before the simulation times out.
  - #Trials: Controls the number of times each enemy is simulated. Higher values lead to more accuracy at the expense of longer computation time.
- - Time Unit: The unit to measure rates in (e.g. xp per second vs. xp per hour)
- - Slayer Task? Toggles whether or not to calculate slayer XP as if you were completing a slayer task.
+ - Signet Time (h): The time period (in hours) used for the 'Chance for Signet Part B' calculation
+ - Slayer Task?: Whether to consider monsters killed to be part of a slayer task.
+  - Impacts Slayer pet chance, Slayer Crossbow, and Slayer XP calculations
+ - Hardcore Mode?: Whether to use the hardcore combat triangle and disable passive regeneration
+- GP Options Tab: Various setting that adjust the way the GP per X calculations are performed
  - Sell Bones: Whether or not to sell bones. Used in GP calculations.
  - Convert Shards: Whether or not to convert elemental shards from god dungeons into elemental chests.
  - Sell Loot: Whether or not to sell all loot, a subset of loot or none of it.
@@ -37,29 +54,30 @@ Currently not available on the chrome webstore, but you can download the sources
    - Selecting Set Discovered will change the subset to keep undiscovered items.
    - Hitting Cancel will prevent the subset from changing
    - Hitting Save will confirm the current settings.
-4. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot or toggle groups by clicking the Toggle Dungeon/Monster buttons.
-5. Hit the Simulate button, and wait for the simulation to finish. The Cancel button can be pressed to cancel a simulation early.
-6. Select the Plot Type to visualize your simulation results.
- - XP per second: Experience points per second for selected combat style's skills.
- - HP XP per second: Experience points per second for the Hitpoints skill.
- - Prayer XP per second: Experience points per second for the Prayer skill.
- - Slayer XP per second: Experience points per second for the Slayer skill.
- - XP per Attack: Average amount of experience points per attack
- - HP loss per second: Average amount of HP lost per second while fighting an enemy/dungeon. Includes passive regen.
- - Prayer Points per second: Average amount of prayer points per second consumed.
- - Damage per second: Average damage per second.
- - Average Kill Time (s): The time it takes in seconds to kill a singly enemy for Combat Areas or the time to clear a Dungeon in seconds.
+3. Toggle the simulation of individual monster or dungeons by clicking on their image below the plot or toggle groups by clicking the Toggle Dungeon/Monster buttons.
+ - Toggling the simulation will also remove their bar from the plot and adjust the data scaling
+4. Hit the Simulate button, and wait for the simulation to finish. The Cancel button can be pressed to cancel a simulation early.
+5. Select the Plot Type to visualize simulation results
+ - XP per X: Experience points per X for selected combat style's skills.
+ - HP XP per X: Experience points per X for the Hitpoints skill.
+ - Prayer XP per X: Experience points per X for the Prayer skill.
+ - Slayer XP per X: Experience points per X for the Slayer skill.
+ - XP per Attack: Average amount of experience points per attack.
+ - HP loss per X: Average amount of HP lost per X while fighting an enemy/dungeon. Regeneration effects are included in this calculation. Regeneration that outpaces HP loss is listed as a 0 value.
+ - Prayer Points per X: Average amount of prayer points per X consumed.
+ - Damage per X: Average damage per X.
+ - Average Kill Time (s): The time it takes in seconds to kill a singly enemy or the time to clear a Dungeon in seconds.
  - Damage per Attack: The average amount of damage done per attack.
- - GP per Kill: The average amount of GP earned when killing a monster/completing a dungeon.
- - GP per second: The average amount of GP earned per second.
- - Potential Herblore XP/s: The potential herblore xp earned using lucky herb potions. Assumes crafting the most xp efficient potions.
- - Signet Ring Chance (%): The probability to gain at least 1 Signet Ring Half B after fighting a monster for Signet Time (h) hours.
- - Attacks Made per second: Average number of calls to attackEnemy() per second. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
- - Attacks Taken per second: Average number of calls to attackPlayer() per second. This can be used to determine potion charge usage for combat potions that consume charges on enemy attacks.
- - Simulation Time: The amount of time it took to simulate the monster/dungeon in ms. Useful for disabling areas that take a long time to simulate. Note that this is the time the simulation of a single monster takes on a simulation worker/thread.
-7. Click on a bar to view detailed information about that monster/dungeon.
+ - GP per X: The average amount of GP earned per X.
+ - Potential Herblore XP per X: The potential herblore xp earned using lucky herb potions. Assumes crafting the most xp efficient potions.
+ - Chance for Signet Part B(%): The probability to gain at least 1 Signet Ring Half B after fighting a monster for Signet Time (h) hours.
+ - Attacks Made per X: Average number of calls to attackEnemy() per X. This can be used to determine most combat potion charge usages, ammunition usage and rune usage.
+ - Attacks Taken per X: Average number of calls to attackPlayer() per X. This can be used to determine potion charge usage for combat potions that consume charges on enemy attacks.
+ - Y Pet Chance per X: The probability to recieve Y pet in the given X time period.
+  - Pets are rolled only when you earn experience of the given type, with expeption to the slayer pet, which is only rolled upon the completion of slayer tasks.
+6. Click on a bar to view detailed information about that monster/dungeon.
  - You can click Inspect Dungeon to view the simulation results for individual monsters inside a dungeon. Note that the average time in this view is the time required to defeat the quantity of that monster in the dungeon.
-8. Export Data to your Clip Board by clicking the Export Data button.
+7. Export Data to your Clip Board by clicking the Export Data button.
  - You can change the options for this export by clicking Show Export Options.
  - Export Dungeon Monsters toggles whether the individual monsters from dungeons should be exported.
  - Export Non-Simulated toggles whether simulations that have been toggled off should be exported.
@@ -70,12 +88,13 @@ This simulator assumes that the game is running with absolutely no slowdowns, an
 In addition the calculation for hitpoints used per second assumes there is no cap on player hitpoints (It simply sums the damage taken and subtracts all possible healing). Actual results will tend to be higher.
 
 ### Known Issues:
-Currently the Slayer Crossbow applies its strength bonus to dungeons when you have Slayer Task? set to Yes. For accurate results in dungeons please set this to No.
+- Currently the Slayer Crossbow applies its strength bonus to dungeons when you have Slayer Task? set to Yes. For accurate results in dungeons please set this to No.
+- When you earn pets in game while on the simulation page, the page will become a hybrd of the simulator and game settings menu. To remedy this you will need to change to a game page and then select the Combat Simulator again.
 ## Screenshots
 ### Darkmode
-![combatSim](https://imgur.com/DNrbI2Z.png)
+![combatSim](Media/darkMode.png)
 ### Lightmode
-![combatSim](https://imgur.com/pCDLqQR.png)
+![combatSim](Media/lightMode.png)
 ## Suggestions and Feedback
 Found a bug or want to request a feature?  
 Feel free to message me on the [Melvor Idle Discord](https://discord.gg/TWDT7PM) or [submit a report](https://github.com/coolrox95/Melvor-Idle-Combat-Simulator/issues/new) to this repository.

@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.9.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.10.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -39,13 +39,14 @@ class McsApp {
       'Damage per ',
       'Average Kill Time (s)',
       'Damage per Attack',
-      'GP per Kill',
       'GP per ',
       'Potential Herblore XP per ',
       'Chance for Signet Part B(%)',
       'Attacks Made per ',
       'Attacks Taken per ',
-      'Simulation Time'];
+      'Pet Chance per ',
+      // 'Simulation Time',
+    ];
     this.plotTypeIsTime = [true,
       true,
       true,
@@ -56,13 +57,14 @@ class McsApp {
       true,
       false,
       false,
-      false,
       true,
       true,
       false,
       true,
       true,
-      false];
+      true,
+      // false,
+    ];
     this.plotTypeDropdownValues = ['xpPerSecond',
       'hpxpPerSecond',
       'prayerXpPerSecond',
@@ -73,13 +75,14 @@ class McsApp {
       'dmgPerSecond',
       'killTimeS',
       'avgHitDmg',
-      'gpPerKill',
       'gpPerSecond',
       'herbloreXPPerSecond',
       'signetChance',
       'attacksMadePerSecond',
       'attacksTakenPerSecond',
-      'simulationTime'];
+      'petChance',
+      // 'simulationTime',
+    ];
     this.zoneInfoNames = ['XP/',
       'HP XP/',
       'Prayer XP/',
@@ -90,13 +93,20 @@ class McsApp {
       'Damage/',
       'Kill Time(s)',
       'Damage/attack',
-      'GP/kill',
       'GP/',
       'Herb XP/',
       'Signet Chance (%)',
       'Attacks Made/',
       'Attacks Taken/',
-      'Sim Time'];
+      ' Pet Chance/',
+      // 'Sim Time',
+    ];
+    // Time unit options
+    this.timeOptions = ['Kill', 'Second', 'Minute', 'Hour', 'Day'];
+    this.timeShorthand = ['kill', 's', 'm', 'h', 'd'];
+    this.selectedTimeUnit = this.timeOptions[1];
+    this.selectedTimeShorthand = this.timeShorthand[1];
+    this.timeMultipliers = [-1, 1, 60, 3600, 3600 * 24];
     this.emptyItems = {
       Helmet: {
         name: 'None',
@@ -175,6 +185,23 @@ class McsApp {
         media: 'assets/media/bank/armour_cape.svg',
       },
     };
+    // Useful assets
+    const media = {
+      combat: 'assets/media/skills/combat/combat.svg',
+      prayer: 'assets/media/skills/prayer/prayer.svg',
+      spellbook: 'assets/media/skills/combat/spellbook.svg',
+      curse: 'assets/media/skills/combat/curses.svg',
+      aurora: 'assets/media/skills/combat/auroras.svg',
+      ancient: 'assets/media/skills/combat/ancient.svg',
+      emptyPotion: 'assets/media/skills/herblore/potion_empty.svg',
+      pet: 'assets/media/pets/hitpoints.png',
+      settings: 'assets/media/main/settings_header.svg',
+      gp: 'assets/media/main/coins.svg',
+    };
+    // Forced gear sorting
+    this.forceMeleeArmour = [CONSTANTS.item.Slayer_Helmet_Basic, CONSTANTS.item.Slayer_Platebody_Basic];
+    this.forceRangedArmour = [CONSTANTS.item.Slayer_Cowl_Basic, CONSTANTS.item.Slayer_Leather_Body_Basic];
+    this.forceMagicArmour = [CONSTANTS.item.Slayer_Wizard_Hat_Basic, CONSTANTS.item.Slayer_Wizard_Robes_Basic, CONSTANTS.item.Enchanted_Shield];
     // Generate gear subsets
     this.slotKeys = Object.keys(CONSTANTS.equipmentSlot);
     this.gearSubsets = [];
@@ -218,6 +245,16 @@ class McsApp {
       };
     }
     this.skillKeys = ['Attack', 'Strength', 'Defence', 'Hitpoints', 'Ranged', 'Magic', 'Prayer', 'Slayer'];
+    this.skillShorthand = {
+      Attack: 'Att.',
+      Strength: 'Str.',
+      Defence: 'Def.',
+      Hitpoints: 'HP',
+      Ranged: 'Ran.',
+      Magic: 'Mag.',
+      Prayer: 'Pra.',
+      Slayer: 'Sla.',
+    };
     // Simulation Object
     this.simulator = new McsSimulator(this, urls.simulationWorker);
     // Temporary GP/s settings variable
@@ -227,7 +264,11 @@ class McsApp {
     this.topContent = document.createElement('div');
     this.topContent.className = 'mcsTabContent';
     this.topContent.id = 'MCS Top Content';
-
+    // Create the bottom container for the sim
+    this.botContent = document.createElement('div');
+    this.botContent.className = 'mcsTabContent';
+    this.botContent.style.flexWrap = 'nowrap';
+    this.botContent.id = 'MCS Bot Content';
     // Add listeners for changing page to not the sim
     document.getElementsByClassName('nav-main-link').forEach((element)=>{
       if (element.href.includes('changePage')) {
@@ -262,18 +303,33 @@ class McsApp {
     this.tabDiv.appendChild(elem2);
     const elem3 = document.createElement('img');
     elem3.className = 'nav-img';
-    elem3.src = 'assets/media/skills/combat/combat.svg';
+    elem3.src = media.combat;
     elem2.appendChild(elem3);
     const elem4 = document.createElement('span');
     elem4.className = 'nav-main-link-name';
     elem4.textContent = 'Combat Simulator';
     elem2.appendChild(elem4);
-
+    {
+      this.selectedMainTab = 0;
+      this.mainTabCard = new McsCard(this.topContent, '350px', '', '150px', true);
+      const mainTabNames = ['Equipment', 'Levels', 'Spells', 'Prayers', 'Potions', 'Pets', 'Sim. Options', 'GP Options'];
+      const mainTabImages = [this.emptyItems.Helmet.media, media.combat, media.spellbook, media.prayer, media.emptyPotion, media.pet, media.settings, media.gp];
+      const mainTabCallbacks = mainTabNames.map((_name, index)=>{
+        return ()=>this.mainTabOnClick(index);
+      });
+      this.mainTabIDs = mainTabNames.map((name)=>{
+        return `MCS ${name} Tab`;
+      });
+      this.mainTabContainer = this.mainTabCard.addTabMenu(mainTabNames, mainTabImages, mainTabCallbacks, 25);
+      /** @type {McsCard[]} */
+      this.mainTabCards = [];
+    }
     // Add Cards to the container
     // Gear/Level/Style/Spell Selection Card:
     {
-      this.gearLevelCard = new McsCard(this.topContent, '345px', '', '150px');
-      this.gearLevelCard.addSectionTitle('Equipment');
+      this.gearSelectCard = new McsCard(this.mainTabContainer, '', '', '150px');
+      this.mainTabCards.push(this.gearSelectCard);
+      this.gearSelectCard.addSectionTitle('Equipment');
       const gearRows = [
         [CONSTANTS.equipmentSlot.Helmet],
         [CONSTANTS.equipmentSlot.Cape, CONSTANTS.equipmentSlot.Amulet, CONSTANTS.equipmentSlot.Quiver],
@@ -290,46 +346,71 @@ class McsApp {
           rowIDs.push(`MCS ${this.slotKeys[gearID]} Gear Image`);
           rowPopups.push(this.createGearPopup(gearID));
         });
-        this.gearLevelCard.addMultiPopupMenu(rowSources, rowIDs, 40, 40, rowPopups);
+        this.gearSelectCard.addMultiPopupMenu(rowSources, rowIDs, 40, 40, rowPopups);
       });
-      this.gearLevelCard.addSectionTitle('Import Gear Set');
-      this.gearLevelCard.addMultiButton(['1', '2', '3'], 25, 80, [()=>this.importButtonOnClick(0), ()=>this.importButtonOnClick(1), ()=>this.importButtonOnClick(2)]);
-      this.gearLevelCard.addSectionTitle('Player Levels');
-      this.skillKeys.forEach((element) => {
-        let minLevel = 1;
-        if (element == 'Hitpoints') {
-          minLevel = 10;
-        }
-        this.gearLevelCard.addNumberInput(element, `${minLevel}`, 24, minLevel, 99, (event) => this.levelInputOnChange(event, element));
-      });
-      this.gearLevelCard.addSectionTitle('Combat Style');
+      this.gearSelectCard.addSectionTitle('Import Gear Set');
+      this.gearSelectCard.addMultiButton(['1', '2', '3'], 25, 80, [()=>this.importButtonOnClick(0), ()=>this.importButtonOnClick(1), ()=>this.importButtonOnClick(2)]);
+      this.gearSelectCard.addSectionTitle('Combat Style');
       // Style dropdown (Specially Coded)
-      const combatStyleCCContainer = this.gearLevelCard.createCCContainer(24);
-      const combatStyleLabel = this.gearLevelCard.createLabel('Style: ', '');
-      const meleeStyleDropdown = this.gearLevelCard.createDropdown(['Stab', 'Slash', 'Block'], [0, 1, 2], 'MCS Melee Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Melee'));
-      const rangedStyleDropdown = this.gearLevelCard.createDropdown(['Accurate', 'Rapid', 'Longrange'], [0, 1, 2], 'MCS Ranged Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Ranged'));
-      const magicStyleDropdown = this.gearLevelCard.createDropdown(['Magic', 'Defensive'], [0, 1], 'MCS Magic Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Magic'));
+      const combatStyleCCContainer = this.gearSelectCard.createCCContainer(24);
+      const combatStyleLabel = this.gearSelectCard.createLabel('Style: ', '');
+      const meleeStyleDropdown = this.gearSelectCard.createDropdown(['Stab', 'Slash', 'Block'], [0, 1, 2], 'MCS Melee Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Melee'));
+      const rangedStyleDropdown = this.gearSelectCard.createDropdown(['Accurate', 'Rapid', 'Longrange'], [0, 1, 2], 'MCS Ranged Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Ranged'));
+      const magicStyleDropdown = this.gearSelectCard.createDropdown(['Magic', 'Defensive'], [0, 1], 'MCS Magic Style Dropdown', (event) => this.styleDropdownOnChange(event, 'Magic'));
       rangedStyleDropdown.style.display = 'none';
       magicStyleDropdown.style.display = 'none';
       combatStyleCCContainer.appendChild(combatStyleLabel);
       combatStyleCCContainer.appendChild(meleeStyleDropdown);
       combatStyleCCContainer.appendChild(rangedStyleDropdown);
       combatStyleCCContainer.appendChild(magicStyleDropdown);
-      this.gearLevelCard.container.appendChild(combatStyleCCContainer);
-      // Spell dropdown
-      const spellOpts = [];
-      const spellVals = [];
-      for (let i = 0; i < SPELLS.length; i++) {
-        spellOpts.push(this.getSpellName(i));
-        spellVals.push(i);
-      }
-      this.gearLevelCard.addDropdown('Spell', spellOpts, spellVals, 25, (event) => this.spellDropdownOnChange(event));
+      this.gearSelectCard.container.appendChild(combatStyleCCContainer);
     }
-    // Potion & Prayer Selection Card:
+    // Level Selection Card:
     {
-      this.prayerPotionCard = new McsCard(this.topContent, '200px', '', '100px');
-      this.prayerPotionCard.container.style.width = '200px';
-      this.prayerPotionCard.addSectionTitle('Prayers');
+      this.levelSelectCard = new McsCard(this.mainTabContainer, '', '', '150px');
+      this.mainTabCards.push(this.levelSelectCard);
+      this.levelSelectCard.addSectionTitle('Player Levels');
+      this.skillKeys.forEach((skillName) => {
+        let minLevel = 1;
+        if (skillName === 'Hitpoints') {
+          minLevel = 10;
+        }
+        this.levelSelectCard.addNumberInput(skillName, `${minLevel}`, 24, minLevel, 500, (event) => this.levelInputOnChange(event, skillName));
+      });
+      this.levelSelectCard.addInfoText('Virtual levels above 99 may be set for the purpose of pet chance calculation. They do not impact stats.');
+    }
+    // Spell selection cards
+    {
+      this.spellSelectCard = new McsCard(this.mainTabContainer, '', '100%', '150px');
+      this.mainTabCards.push(this.spellSelectCard);
+      this.spellSelectCard.addSectionTitle('Spells');
+      this.selectedSpellTab = 0;
+      const spellTypeNames = ['Standard', 'Curses', 'Auroras', 'Ancient MAgicks'];
+      const spellTypeImages = [media.spellbook, media.curse, media.aurora, media.ancient];
+      const spellTabCallbacks = spellTypeNames.map((_name, index)=>{
+        return ()=>this.spellTabOnClick(index);
+      });
+      this.spellTabIDs = spellTypeNames.map((name)=>{
+        return `MCS ${name} Tab`;
+      });
+      this.spellTabContainer = this.spellSelectCard.addTabMenu(spellTypeNames, spellTypeImages, spellTabCallbacks, 25);
+      /** @type {McsCard[]} */
+      this.spellTabCards = [];
+      this.spellTabCards.push(this.createSpellSelectCard('Standard Magic', 'standard'));
+      this.spellTabCards.push(this.createSpellSelectCard('Curses', 'curse'));
+      this.spellTabCards.push(this.createSpellSelectCard('Auroras', 'aurora'));
+      this.spellTabCards.push(this.createSpellSelectCard('Ancient Magicks', 'ancient'));
+      this.spellTabCards.forEach((card, cardID)=>{
+        if (cardID !== 0) {
+          card.container.style.display = 'none';
+        }
+      });
+    }
+    // Prayer Selection Card:
+    {
+      this.prayerSelectCard = new McsCard(this.mainTabContainer, '', '', '100px');
+      this.mainTabCards.push(this.prayerSelectCard);
+      this.prayerSelectCard.addSectionTitle('Prayers');
       const prayerSources = [];
       const prayerNames = [];
       const prayerCallbacks = [];
@@ -338,7 +419,7 @@ class McsApp {
         prayerNames.push(this.getPrayerName(i));
         prayerCallbacks.push((e) => this.prayerButtonOnClick(e, i));
       }
-      const prayerTooltips = this.prayerPotionCard.addMultiImageButton(prayerSources, prayerNames, 24, 24, prayerCallbacks);
+      const prayerTooltips = this.prayerSelectCard.addMultiImageButton(prayerSources, prayerNames, 'Medium', prayerCallbacks);
       // Generate the tooltip contents
       const prayerBonusDictionary = {
         prayerBonusAttack: 'Melee Accuracy',
@@ -358,7 +439,6 @@ class McsApp {
         prayerBonusHitpointHeal: 'Heal +20% HP when HP falls below 10%',
         prayerBonusDamageReduction: 'Damage Reduction',
       };
-
       const prayerBonusNumeric = {
         prayerBonusAttack: true,
         prayerBonusStrength: true,
@@ -377,60 +457,40 @@ class McsApp {
         prayerBonusHitpointHeal: false,
         prayerBonusDamageReduction: true,
       };
-      for (let i = 0; i < PRAYER.length; i++) {
-        const tipTitle = document.createElement('span');
-        tipTitle.className = 'mcsTTTitle';
-        tipTitle.textContent = this.getPrayerName(i);
-        prayerTooltips[i].appendChild(tipTitle);
-        const div1 = document.createElement('div');
-        div1.className = 'mcsTTDivider';
-        prayerTooltips[i].appendChild(div1);
-        for (let j = 0; j < PRAYER[i].vars.length; j++) {
-          const bonusText = document.createElement('span');
-          bonusText.className = 'mcsTTText';
-          const prayerBonus = PRAYER[i].vars[j];
+      PRAYER.forEach((prayer, prayerID) => {
+        const prayerTooltip = new McsTooltipBuilder(prayerTooltips[prayerID]);
+        prayerTooltip.addTitle(this.getPrayerName(prayerID));
+        prayerTooltip.addDivider();
+        prayer.vars.forEach((prayerBonus, j)=>{
           if (prayerBonusNumeric[prayerBonus]) {
-            bonusText.textContent = `+${PRAYER[i].values[j]}% ${prayerBonusDictionary[prayerBonus]}`;
+            prayerTooltip.addText(`+${prayer.values[j]}% ${prayerBonusDictionary[prayerBonus]}`);
           } else {
-            bonusText.textContent = prayerBonusDictionary[prayerBonus];
+            prayerTooltip.addText(prayerBonusDictionary[prayerBonus]);
           }
-          prayerTooltips[i].appendChild(bonusText);
-          prayerTooltips[i].appendChild(document.createElement('br'));
+          prayerTooltip.addLineBreak();
+        });
+        if (prayer.pointsPerPlayer > 0) {
+          prayerTooltip.addText(`+${(2 / numberMultiplier * prayer.pointsPerPlayer).toFixed(2)} prayer xp per damage done`);
         }
-        if (PRAYER[i].pointsPerPlayer > 0) {
-          const prayerXPBonus = document.createElement('span');
-          prayerXPBonus.className = 'mcsTTText';
-          prayerXPBonus.textContent = `+${(2 / numberMultiplier * PRAYER[i].pointsPerPlayer).toFixed(2)} prayer xp per damage done`;
-          prayerTooltips[i].appendChild(prayerXPBonus);
+        prayerTooltip.addDivider();
+        if (prayer.pointsPerEnemy > 0) {
+          prayerTooltip.addText(`Costs: ${prayer.pointsPerEnemy} per enemy attack`);
         }
-        const div2 = document.createElement('div');
-        div2.className = 'mcsTTDivider';
-        prayerTooltips[i].appendChild(div2);
-        // Prayer point costs
-        if (PRAYER[i].pointsPerEnemy > 0) {
-          const prayerCost = document.createElement('span');
-          prayerCost.className = 'mcsTTText';
-          prayerCost.textContent = `Costs: ${PRAYER[i].pointsPerEnemy} per enemy attack`;
-          prayerTooltips[i].appendChild(prayerCost);
+        if (prayer.pointsPerPlayer > 0) {
+          prayerTooltip.addText(`Costs: ${prayer.pointsPerPlayer} per player attack`);
         }
-        if (PRAYER[i].pointsPerPlayer > 0) {
-          const prayerCost = document.createElement('span');
-          prayerCost.className = 'mcsTTText';
-          prayerCost.textContent = `Costs: ${PRAYER[i].pointsPerPlayer} per player attack`;
-          prayerTooltips[i].appendChild(prayerCost);
+        if (prayer.pointsPerRegen > 0) {
+          prayerTooltip.addText(`Costs: ${prayer.pointsPerRegen} per HP regen`);
         }
-        if (PRAYER[i].pointsPerRegen > 0) {
-          const prayerCost = document.createElement('span');
-          prayerCost.className = 'mcsTTText';
-          prayerCost.textContent = `Costs: ${PRAYER[i].pointsPerRegen} per HP regen`;
-          prayerTooltips[i].appendChild(prayerCost);
-        }
-      }
-
+      });
+    }
+    // Potion Selection Card:
+    {
+      this.potionSelectCard = new McsCard(this.mainTabContainer, '', '', '100px');
+      this.mainTabCards.push(this.potionSelectCard);
       // Potion Selection
-      this.prayerPotionCard.addSectionTitle('Potions');
-      this.prayerPotionCard.addDropdown('Potion Tier', ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'], [0, 1, 2, 3], 25, (e) => this.potionTierDropDownOnChange(e));
-
+      this.potionSelectCard.addSectionTitle('Potions');
+      this.potionSelectCard.addDropdown('Potion Tier', ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'], [0, 1, 2, 3], 25, (e) => this.potionTierDropDownOnChange(e));
       const potionSources = [];
       const potionNames = [];
       const potionCallbacks = [];
@@ -454,46 +514,25 @@ class McsApp {
         /** @type {Array<HTMLSpanElement>} */
         charges: [],
       };
-      this.potionTooltips.divs = this.prayerPotionCard.addMultiImageButton(potionSources, potionNames, 24, 24, potionCallbacks);
+      this.potionTooltips.divs = this.potionSelectCard.addMultiImageButton(potionSources, potionNames, 'Medium', potionCallbacks);
       for (let i = 0; i < this.combatPotionIDs.length; i++) {
         const potionID = this.combatPotionIDs[i];
-        // Potion  Title
-        this.potionTooltips.titles.push(document.createElement('span'));
-        this.potionTooltips.titles[i].className = 'mcsTTTitle';
-        this.potionTooltips.titles[i].textContent = this.getItemName(herbloreItemData[potionID].itemID[0]);
-        this.potionTooltips.divs[i].appendChild(this.potionTooltips.titles[i]);
-        const div1 = document.createElement('div');
-        div1.className = 'mcsTTDivider';
-        this.potionTooltips.divs[i].appendChild(div1);
-        // Potion Description
-        this.potionTooltips.descriptions.push(document.createElement('span'));
-        this.potionTooltips.descriptions[i].className = 'mcsTTText';
-        this.potionTooltips.descriptions[i].textContent = items[herbloreItemData[potionID].itemID[0]].description;
-        this.potionTooltips.divs[i].appendChild(this.potionTooltips.descriptions[i]);
-        const div2 = document.createElement('div');
-        div2.className = 'mcsTTDivider';
-        this.potionTooltips.divs[i].appendChild(div2);
-        // Potion Charges
-        this.potionTooltips.charges.push(document.createElement('span'));
-        this.potionTooltips.charges[i].className = 'mcsTTText';
-        this.potionTooltips.charges[i].textContent = `Charges: ${items[herbloreItemData[potionID].itemID[0]].potionCharges}`;
-        this.potionTooltips.divs[i].appendChild(this.potionTooltips.charges[i]);
+        const potionTooltip = new McsTooltipBuilder(this.potionTooltips.divs[i]);
+        this.potionTooltips.titles.push(potionTooltip.addTitle(this.getItemName(herbloreItemData[potionID].itemID[0])));
+        potionTooltip.addDivider();
+        this.potionTooltips.descriptions.push(potionTooltip.addText(items[herbloreItemData[potionID].itemID[0]].description));
+        potionTooltip.addDivider();
+        this.potionTooltips.charges.push(potionTooltip.addText(`Charges: ${items[herbloreItemData[potionID].itemID[0]].potionCharges}`));
       }
-    }
-    // Spell selection cards
-    {
-      this.spellSelectCard = this.createSpellSelectCard('Standard Magic', 'standard');
-      this.curseSelectCard = this.createSpellSelectCard('Curses', 'curse');
-      this.auroraSelectCard = this.createSpellSelectCard('Auroras', 'aurora');
-      this.ancientSelectCard = this.createSpellSelectCard('Ancient Magicks', 'ancient');
     }
     // Pet selection card
     {
-      const combatPetsIds = [12, 13, 14, 15, 16, 17, 18, 19, 20];
+      this.combatPetsIds = [2, 12, 13, 14, 15, 16, 17, 18, 19, 20];
       const combatPets = PETS.filter((_pet, petID)=>{
-        return combatPetsIds.includes(petID);
+        return this.combatPetsIds.includes(petID);
       });
-      this.petSelectCard = new McsCard(this.topContent, '', '', '100px');
+      this.petSelectCard = new McsCard(this.mainTabContainer, '', '', '100px');
+      this.mainTabCards.push(this.petSelectCard);
       this.petSelectCard.addSectionTitle('Pets');
       const petImageSources = combatPets.map((pet)=>{
         return pet.media;
@@ -502,20 +541,29 @@ class McsApp {
         return pet.name;
       });
       const petButtonCallbacks = combatPets.map((_pet, subID)=>{
-        return (e)=>this.petButtonOnClick(e, combatPetsIds[subID]);
+        return (e)=>this.petButtonOnClick(e, this.combatPetsIds[subID]);
       });
-      const petTooltips = this.petSelectCard.addMultiImageButton(petImageSources, petNames, 24, 24, petButtonCallbacks, 176);
-      petTooltips.forEach((tooltip, subID)=>{
-        const newSpan = document.createElement('span');
-        newSpan.className = 'mcsTTTitle';
-        newSpan.textContent = petNames[subID];
-        tooltip.appendChild(newSpan);
+      const petTooltips = this.petSelectCard.addMultiImageButton(petImageSources, petNames, 'Medium', petButtonCallbacks);
+      petTooltips.forEach((tooltipDiv, subID)=>{
+        const petTTBuilder = new McsTooltipBuilder(tooltipDiv);
+        petTTBuilder.addTitle(petNames[subID]);
+        petTTBuilder.addDivider();
+        petTTBuilder.addText(PETS[this.combatPetsIds[subID]].description.replace(/^<small>.*?<\/small><br>/, ''));
       });
+      this.petSelectCard.addImage(PETS[4].media, 100, 'MCS Rock').style.display = 'none';
     }
-    // Gear Stats/Player Stats Display Card
+    const iconSources = {
+      combat: 'assets/media/skills/combat/combat.svg',
+      attack: 'assets/media/skills/combat/attack.svg',
+      strength: 'assets/media/skills/combat/strength.svg',
+      ranged: 'assets/media/skills/ranged/ranged.svg',
+      magic: 'assets/media/skills/magic/magic.svg',
+      defence: 'assets/media/skills/defence/defence.svg',
+    };
+    // Equipment Stat Display Card
     {
-      this.statDisplayCard = new McsCard(this.topContent, '220px', '', '50px');
-      this.statDisplayCard.addSectionTitle('Equipment Stats');
+      this.equipStatCard = new McsCard(this.topContent, '250px', '', '50px', true);
+      this.equipStatCard.addSectionTitle('Equipment Stats');
       this.equipStatKeys = ['attackSpeed',
         'strengthBonus',
         'attBon0',
@@ -567,74 +615,91 @@ class McsApp {
         'defence',
         'ranged',
         'magic'];
-      const iconSources = {
-        combat: 'assets/media/skills/combat/combat.svg',
-        attack: 'assets/media/skills/combat/attack.svg',
-        strength: 'assets/media/skills/combat/strength.svg',
-        ranged: 'assets/media/skills/ranged/ranged.svg',
-        magic: 'assets/media/skills/magic/magic.svg',
-        defence: 'assets/media/skills/defence/defence.svg',
-      };
       for (let i = 0; i < equipStatNames.length; i++) {
-        this.statDisplayCard.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]], `MCS ${this.equipStatKeys[i]} ES Output`);
+        this.equipStatCard.addNumberOutput(equipStatNames[i], 0, 20, iconSources[equipStatIcons[i]], `MCS ${this.equipStatKeys[i]} ES Output`);
       }
-      this.statDisplayCard.addSectionTitle('Combat Stats');
+    }
+    // Combat Stat Display Card
+    {
+      this.combatStatCard = new McsCard(this.topContent, '250px', '', '50px', true);
+      this.combatStatCard.addSectionTitle('Combat Stats');
       const combatStatNames = ['Attack Speed',
+        'Min Hit',
         'Max Hit',
         'Accuracy Rating',
         'Evasion Rating',
         'Evasion Rating',
         'Evasion Rating',
+        'Max Hitpoints',
         'Damage Reduction'];
-      const combatStatIcons = ['', '', '', 'combat', 'ranged', 'magic', ''];
+      const combatStatIcons = ['', '', '', '', 'combat', 'ranged', 'magic', '', ''];
       this.combatStatKeys = ['attackSpeed',
+        'minHit',
         'maxHit',
         'maxAttackRoll',
         'maxDefRoll',
         'maxRngDefRoll',
         'maxMagDefRoll',
+        'maxHitpoints',
         'damageReduction'];
       for (let i = 0; i < combatStatNames.length; i++) {
-        this.statDisplayCard.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} CS Output`);
+        this.combatStatCard.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} CS Output`);
+      }
+      this.combatStatCard.addSectionTitle('Simulate/Export');
+      this.combatStatCard.addButton('Simulate', (event) => this.simulateButtonOnClick(event), 200, 25);
+      this.combatStatCard.addButton('Cancel', () => this.cancelButtonOnClick(), 200, 25, 'Sim');
+      this.combatStatCard.addButton('Export Data', (event) => this.exportDataOnClick(event), 200, 25);
+      this.combatStatCard.addButton('Show Export Options >', (event) => this.exportOptionsOnClick(event), 200, 25);
+    }
+    // Export Options Card
+    {
+      this.isExportDisplayed = false;
+      this.exportOptionsCard = new McsCard(this.topContent, '350px', '', '100px', true);
+      this.exportOptionsCard.addSectionTitle('Export Options');
+      this.exportOptionsCard.addRadio('Export Dungeon Monsters?', 25, `DungeonMonsterExportRadio`, ['Yes', 'No'], [(e) => this.exportDungeonMonsterRadioOnChange(e, true), (e) => this.exportDungeonMonsterRadioOnChange(e, false)], 0);
+      this.exportOptionsCard.addRadio('Export Non-Simulated?', 25, `NonSimmedExportRadio`, ['Yes', 'No'], [(e) => this.exportNonSimmedRadioOnChange(e, true), (e) => this.exportNonSimmedRadioOnChange(e, false)], 0);
+      this.exportOptionsCard.addSectionTitle('Data to Export');
+      this.exportOptionsCard.addRadio('Name', 25, `NameExportRadio`, ['Yes', 'No'], [(e) => this.exportNameRadioOnChange(e, true), (e) => this.exportNameRadioOnChange(e, false)], 0);
+      for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
+        let timeText = '';
+        if (this.plotTypeIsTime[i]) {
+          timeText = 'X';
+        }
+        this.exportOptionsCard.addRadio(`${this.zoneInfoNames[i]}${timeText}`, 25, `${this.plotTypeDropdownValues[i]}ExportRadio`, ['Yes', 'No'], [(e) => this.exportDataTypeRadioOnChange(e, true, i), (e) => this.exportDataTypeRadioOnChange(e, false, i)], 0);
       }
     }
     // Simulation/Plot Options Card
     {
-      this.simOptionsCard = new McsCard(this.topContent, '275px', '', '150px');
+      this.simOptionsCard = new McsCard(this.mainTabContainer, '', '', '150px');
+      this.mainTabCards.push(this.simOptionsCard);
       this.simOptionsCard.addSectionTitle('Simulation Options');
       this.simOptionsCard.addNumberInput('Max Hits', 1000, 25, 1, 10000, (event) => this.maxhitsInputOnChange(event));
       this.simOptionsCard.addNumberInput('# Trials', 10000, 25, 1, 100000, (event) => this.numtrialsInputOnChange(event));
-      this.timeOptions = ['Second', 'Minute', 'Hour', 'Day'];
-      this.timeShorthand = ['s', 'm', 'h', 'd'];
-      this.selectedTimeUnit = this.timeOptions[0];
-      this.selectedTimeShorthand = this.timeShorthand[0];
-      this.timeMultipliers = [1, 60, 3600, 3600 * 24];
-      this.simOptionsCard.addDropdown('Time Unit', this.timeOptions, this.timeMultipliers, 25, (event) => this.timeUnitDropdownOnChange(event));
       this.simOptionsCard.addNumberInput('Signet Time (h)', 1, 25, 1, 1000, (event) => this.signetTimeInputOnChange(event));
       const dropDownOptionNames = [];
       for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
         if (this.plotTypeIsTime[i]) {
-          dropDownOptionNames.push(this.plotTypeDropdownOptions[i] + this.timeOptions[0]);
+          dropDownOptionNames.push(this.plotTypeDropdownOptions[i] + this.timeOptions[1]);
         } else {
           dropDownOptionNames.push(this.plotTypeDropdownOptions[i]);
         }
       }
-      this.simOptionsCard.addDropdown('Plot Type', dropDownOptionNames, this.plotTypeDropdownValues, 25, (event) => this.plottypeDropdownOnChange(event));
       this.simOptionsCard.addRadio('Slayer Task?', 25, 'slayerTask', ['Yes', 'No'], [(e) => this.slayerTaskRadioOnChange(e, true), (e) => this.slayerTaskRadioOnChange(e, false)], 1);
       this.simOptionsCard.addRadio('Hardcore Mode?', 25, 'hardcore', ['Yes', 'No'], [() => this.hardcoreRadioOnChange(true), () => this.hardcoreRadioOnChange(false)], 1);
-      this.simOptionsCard.addButton('Simulate', (event) => this.simulateButtonOnClick(event), 250, 25);
-      this.simOptionsCard.addButton('Cancel', () => this.cancelButtonOnClick(), 250, 25);
-      this.simOptionsCard.addButton('Export Data', (event) => this.exportDataOnClick(event), 250, 25);
-      this.simOptionsCard.addButton('Show Export Options >', (event) => this.exportOptionsOnClick(event), 250, 25);
-      this.simOptionsCard.addSectionTitle('GP/s Options');
-      this.simOptionsCard.addRadio('Sell Bones', 25, 'sellBones', ['Yes', 'No'], [(e) => this.sellBonesRadioOnChange(e, true), (e) => this.sellBonesRadioOnChange(e, false)], 1);
-      this.simOptionsCard.addRadio('Convert Shards', 25, 'convertShards', ['Yes', 'No'], [(e) => this.convertShardsRadioOnChange(e, true), (e) => this.convertShardsRadioOnChange(e, false)], 1);
-      this.simOptionsCard.addDropdown('Sell Loot', ['All', 'Subset', 'None'], ['All', 'Subset', 'None'], 25, (e) => this.sellLootDropdownOnChange(e));
-      this.simOptionsCard.addButton('Edit Subset', (e) => this.editSubsetButtonOnClick(e), 250, 25);
+    }
+    // Gp Options card
+    {
+      this.gpSelectCard = new McsCard(this.mainTabContainer, '', '', '150px');
+      this.mainTabCards.push(this.gpSelectCard);
+      this.gpSelectCard.addSectionTitle('GP/s Options');
+      this.gpSelectCard.addRadio('Sell Bones', 25, 'sellBones', ['Yes', 'No'], [(e) => this.sellBonesRadioOnChange(e, true), (e) => this.sellBonesRadioOnChange(e, false)], 1);
+      this.gpSelectCard.addRadio('Convert Shards', 25, 'convertShards', ['Yes', 'No'], [(e) => this.convertShardsRadioOnChange(e, true), (e) => this.convertShardsRadioOnChange(e, false)], 1);
+      this.gpSelectCard.addDropdown('Sell Loot', ['All', 'Subset', 'None'], ['All', 'Subset', 'None'], 25, (e) => this.sellLootDropdownOnChange(e));
+      this.gpSelectCard.addButton('Edit Subset', (e) => this.editSubsetButtonOnClick(e), 250, 25);
     }
     // GP/s options card
     {
-      this.gpOptionsCard = new McsCard(this.topContent, '320px', '', '200px');
+      this.gpOptionsCard = new McsCard(this.gpSelectCard.container, '', '', '200px');
       this.gpOptionsCard.addSectionTitle('Item Subset Selection');
       this.gpOptionsCard.addMultiButton(['Set Default', 'Set Discovered'], 25, 150, [(e) => this.setDefaultOnClick(e), (e) => this.setDiscoveredOnClick(e)]);
       this.gpOptionsCard.addMultiButton(['Cancel', 'Save'], 25, 150, [(e) => this.cancelSubsetOnClick(e), (e) => this.saveSubsetOnClick(e)]);
@@ -656,7 +721,7 @@ class McsApp {
       lab2.style.marginRight = '17px';
       labelCont.appendChild(lab2);
       this.gpOptionsCard.container.appendChild(labelCont);
-      this.gpSearchResults = new McsCard(this.gpOptionsCard.container, '', '300px', '100px');
+      this.gpSearchResults = new McsCard(this.gpOptionsCard.container, '', '130px', '100px');
       for (let i = 0; i < this.simulator.lootList.length; i++) {
         this.gpSearchResults.addRadio(this.simulator.lootList[i].name, 20, `${this.simulator.lootList[i].name}-radio`, ['Yes', 'No'], [(e) => this.lootListRadioOnChange(e, i, true), (e) => this.lootListRadioOnChange(e, i, false)], 1);
       }
@@ -665,44 +730,28 @@ class McsApp {
       this.gpSearchResults.container.style.marginRight = '0px';
       this.gpSearchResults.container.style.marginBottom = '5px';
     }
-    // Export Options Card
-    {
-      this.isExportDisplayed = false;
-      this.exportOptionsCard = new McsCard(this.topContent, '320px', '', '100px');
-      this.exportOptionsCard.addSectionTitle('Export Options');
-      this.exportOptionsCard.addRadio('Export Dungeon Monsters?', 25, `DungeonMonsterExportRadio`, ['Yes', 'No'], [(e) => this.exportDungeonMonsterRadioOnChange(e, true), (e) => this.exportDungeonMonsterRadioOnChange(e, false)], 0);
-      this.exportOptionsCard.addRadio('Export Non-Simulated?', 25, `NonSimmedExportRadio`, ['Yes', 'No'], [(e) => this.exportNonSimmedRadioOnChange(e, true), (e) => this.exportNonSimmedRadioOnChange(e, false)], 0);
-      this.exportOptionsCard.addSectionTitle('Data to Export');
-      this.exportOptionsCard.addRadio('Name', 25, `NameExportRadio`, ['Yes', 'No'], [(e) => this.exportNameRadioOnChange(e, true), (e) => this.exportNameRadioOnChange(e, false)], 0);
-      for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
-        let timeText = '';
-        if (this.plotTypeIsTime[i]) {
-          timeText = 'X';
-        }
-        this.exportOptionsCard.addRadio(`${this.zoneInfoNames[i]}${timeText}`, 25, `${this.plotTypeDropdownValues[i]}ExportRadio`, ['Yes', 'No'], [(e) => this.exportDataTypeRadioOnChange(e, true, i), (e) => this.exportDataTypeRadioOnChange(e, false, i)], 0);
-      }
-    }
     // Bar Chart Card
     this.monsterToggleState = true;
     this.dungeonToggleState = true;
     // Individual info card, nested into sim/plot card
     {
-      this.zoneInfoCard = new McsCard(this.topContent, '275px', '', '100px');
-      this.zoneInfoCard.container.style.overflow = 'hidden auto';
-      this.zoneInfoCard.addSectionTitle('Area Information', 'MCS Zone Info Title');
-      this.zoneInfoCard.addNumberOutput('Name', 'N/A', 20, '', `MCS Zone Name Output`);
+      this.zoneInfoCard = new McsCard(this.botContent, '275px', '', '100px', true);
+      this.zoneInfoCard.addSectionTitle('Monster/Dungeon Info.', 'MCS Zone Info Title');
+      this.infoPlaceholder = this.zoneInfoCard.addInfoText('Click on a bar for detailed information on a Monster/Dungeon!');
+      this.subInfoCard = new McsCard(this.zoneInfoCard.container, '', '', '100px');
+      this.subInfoCard.addImage(media.combat, 48, 'MCS Info Image');
       const zoneInfoLabelNames = [];
       for (let i = 0; i < this.zoneInfoNames.length; i++) {
         if (this.plotTypeIsTime[i]) {
-          zoneInfoLabelNames.push(this.zoneInfoNames[i] + this.timeShorthand[0]);
+          zoneInfoLabelNames.push(this.zoneInfoNames[i] + this.timeShorthand[1]);
         } else {
           zoneInfoLabelNames.push(this.zoneInfoNames[i]);
         }
       }
       for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
-        this.zoneInfoCard.addNumberOutput(zoneInfoLabelNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`, true);
+        this.subInfoCard.addNumberOutput(zoneInfoLabelNames[i], 'N/A', 20, '', `MCS ${this.plotTypeDropdownValues[i]} Output`, true);
       }
-      this.zoneInfoCard.addButton('Inspect Dungeon', (e) => this.inspectDungeonOnClick(e), 250, 25);
+      this.subInfoCard.addButton('Inspect Dungeon', (e) => this.inspectDungeonOnClick(e), 250, 25);
     }
     this.plotter = new McsPlotter(this, urls.crossedOut);
     // Setup plotter bar clicking
@@ -741,22 +790,36 @@ class McsApp {
 
     // Now that everything is done we add it to the document
     document.getElementById('main-container').appendChild(this.topContent);
+    document.getElementById('main-container').appendChild(this.botContent);
     // Adjust the widths of the containers
-    this.gearLevelCard.setContainerWidths();
-    this.prayerPotionCard.setContainerWidths();
-    this.statDisplayCard.setContainerWidths();
-    this.simOptionsCard.setContainerWidths();
+    this.equipStatCard.setContainerWidths();
+    this.combatStatCard.setContainerWidths();
     this.gpOptionsCard.setContainerWidths();
+    this.gpOptionsCard.container.style.display = 'none';
     this.exportOptionsCard.setContainerWidths();
     this.zoneInfoCard.setContainerWidths();
+    this.subInfoCard.setContainerWidths();
+    this.mainTabCards.forEach((card, cardID)=>{
+      card.setContainerWidths();
+      if (cardID !== 0) {
+        card.container.style.display = 'none';
+      }
+    });
     // Push an update to the displays
     this.topContent.style.display = 'none';
-    this.gpOptionsCard.container.style.display = 'none';
+    this.botContent.style.display = 'none';
     this.exportOptionsCard.container.style.display = 'none';
     this.isVisible = false;
-    document.getElementById('MCS Cancel Button').style.display = 'none';
-    document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
+    this.plotter.timeDropdown.selectedIndex = 1;
+    document.getElementById('MCS Cancel Sim Button').style.display = 'none';
     document.getElementById('MCS Edit Subset Button').style.display = 'none';
+    this.subInfoCard.container.style.display = 'none';
+    this.setTabIDToSelected(this.spellTabIDs[0]);
+    this.setTabIDToSelected(this.mainTabIDs[0]);
+    this.plotter.petSkillDropdown.style.display = 'none';
+    document.getElementById(`MCS  Pet Chance/s Label`).textContent = this.skillShorthand[this.simulator.petSkill] + this.zoneInfoNames[15] + this.selectedTimeShorthand;
+    this.updateSpellOptions(1);
+    this.updatePrayerOptions(1);
     // Set up spells
     const standardOpts = this.simulator.spells.standard;
     document.getElementById(`MCS ${standardOpts.array[standardOpts.selectedID].name} Button`).className = 'mcsImageButton mcsButtonImageSelected';
@@ -764,7 +827,7 @@ class McsApp {
     this.updateEquipStats();
     this.simulator.computeCombatStats();
     this.updateCombatStats();
-    this.plotter.updateBarData(this.simulator.getDataSet('xpPerSecond'));
+    this.updatePlotData();
     // Export Options element
     this.exportOptionsButton = document.getElementById('MCS Show Export Options > Button');
     // Saving and loading of Gear Sets
@@ -791,12 +854,10 @@ class McsApp {
     const buttonCallbacks = menuItems.map((item)=>{
       return ()=>this.equipItemButton(gearID, item.itemID);
     });
-    const multiTooltips = card.addMultiImageButton(buttonMedia, buttonIds, 24, 24, buttonCallbacks, 440);
+    const multiTooltips = card.addMultiImageButton(buttonMedia, buttonIds, 'Small', buttonCallbacks, 440);
     multiTooltips.forEach((tooltip, i)=>{
-      const newSpan = document.createElement('span');
-      newSpan.className = 'mcsTTTitle';
-      newSpan.textContent = this.getItemName(menuItems[i].itemID);
-      tooltip.appendChild(newSpan);
+      const itemTTBuilder = new McsTooltipBuilder(tooltip);
+      itemTTBuilder.addTitle(this.getItemName(menuItems[i].itemID));
     });
   }
 
@@ -808,7 +869,7 @@ class McsApp {
    * @memberof McsApp
    */
   createSpellSelectCard(title, spellType) {
-    const newCard = new McsCard(this.topContent, '', '', '100px');
+    const newCard = new McsCard(this.spellTabContainer, '', '', '100px');
     newCard.addSectionTitle(title);
     const spellArray = this.simulator.spells[spellType].array;
     const spellImages = spellArray.map((spell)=>{
@@ -820,12 +881,34 @@ class McsApp {
     const spellCallbacks = spellArray.map((_spell, spellID)=>{
       return (event)=>this.spellButtonOnClick(event, spellID, spellType);
     });
-    const spellTooltips = newCard.addMultiImageButton(spellImages, spellNames, 24, 24, spellCallbacks, 176);
+    const spellTooltips = newCard.addMultiImageButton(spellImages, spellNames, 'Medium', spellCallbacks);
     spellTooltips.forEach((tooltip, spellID)=>{
-      const newSpan = document.createElement('span');
-      newSpan.className = 'mcsTTTitle';
-      newSpan.textContent = spellNames[spellID];
-      tooltip.appendChild(newSpan);
+      const spellTTBuilder = new McsTooltipBuilder(tooltip);
+      spellTTBuilder.addTitle(spellNames[spellID]);
+      spellTTBuilder.addDivider();
+      switch (spellType) {
+        case 'aurora':
+        {
+          spellTTBuilder.addText(spellArray[spellID].description.replace(/^.*?<br>/, ''));
+          break;
+        }
+        case 'curse':
+        case 'ancient':
+        {
+          spellArray[spellID].description.split('<br>').forEach((lineText, lineNum, lines)=>{
+            spellTTBuilder.addText(lineText);
+            if ((lineNum + 1) !== lines.length) {
+              spellTTBuilder.addLineBreak();
+            }
+          });
+          break;
+        }
+        case 'standard':
+        {
+          spellTTBuilder.addText(`Max Hit: ${spellArray[spellID].maxHit * numberMultiplier}`);
+          break;
+        }
+      }
     });
     return newCard;
   }
@@ -837,7 +920,33 @@ class McsApp {
    * @return {boolean}
    */
   filterIfHasKey(key, item) {
+    switch (key) {
+      case 'magicLevelRequired':
+        if (this.forceMagicArmour.includes(item.itemID)) {
+          return true;
+        }
+        break;
+      case 'rangedLevelRequired':
+        if (this.forceRangedArmour.includes(item.itemID)) {
+          return true;
+        }
+        break;
+      case 'defenceLevelRequired':
+        if (this.forceMeleeArmour.includes(item.itemID)) {
+          return true;
+        }
+        break;
+    }
     return key in item || item.itemID === 0;
+  }
+
+  /**
+   * Filters equipment by if it has no level requirements
+   * @param {Object} item
+   * @return {boolean}
+   */
+  filterIfHasNoLevelReq(item) {
+    return (!('defenceLevelRequired' in item) && !('rangedLevelRequired' in item) && !('magicLevelRequired' in item) && !(this.forceMagicArmour.includes(item.itemID) || this.forceRangedArmour.includes(item.itemID) || this.forceMeleeArmour.includes(item.itemID))) || item.itemID === 0;
   }
 
   /**
@@ -910,7 +1019,7 @@ class McsApp {
   createGearPopup(gearID) {
     const gearSelectPopup = document.createElement('div');
     gearSelectPopup.className = 'mcsPopup';
-    const gearSelectCard = new McsCard(gearSelectPopup, '500px', '', '400px');
+    const gearSelectCard = new McsCard(gearSelectPopup, '', '', '400px');
     const triSplit = [0, 1, 2, 3, 5, 8];
     const noSplit = [6, 7, 10];
     if (triSplit.includes(gearID)) {
@@ -920,6 +1029,10 @@ class McsApp {
       this.addGearMultiButton(gearSelectCard, gearID, (item)=>this.filterIfHasKey('rangedLevelRequired', item), 'rangedLevelRequired');
       gearSelectCard.addSectionTitle('Magic');
       this.addGearMultiButton(gearSelectCard, gearID, (item)=>this.filterIfHasKey('magicLevelRequired', item), 'magicLevelRequired');
+      if (this.gearSubsets[gearID].filter((item)=>this.filterIfHasNoLevelReq(item)).length > 1) {
+        gearSelectCard.addSectionTitle('Other');
+        this.addGearMultiButton(gearSelectCard, gearID, (item)=>this.filterIfHasNoLevelReq(item), 'name');
+      }
     } else if (noSplit.includes(gearID)) {
       gearSelectCard.addSectionTitle(this.slotKeys[gearID]);
       this.addGearMultiButton(gearSelectCard, gearID, ()=>this.returnTrue());
@@ -970,6 +1083,47 @@ class McsApp {
     }
     return gearSelectPopup;
   }
+  // Tab Callbacks
+  /**
+   * Main tab menu tab on click callback
+   * @param {number} tabID
+   */
+  mainTabOnClick(tabID) {
+    if (this.selectedMainTab !== tabID) {
+      this.mainTabCards[this.selectedMainTab].container.style.display = 'none';
+      this.setTabIDToUnSelected(this.mainTabIDs[this.selectedMainTab]);
+      this.mainTabCards[tabID].container.style.display = '';
+      this.setTabIDToSelected(this.mainTabIDs[tabID]);
+      this.selectedMainTab = tabID;
+    }
+  }
+  /**
+   * Spell tab menu tab on click callback
+   * @param {number} tabID
+   */
+  spellTabOnClick(tabID) {
+    if (this.selectedSpellTab !== tabID) {
+      this.spellTabCards[this.selectedSpellTab].container.style.display = 'none';
+      this.setTabIDToUnSelected(this.spellTabIDs[this.selectedSpellTab]);
+      this.spellTabCards[tabID].container.style.display = '';
+      this.setTabIDToSelected(this.spellTabIDs[tabID]);
+      this.selectedSpellTab = tabID;
+    }
+  }
+  /**
+   * Sets a tab to the selected state
+   * @param {string} tabID
+   */
+  setTabIDToSelected(tabID) {
+    document.getElementById(tabID).className = 'mcsTabButton mcsTabButtonSelected';
+  }
+  /**
+  * Sets a tab to the default state
+  * @param {string} tabID
+  */
+  setTabIDToUnSelected(tabID) {
+    document.getElementById(tabID).className = 'mcsTabButton';
+  }
   /**
    * Callback for when sidebar option is clicked
    */
@@ -983,9 +1137,11 @@ class McsApp {
       $('#header-theme').attr('class', 'content-header bg-combat');
       $('#page-header').attr('class', 'bg-combat');
       currentPage = 3;
+      updateMinibar(pages[currentPage]);
       if (showCombatMinibar && isInCombat) $('#combat-footer-minibar').removeClass('d-none');
       updatePotionHeader();
       this.topContent.style.display = '';
+      this.botContent.style.display = '';
       this.isVisible = true;
     }
   }
@@ -995,6 +1151,7 @@ class McsApp {
   hideSim() {
     if (this.isVisible) {
       this.topContent.style.display = 'none';
+      this.botContent.style.display = 'none';
       this.isVisible = false;
     }
   }
@@ -1062,6 +1219,7 @@ class McsApp {
     if (prevWeapon !== this.gearSelected[CONSTANTS.equipmentSlot.Weapon]) {
       this.updateStyleDropdowns();
     }
+    this.checkForElisAss();
     this.simulator.computeEquipStats();
     this.updateEquipStats();
     this.simulator.computeCombatStats();
@@ -1114,11 +1272,13 @@ class McsApp {
    */
   levelInputOnChange(event, skillName) {
     const newLevel = parseInt(event.currentTarget.value);
-    if (newLevel <= 99 && newLevel >= 1) {
-      this.simulator.playerLevels[skillName] = newLevel;
-      // This is the magic dropdown that has been changed, update spell list
+    if (newLevel <= 500 && newLevel >= 1) {
+      this.simulator.playerLevels[skillName] = Math.min(newLevel, 99);
+      this.simulator.virtualLevels[skillName] = newLevel;
+      // Update Spell and Prayer Button UIS, and deselect things if they become invalid
       if (skillName == 'Magic') {
         this.updateSpellOptions(newLevel);
+        this.checkForElisAss();
       }
       if (skillName == 'Prayer') {
         this.updatePrayerOptions(newLevel);
@@ -1139,16 +1299,6 @@ class McsApp {
     this.updateCombatStats();
   }
   /**
-   * Callback for when the selected spell is changed
-   * @param {Event} event The change event for a dropdown
-   */
-  spellDropdownOnChange(event) {
-    const spellID = parseInt(event.currentTarget.selectedOptions[0].value);
-    this.simulator.selectedSpell = spellID;
-    this.simulator.computeCombatStats();
-    this.updateCombatStats();
-  }
-  /**
    * Callback for when the import button is clicked
    * @param {number} setID Index of equipmentSets from 0-2 to import
    */
@@ -1163,8 +1313,10 @@ class McsApp {
     this.updateStyleDropdowns();
     // Update levels from in game levels
     this.skillKeys.forEach((key) => {
-      document.getElementById(`MCS ${key} Input`).value = skillLevel[CONSTANTS.skill[key]];
-      this.simulator.playerLevels[key] = skillLevel[CONSTANTS.skill[key]];
+      const virtualLevel = exp.xp_to_level(skillXP[CONSTANTS.skill[key]]);
+      document.getElementById(`MCS ${key} Input`).value = virtualLevel;
+      this.simulator.playerLevels[key] = Math.min(virtualLevel, 99);
+      this.simulator.virtualLevels[key] = virtualLevel;
     });
     // Set attack styles for each combat type:
     const meleeStyle = selectedAttackStyle[0];
@@ -1177,9 +1329,49 @@ class McsApp {
     this.simulator.attackStyle.Magic = magicStyle - 6;
     document.getElementById('MCS Magic Style Dropdown').selectedIndex = magicStyle - 6;
     // Update spells
-    document.getElementById('MCS Spell Dropdown').selectedIndex = selectedSpell;
-    this.simulator.selectedSpell = selectedSpell;
+    // Set all active spell UI to be disabled
+    Object.keys(this.simulator.spells).forEach((spellType)=>{
+      const spellOpts = this.simulator.spells[spellType];
+      if (spellOpts.isSelected) {
+        document.getElementById(`MCS ${spellOpts.array[spellOpts.selectedID].name} Button`).className = 'mcsImageButton';
+      }
+    });
+    if (isSpellAncient) {
+      this.simulator.spells.ancient.isSelected = true;
+      this.simulator.spells.ancient.selectedID = selectedAncient;
+      this.simulator.spells.standard.isSelected = false;
+      this.simulator.spells.standard.selectedID = -1;
+      this.simulator.spells.curse.isSelected = false;
+      this.simulator.spells.curse.selectedID = -1;
+    } else {
+      this.simulator.spells.standard.isSelected = true;
+      this.simulator.spells.standard.selectedID = selectedSpell;
+      this.simulator.spells.ancient.isSelected = false;
+      this.simulator.spells.ancient.selectedID = -1;
+      if (selectedCurse !== null) {
+        this.simulator.spells.curse.isSelected = true;
+        this.simulator.spells.curse.selectedID = selectedCurse;
+      } else {
+        this.simulator.spells.curse.isSelected = false;
+        this.simulator.spells.curse.selectedID = -1;
+      }
+    }
+    if (activeAurora !== null) {
+      this.simulator.spells.aurora.isSelected = true;
+      this.simulator.spells.aurora.selectedID = activeAurora;
+    } else {
+      this.simulator.spells.aurora.isSelected = false;
+      this.simulator.spells.aurora.selectedID = -1;
+    }
+    // Update spell UI
+    Object.keys(this.simulator.spells).forEach((spellType)=>{
+      const spellOpts = this.simulator.spells[spellType];
+      if (spellOpts.isSelected) {
+        document.getElementById(`MCS ${spellOpts.array[spellOpts.selectedID].name} Button`).className = 'mcsImageButton mcsButtonImageSelected';
+      }
+    });
     this.updateSpellOptions(skillLevel[CONSTANTS.skill.Magic]);
+    this.checkForElisAss();
     // Update prayers
     this.simulator.activePrayers = 0;
     for (let i = 0; i < PRAYER.length; i++) {
@@ -1229,7 +1421,24 @@ class McsApp {
       // Set dropdown to correct option
       document.getElementById('MCS Potion Tier Dropdown').selectedIndex = potionTier;
     }
-
+    // Import PETS
+    petUnlocked.forEach((owned, petID)=>{
+      this.simulator.petOwned[petID] = owned;
+      if (this.combatPetsIds.includes(petID)) {
+        let newClass = 'mcsImageButton';
+        if (owned) newClass += ' mcsButtonImageSelected';
+        document.getElementById(`MCS ${PETS[petID].name} Button`).className = newClass;
+      }
+      if (petID === 4 && owned) document.getElementById('MCS Rock').style.display = '';
+    });
+    // Update hardcore mode
+    if (currentGamemode === 1) {
+      this.simulator.isHardcore = true;
+      document.getElementById('MCS Hardcore Mode? Radio Yes').checked = true;
+    } else {
+      this.simulator.isHardcore = false;
+      document.getElementById('MCS Hardcore Mode? Radio No').checked = true;
+    }
     this.updatePrayerOptions(skillLevel[CONSTANTS.skill.Prayer]);
     this.simulator.computeEquipStats();
     this.updateEquipStats();
@@ -1245,6 +1454,12 @@ class McsApp {
    * @param {number} prayerID Index of prayerSelected
    */
   prayerButtonOnClick(event, prayerID) {
+    // Escape if prayer level is not reached
+    const prayer = PRAYER[prayerID];
+    if (this.simulator.playerLevels.Prayer < prayer.prayerLevel) {
+      notifyPlayer(CONSTANTS.skill.Prayer, `${this.getPrayerName(prayerID)} requires level ${prayer.prayerLevel} Prayer.`, 'danger');
+      return;
+    }
     let prayerChanged = false;
     if (this.simulator.prayerSelected[prayerID]) {
       this.simulator.activePrayers--;
@@ -1313,6 +1528,16 @@ class McsApp {
    */
   spellButtonOnClick(event, spellID, spellType) {
     const spellOpts = this.simulator.spells[spellType];
+    const spell = spellOpts.array[spellID];
+    // Escape for not meeting the level/item requirement
+    if (this.simulator.playerLevels.Magic < spell.magicLevelRequired) {
+      notifyPlayer(CONSTANTS.skill.Magic, `${spell.name} requires level ${spell.magicLevelRequired} Magic.`, 'danger');
+      return;
+    }
+    if (spell.requiredItem !== undefined && spell.requiredItem !== -1 && !this.gearSelected.includes(spell.requiredItem)) {
+      notifyPlayer(CONSTANTS.skill.Magic, `${spell.name} requires ${this.getItemName(spell.requiredItem)}.`, 'danger');
+      return;
+    }
     // Special Cases: If Ancient or Standard deselect standard/anciennt
     // If Ancient deselect curses
     // If curse and ancient active, do not select
@@ -1358,7 +1583,9 @@ class McsApp {
         event.currentTarget.className = 'mcsImageButton mcsButtonImageSelected';
       }
     }
-    // Insert neccessary stat and UI updates here
+    // Update combat stats for new spell
+    this.simulator.computeCombatStats();
+    this.updateCombatStats();
   }
   // Callback Functions for the pet select card
   /**
@@ -1406,8 +1633,30 @@ class McsApp {
     this.plotter.plotType = event.currentTarget.value;
     this.plotter.plotID = event.currentTarget.selectedIndex;
     this.simulator.selectedPlotIsTime = this.plotTypeIsTime[event.currentTarget.selectedIndex];
-    this.updatePlotTitle();
-    this.plotter.updateBarData(this.simulator.getDataSet(event.currentTarget.value));
+    if (this.simulator.selectedPlotIsTime) {
+      this.plotter.timeDropdown.style.display = '';
+    } else {
+      this.plotter.timeDropdown.style.display = 'none';
+    }
+    if (this.plotter.plotType === 'petChance') {
+      this.plotter.petSkillDropdown.style.display = '';
+    } else {
+      this.plotter.petSkillDropdown.style.display = 'none';
+    }
+    this.updatePlotData();
+  }
+  /**
+   * Callback for when the pet skill type is changed
+   * @param {Event} event The change event for a dropdown
+   */
+  petSkillDropdownOnChange(event) {
+    this.simulator.petSkill = event.currentTarget.value;
+    this.simulator.updatePetChance();
+    if (this.plotter.plotType === 'petChance') {
+      this.updatePlotData();
+    }
+    document.getElementById(`MCS  Pet Chance/s Label`).textContent = this.skillShorthand[this.simulator.petSkill] + this.zoneInfoNames[15] + this.selectedTimeShorthand;
+    this.updateZoneInfoCard();
   }
   /**
    * Callback for when the simulate button is clicked
@@ -1419,7 +1668,7 @@ class McsApp {
     } else {
       if (!this.simulator.simInProgress && this.simulator.simulationWorkers.length === this.simulator.maxThreads) {
         document.getElementById('MCS Simulate Button').disabled = true;
-        const cancelButton = document.getElementById('MCS Cancel Button');
+        const cancelButton = document.getElementById('MCS Cancel Sim Button');
         cancelButton.style.display = '';
         cancelButton.disabled = false;
         cancelButton.textContent = 'Cancel';
@@ -1432,7 +1681,7 @@ class McsApp {
    * @memberof McsApp
    */
   cancelButtonOnClick() {
-    const cancelButton = document.getElementById('MCS Cancel Button');
+    const cancelButton = document.getElementById('MCS Cancel Sim Button');
     cancelButton.disabled = true;
     cancelButton.textContent = 'Cancelling...';
     this.simulator.cancelSimulation();
@@ -1591,17 +1840,17 @@ class McsApp {
     this.simulator.selectedPlotIsTime = this.plotTypeIsTime[this.plotter.plotID];
     this.selectedTimeUnit = this.timeOptions[event.currentTarget.selectedIndex];
     this.selectedTimeShorthand = this.timeShorthand[event.currentTarget.selectedIndex];
-    // Update dropdown options
-    const plotDropdown = document.getElementById(`MCS Plot Type Dropdown`);
-    for (let i = 0; i < this.plotTypeDropdownOptions.length; i++) {
-      if (this.plotTypeIsTime[i]) {
-        plotDropdown[i].textContent = this.plotTypeDropdownOptions[i] + this.selectedTimeUnit;
-        document.getElementById(`MCS ${this.zoneInfoNames[i] + this.timeShorthand[0]} Label`).textContent = this.zoneInfoNames[i] + this.selectedTimeShorthand;
-      }
-    }
+    // Update zone info card time units
+    this.zoneInfoNames.forEach((name, index)=>{
+      let newName = '';
+      if (name === ' Pet Chance/') newName = this.skillShorthand[this.simulator.petSkill] + name + this.selectedTimeShorthand;
+      else if (this.plotTypeIsTime[index]) newName = name + this.selectedTimeShorthand;
+      if (newName) document.getElementById(`MCS ${name + this.timeShorthand[1]} Label`).textContent = newName;
+    });
+    // Update pet chance
+    this.simulator.updatePetChance();
     // Update Plot
-    this.updatePlotTitle();
-    this.plotter.updateBarData(this.simulator.getDataSet(this.plotter.plotType));
+    this.updatePlotData();
     // Update Info Card
     this.updateZoneInfoCard();
   }
@@ -1751,56 +2000,67 @@ class McsApp {
    * Updates the bars in the plot to the currently selected plot type
    */
   updatePlotData() {
-    this.plotter.updateBarData(this.simulator.getDataSet(document.getElementById('MCS Plot Type Dropdown').selectedOptions[0].value));
+    this.plotter.updateBarData(this.simulator.getDataSet(this.plotter.plotType));
   }
   /**
    * Updates the zone info card text fields
    */
   updateZoneInfoCard() {
     if (this.barSelected) {
-      this.zoneInfoCard.container.style.display = '';
+      this.subInfoCard.container.style.display = '';
+      this.infoPlaceholder.style.display = 'none';
       if (this.isViewingDungeon) {
         const monsterList = this.simulator.condensedDungeonMonsters[this.viewedDungeonID];
         const dataIndex = this.selectedBar + monsterList.length - this.plotter.bars.length;
         const monsterID = monsterList[dataIndex].id;
-        document.getElementById('MCS Zone Info Title').textContent = 'Monster Information';
-        document.getElementById(`MCS Zone Name Output`).textContent = this.getMonsterName(monsterID);
+        document.getElementById('MCS Zone Info Title').textContent = `${this.getMonsterName(monsterID)}${(monsterList[dataIndex].quantity > 1) ? ` x${monsterList[dataIndex].quantity}` : ''}`;
+        document.getElementById('MCS Info Image').src = MONSTERS[monsterID].media;
         document.getElementById('MCS Inspect Dungeon Button').style.display = 'none';
         const updateInfo = this.simulator.monsterSimData[monsterID].simSuccess;
         for (let i = 0; i < this.plotTypeDropdownValues.length; i++) {
-          const outElem = document.getElementById(`MCS ${this.plotTypeDropdownValues[i]} Output`);
-          const dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
-          if (this.plotTypeDropdownValues[i] == 'killTimeS') {
-            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[monsterID][this.plotTypeDropdownValues[i]] * dataMultiplier * monsterList[dataIndex].quantity, 4) : 'N/A');
-          } else {
-            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[monsterID][this.plotTypeDropdownValues[i]] * dataMultiplier, 4) : 'N/A');
-          }
+          const dataKey = this.plotTypeDropdownValues[i];
+          const outElem = document.getElementById(`MCS ${dataKey} Output`);
+          let dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
+          if (dataMultiplier === -1) dataMultiplier = this.simulator.monsterSimData[monsterID].killTimeS;
+          if (dataKey === 'petChance') dataMultiplier = 1;
+          else if (dataKey === 'killTimeS') dataMultiplier *= monsterList[dataIndex].quantity;
+          outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[monsterID][dataKey] * dataMultiplier, 4) : 'N/A');
         }
       } else {
         if (this.barIsDungeon[this.selectedBar]) {
-          document.getElementById('MCS Zone Info Title').textContent = 'Dungeon Information';
-          document.getElementById(`MCS Zone Name Output`).textContent = this.getDungeonName(this.barMonsterIDs[this.selectedBar]);
+          const dungeonID = this.barMonsterIDs[this.selectedBar];
+          document.getElementById('MCS Zone Info Title').textContent = this.getDungeonName(dungeonID);
           document.getElementById('MCS Inspect Dungeon Button').style.display = '';
-          const updateInfo = this.simulator.dungeonSimData[this.barMonsterIDs[this.selectedBar]].simSuccess;
+          document.getElementById('MCS Info Image').src = DUNGEONS[dungeonID].media;
+          const updateInfo = this.simulator.dungeonSimData[dungeonID].simSuccess;
           for (let i = 0; i < this.plotTypeDropdownValues.length; i++) {
-            const outElem = document.getElementById(`MCS ${this.plotTypeDropdownValues[i]} Output`);
-            const dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
-            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.dungeonSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]] * dataMultiplier, 4) : 'N/A');
+            const dataKey = this.plotTypeDropdownValues[i];
+            const outElem = document.getElementById(`MCS ${dataKey} Output`);
+            let dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
+            if (dataMultiplier === -1) dataMultiplier = this.simulator.dungeonSimData[dungeonID].killTimeS;
+            if (dataKey === 'petChance') dataMultiplier = 1;
+            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.dungeonSimData[dungeonID][dataKey] * dataMultiplier, 4) : 'N/A');
           }
         } else {
-          document.getElementById('MCS Zone Info Title').textContent = 'Monster Information';
-          document.getElementById(`MCS Zone Name Output`).textContent = this.getMonsterName(this.barMonsterIDs[this.selectedBar]);
+          const monsterID = this.barMonsterIDs[this.selectedBar];
+          document.getElementById('MCS Zone Info Title').textContent = this.getMonsterName(monsterID);
+          document.getElementById('MCS Info Image').src = MONSTERS[monsterID].media;
           document.getElementById('MCS Inspect Dungeon Button').style.display = 'none';
-          const updateInfo = this.simulator.monsterSimData[this.barMonsterIDs[this.selectedBar]].simSuccess;
+          const updateInfo = this.simulator.monsterSimData[monsterID].simSuccess;
           for (let i = 0; i < this.plotTypeDropdownValues.length; i++) {
-            const outElem = document.getElementById(`MCS ${this.plotTypeDropdownValues[i]} Output`);
-            const dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
-            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[this.barMonsterIDs[this.selectedBar]][this.plotTypeDropdownValues[i]] * dataMultiplier, 4) : 'N/A');
+            const dataKey = this.plotTypeDropdownValues[i];
+            const outElem = document.getElementById(`MCS ${dataKey} Output`);
+            let dataMultiplier = (this.plotTypeIsTime[i]) ? this.simulator.timeMultiplier : 1;
+            if (dataMultiplier === -1) dataMultiplier = this.simulator.monsterSimData[monsterID].killTimeS;
+            if (dataKey === 'petChance') dataMultiplier = 1;
+            outElem.textContent = ((updateInfo) ? mcsFormatNum(this.simulator.monsterSimData[monsterID][dataKey] * dataMultiplier, 4) : 'N/A');
           }
         }
       }
     } else {
-      this.zoneInfoCard.container.style.display = 'none';
+      document.getElementById('MCS Zone Info Title').textContent = 'Monster/Dungeon Info.';
+      this.subInfoCard.container.style.display = 'none';
+      this.infoPlaceholder.style.display = '';
     }
   }
   // Functions that manipulate the UI
@@ -1810,9 +2070,6 @@ class McsApp {
    */
   disableStyleDropdown(combatType) {
     document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'none';
-    if (combatType == 'Magic') {
-      document.getElementById('MCS Spell Dropdown Container').style.display = 'none';
-    }
   }
   /**
    * Toggles the display of a style dropdown, and the spell selection dropdown on
@@ -1820,21 +2077,56 @@ class McsApp {
    */
   enableStyleDropdown(combatType) {
     document.getElementById(`MCS ${combatType} Style Dropdown`).style.display = 'inline';
-    if (combatType == 'Magic') {
-      document.getElementById('MCS Spell Dropdown Container').style.display = 'flex';
-    }
   }
   /**
-   * Updates the list of options in the spell dropdown, based on if the player can use it
+   * Updates the list of options in the spell menus, based on if the player can use it
    * @param {number} magicLevel The magic level the player has
    */
   updateSpellOptions(magicLevel) {
-    const spellDropdown = document.getElementById('MCS Spell Dropdown');
-    spellDropdown.children.forEach((child) => {
-      if (SPELLS[parseInt(child.value)].magicLevelRequired <= magicLevel) {
-        child.style.display = '';
+    const setSpellsPerLevel = (spell, index, type) =>{
+      const spellOption = this.simulator.spells[type];
+      if (spell.magicLevelRequired > magicLevel) {
+        document.getElementById(`MCS ${spell.name} Button Image`).src = 'assets/media/main/question.svg';
+        if (spellOption.selectedID === index) {
+          spellOption.selectedID = -1;
+          spellOption.isSelected = false;
+          document.getElementById(`MCS ${spell.name} Button`).className = 'mcsImageButton';
+          if (type === 'standard' || type === 'ancient') {
+            this.simulator.spells.standard.isSelected = true;
+            this.simulator.spells.standard.selectedID = 0;
+            document.getElementById(`MCS ${SPELLS[0].name} Button`).className = 'mcsImageButton mcsButtonImageSelected';
+          }
+          notifyPlayer(CONSTANTS.skill.Magic, `${spell.name} has been de-selected. It requires level ${spell.magicLevelRequired} Magic.`, 'danger');
+        }
       } else {
-        child.style.display = 'none';
+        document.getElementById(`MCS ${spell.name} Button Image`).src = spell.media;
+      }
+    };
+    SPELLS.forEach((spell, index)=>setSpellsPerLevel(spell, index, 'standard'));
+    AURORAS.forEach((spell, index)=>setSpellsPerLevel(spell, index, 'aurora'));
+    CURSES.forEach((spell, index)=>setSpellsPerLevel(spell, index, 'curse'));
+    ANCIENT.forEach((spell, index)=>setSpellsPerLevel(spell, index, 'ancient'));
+    this.checkForElisAss();
+  }
+
+  /**
+   * Checks if Eli's Ass is equipped and set aurora menu options
+   */
+  checkForElisAss() {
+    const spellOption = this.simulator.spells.aurora;
+    AURORAS.forEach((spell, index)=>{
+      if (spell.requiredItem !== -1) {
+        if (this.gearSelected.includes(spell.requiredItem) && this.simulator.playerLevels.Magic >= spell.magicLevelRequired) {
+          document.getElementById(`MCS ${spell.name} Button Image`).src = spell.media;
+        } else {
+          document.getElementById(`MCS ${spell.name} Button Image`).src = 'assets/media/main/question.svg';
+          if (spellOption.selectedID === index) {
+            spellOption.selectedID = -1;
+            spellOption.isSelected = false;
+            document.getElementById(`MCS ${spell.name} Button`).className = 'mcsImageButton';
+            notifyPlayer(CONSTANTS.skill.Magic, `${spell.name} has been de-selected. It requires ${this.getItemName(spell.requiredItem)}.`, 'danger');
+          }
+        }
       }
     });
   }
@@ -1843,13 +2135,18 @@ class McsApp {
    * @param {number} prayerLevel The prayer level the player has
    */
   updatePrayerOptions(prayerLevel) {
-    for (let i = 0; i < PRAYER.length; i++) {
-      if (PRAYER[i].prayerLevel > prayerLevel) {
-        document.getElementById(`MCS ${this.getPrayerName(i)} Button`).style.display = 'none';
+    PRAYER.forEach((prayer, i)=>{
+      if (prayer.prayerLevel > prayerLevel) {
+        document.getElementById(`MCS ${this.getPrayerName(i)} Button Image`).src = 'assets/media/main/question.svg';
+        if (this.simulator.prayerSelected[i]) {
+          this.simulator.prayerSelected[i] = false;
+          document.getElementById(`MCS ${this.getPrayerName(i)} Button`).className = 'mcsImageButton';
+          notifyPlayer(CONSTANTS.skill.Prayer, `${this.getPrayerName(i)} has been de-selected. It requires level ${prayer.prayerLevel} Prayer.`, 'danger');
+        }
       } else {
-        document.getElementById(`MCS ${this.getPrayerName(i)} Button`).style.display = '';
+        document.getElementById(`MCS ${this.getPrayerName(i)} Button Image`).src = prayer.media;
       }
-    }
+    });
   }
   /**
    * Updates the text fields for the stats provided by equipment
@@ -1866,7 +2163,7 @@ class McsApp {
       } else {
         newStatValue = this.simulator.equipStats[this.equipStatKeys[i]];
       }
-      document.getElementById(`MCS ${this.equipStatKeys[i]} ES Output`).textContent = newStatValue;
+      document.getElementById(`MCS ${this.equipStatKeys[i]} ES Output`).textContent = newStatValue.toLocaleString();
     }
   }
   /**
@@ -1874,7 +2171,7 @@ class McsApp {
    */
   updateCombatStats() {
     this.combatStatKeys.forEach((key) => {
-      document.getElementById(`MCS ${key} CS Output`).textContent = this.simulator.combatStats[key];
+      document.getElementById(`MCS ${key} CS Output`).textContent = this.simulator.combatStats[key].toLocaleString();
     });
   }
   /**
@@ -1882,10 +2179,8 @@ class McsApp {
    */
   updatePlotForGP() {
     this.simulator.updateGPData();
-    if (this.plotter.plotType == 'gpPerKill') {
-      this.plotter.updateBarData(this.simulator.getDataSet('gpPerKill'));
-    } else if (this.plotter.plotType == 'gpPerSecond') {
-      this.plotter.updateBarData(this.simulator.getDataSet('gpPerSecond'));
+    if (this.plotter.plotType == 'gpPerSecond') {
+      this.updatePlotData();
     }
     this.updateZoneInfoCard();
   }
@@ -1895,7 +2190,7 @@ class McsApp {
   updatePlotForSlayerXP() {
     this.simulator.updateSlayerXP();
     if (this.plotter.plotType == 'slayerXpPerSecond') {
-      this.plotter.updateBarData(this.simulator.getDataSet('slayerXpPerSecond'));
+      this.updatePlotData();
     }
     this.updateZoneInfoCard();
   }
@@ -1905,19 +2200,9 @@ class McsApp {
   updatePlotForSignetChance() {
     this.simulator.updateSignetChance();
     if (this.plotter.plotType == 'signetChance') {
-      this.plotter.updateBarData(this.simulator.getDataSet('signetChance'));
+      this.updatePlotData();
     }
     this.updateZoneInfoCard();
-  }
-  /**
-   * Updates the title above the plot
-   */
-  updatePlotTitle() {
-    if (this.simulator.selectedPlotIsTime) {
-      this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[this.plotter.plotID] + this.selectedTimeUnit;
-    } else {
-      this.plotter.plotTitle.textContent = this.plotTypeDropdownOptions[this.plotter.plotID];
-    }
   }
   /**
    * Updates the images and tooltips for potions when the potion tier is changed
@@ -2046,18 +2331,18 @@ class McsApp {
     for (let i = 0; i < this.gearSelected.length; i++) {
       for (let j = 0; j < this.gearSubsets[i].length; j++) {
         if (this.gearSubsets[i][j].itemID == this.gearSelected[i]) {
-          this.gearLevelCard.dropDowns[i].selectedIndex = j;
+          this.gearSelectCard.dropDowns[i].selectedIndex = j;
           break;
         }
       }
       // Do check for weapon type
       if (i == CONSTANTS.equipmentSlot.Weapon) {
         if (items[gearID].isTwoHanded) {
-          this.gearLevelCard.dropDowns[CONSTANTS.equipmentSlot.Shield].selectedIndex = 0;
+          this.gearSelectCard.dropDowns[CONSTANTS.equipmentSlot.Shield].selectedIndex = 0;
           this.gearSelected[CONSTANTS.equipmentSlot.Shield] = 0;
-          this.gearLevelCard.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = true;
+          this.gearSelectCard.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = true;
         } else {
-          this.gearLevelCard.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = false;
+          this.gearSelectCard.dropDowns[CONSTANTS.equipmentSlot.Shield].disabled = false;
         }
         // Change to the correct combat style selector
         if ((items[gearID].type === 'Ranged Weapon') || items[gearID].isRanged) {
@@ -2151,7 +2436,7 @@ class McsApp {
     this.updateZoneInfoCard();
     document.getElementById('MCS Simulate Button').disabled = false;
     document.getElementById('MCS Simulate Button').textContent = 'Simulate';
-    document.getElementById('MCS Cancel Button').style.display = 'none';
+    document.getElementById('MCS Cancel Sim Button').style.display = 'none';
   }
 }
 /**
@@ -2208,13 +2493,50 @@ class McsPlotter {
     }
 
     this.plotContainer = document.createElement('div');
-    this.plotContainer.className = 'mcsPlotContainer';
+    this.plotContainer.className = 'mcsPlotContainer mcsOuter';
     this.plotContainer.id = 'MCS Plotter';
 
     this.plotTitle = document.createElement('div');
     this.plotTitle.className = 'mcsPlotTitle';
-    this.plotTitle.textContent = 'XP per Second';
     this.plotContainer.appendChild(this.plotTitle);
+    // Use a dropdown menu for the plot title
+    const skillTypeSelect = document.createElement('select');
+    skillTypeSelect.className = 'mcsDropdown';
+    this.parent.skillKeys.forEach((skillName, index)=>{
+      const newOption = document.createElement('option');
+      newOption.textContent = skillName;
+      newOption.value = skillName;
+      newOption.className = 'mcsOption';
+      newOption.id = `MCS ${skillName} Option`;
+      skillTypeSelect.appendChild(newOption);
+    });
+    skillTypeSelect.onchange = (event) => this.parent.petSkillDropdownOnChange(event);
+    this.plotTitle.appendChild(skillTypeSelect);
+    this.petSkillDropdown = skillTypeSelect;
+
+    const plotTypeSelect = document.createElement('select');
+    plotTypeSelect.className = 'mcsDropdown';
+    this.parent.plotTypeDropdownOptions.forEach((value, index)=>{
+      const newOption = document.createElement('option');
+      newOption.textContent = value;
+      newOption.value = this.parent.plotTypeDropdownValues[index];
+      newOption.className = 'mcsOption';
+      plotTypeSelect.appendChild(newOption);
+    });
+    plotTypeSelect.onchange = (event) => this.parent.plottypeDropdownOnChange(event);
+    this.plotTitle.appendChild(plotTypeSelect);
+
+    this.timeDropdown = document.createElement('select');
+    this.timeDropdown.className = 'mcsDropdown';
+    this.parent.timeOptions.forEach((value, index)=>{
+      const newOption = document.createElement('option');
+      newOption.textContent = value;
+      newOption.value = this.parent.timeMultipliers[index];
+      newOption.className = 'mcsOption';
+      this.timeDropdown.appendChild(newOption);
+    });
+    this.timeDropdown.onchange = (event) => this.parent.timeUnitDropdownOnChange(event);
+    this.plotTitle.appendChild(this.timeDropdown);
 
     this.plotTopContainer = document.createElement('div');
     this.plotTopContainer.className = 'mcsPlotTopContainer';
@@ -2315,8 +2637,8 @@ class McsPlotter {
     this.toggleMonsterButton = document.createElement('button');
     this.toggleMonsterButton.className = 'mcsButton';
     this.toggleMonsterButton.textContent = 'Toggle Monsters';
-    this.toggleMonsterButton.style.position = 'absolute';
-    this.toggleMonsterButton.style.top = '0';
+    this.toggleMonsterButton.style.position = 'sticky';
+    this.toggleMonsterButton.style.top = '100%';
     this.toggleMonsterButton.style.width = '150px';
     this.toggleMonsterButton.style.left = '85px';
     this.toggleMonsterButton.style.whiteSpace = 'nowrap';
@@ -2327,8 +2649,8 @@ class McsPlotter {
     this.toggleDungeonButton = document.createElement('button');
     this.toggleDungeonButton.className = 'mcsButton';
     this.toggleDungeonButton.textContent = 'Toggle Dungeons';
-    this.toggleDungeonButton.style.position = 'absolute';
-    this.toggleDungeonButton.style.top = '0';
+    this.toggleDungeonButton.style.position = 'sticky';
+    this.toggleDungeonButton.style.top = '100%';
     this.toggleDungeonButton.style.width = '150px';
     this.toggleDungeonButton.style.left = '240px';
     this.toggleDungeonButton.style.whiteSpace = 'nowrap';
@@ -2370,7 +2692,7 @@ class McsPlotter {
       this.bars[i].onmouseout = (event) => this.barOnMouseOut(event, i);
     }
 
-    this.parent.topContent.appendChild(this.plotContainer);
+    this.parent.botContent.appendChild(this.plotContainer);
     // Data for displaying dungeons
     this.dungeonDisplayData = [];
     // Condensed monster data for dungeon display
@@ -2420,25 +2742,31 @@ class McsPlotter {
     let division;
     let Ndivs;
     let divMax;
+    let divPower;
+    let closestRatio;
+    let divDecimals = 1;
     if (barMax != 0) {
       const divRatio = barMax / Math.pow(10, Math.floor(Math.log10(barMax)) + 1);
-      let closestRatio;
       if (divRatio >= 0.5) {
         closestRatio = 0.5;
       } else if (divRatio >= 0.25) {
         closestRatio = 0.25;
+        divDecimals = 2;
       } else if (divRatio >= 0.2) {
         closestRatio = 0.2;
       } else if (divRatio >= 0.1) {
         closestRatio = 0.1;
       }
-      division = closestRatio * Math.pow(10, Math.floor(Math.log10(barMax)));
+      divPower = Math.floor(Math.log10(barMax));
+      division = closestRatio * Math.pow(10, divPower);
       Ndivs = Math.ceil(barMax / division);
       divMax = Ndivs * division;
     } else {
       divMax = 1;
+      divPower = 0;
       Ndivs = 10;
       division = 0.1;
+      closestRatio = 0.1;
     }
     // Modify in reverse
     const numBars = this.bars.length;
@@ -2460,11 +2788,24 @@ class McsPlotter {
         this.gridLine[i].style.display = 'none';
       }
     }
+    let formatEnd = '';
+    // Use toFixed for tick marks
+    if (divPower > 2) {
+      formatEnd = ['k', 'M', 'B', 'T'][Math.floor(divPower / 3) - 1];
+    }
+    if (divPower >= 0) {
+      const powerLeft = divPower % 3;
+      closestRatio *= Math.pow(10, powerLeft);
+    } else {
+      closestRatio *= Math.pow(10, divPower);
+      divDecimals -= divPower;
+    }
+
     for (let i = 0; i < 21; i++) {
       if (i < (Ndivs + 1)) {
         this.tickText[i].style.display = 'block';
         this.tickText[i].style.bottom = `${i * 100 / Ndivs - 2.5}%`;
-        this.tickText[i].textContent = mcsFormatNum(i * division, 4);
+        this.tickText[i].textContent = `${(i * closestRatio).toLocaleString(undefined, {maximumFractionDigits: divDecimals, minimumFractionDigits: divDecimals})}${formatEnd}`;
       } else {
         this.tickText[i].style.display = 'none';
       }
@@ -2621,6 +2962,7 @@ class McsPlotter {
  * @property {number} attacksTakenPerSecond
  * @property {number} attacksMadePerSecond
  * @property {number} simulationTime
+ * @property {Array} petRolls
  */
 /**
  * Stats of the player
@@ -2671,6 +3013,16 @@ class McsSimulator {
       Prayer: 1,
       Slayer: 1,
     };
+    this.virtualLevels = {
+      Attack: 1,
+      Strength: 1,
+      Defence: 1,
+      Hitpoints: 10,
+      Ranged: 1,
+      Magic: 1,
+      Prayer: 1,
+      Slayer: 1,
+    };
     // Equipment Stats
     this.equipStats = {
       attackSpeed: 4000,
@@ -2691,9 +3043,9 @@ class McsSimulator {
       slayerXPBonus: 0,
       chanceToDoubleLoot: 0,
       maxHitpointsBonus: 0,
+      increasedMinSpellDmg: [0, 0, 0, 0],
     };
     // Spell Selection
-    this.selectedSpell = 0;
     this.spells = {
       standard: {
         array: SPELLS,
@@ -2730,6 +3082,7 @@ class McsSimulator {
     this.combatStats = {
       attackSpeed: 4000,
       maxHit: 0,
+      minHit: 0,
       maxAttackRoll: 0,
       maxDefRoll: 0,
       maxRngDefRoll: 0,
@@ -2763,7 +3116,7 @@ class McsSimulator {
       prayerBonusDamageReduction: 'damageReduction',
     };
     this.activePrayers = 0;
-    /** Computer Prayer Bonus From UI */
+    /** Computed Prayer Bonus From UI */
     this.prayerBonus = {
       meleeAccuracy: 0,
       meleeDamage: 0,
@@ -2781,6 +3134,16 @@ class McsSimulator {
       protectFromMagic: 0,
       hitpointHeal: 0,
       damageReduction: 0,
+    };
+    /** Aurora Bonuses */
+    this.auroraBonus = {
+      attackSpeedBuff: 0,
+      rangedEvasionBuff: 0,
+      increasedMaxHit: 0,
+      magicEvasionBuff: 0,
+      lifesteal: 0,
+      meleeEvasionBuff: 0,
+      increasedMinHit: 0,
     };
     // Slayer Variables
     this.isSlayerTask = false;
@@ -2818,8 +3181,6 @@ class McsSimulator {
       533: 112, // Pigtayle
       534: 160, // Barrentoe
     };
-    /** Array of spell IDs that trigger Cloudburst */
-    this.waterSpells = [1, 5, 9, 13, 17];
     // Simulation settings
     /** Max number of player hits to attempt before timeout */
     this.Nhitmax = 1000;
@@ -2863,6 +3224,8 @@ class McsSimulator {
         attacksTakenPerSecond: 0,
         attacksMadePerSecond: 0,
         simulationTime: 0,
+        petRolls: [],
+        petChance: 0,
       });
       this.monsterSimFilter.push(true);
     }
@@ -2892,6 +3255,7 @@ class McsSimulator {
         attacksTakenPerSecond: 0,
         attacksMadePerSecond: 0,
         simulationTime: 0,
+        petChance: 0,
       });
       this.dungeonSimFilter.push(true);
     }
@@ -2930,6 +3294,7 @@ class McsSimulator {
       combatStats: {},
       attackStyle: {},
       isSlayerTask: false,
+      virtualLevels: {},
     };
     // Options for GP/s calculations
     this.sellBones = false; // True or false
@@ -2978,6 +3343,8 @@ class McsSimulator {
     for (let i = 0; i < this.parent.plotTypeDropdownValues.length; i++) {
       this.exportDataType.push(true);
     }
+    // Pet Settings
+    this.petSkill = 'Attack';
     // Test Settings
     this.isTestMode = false;
     this.testMax = 10;
@@ -3080,6 +3447,7 @@ class McsSimulator {
       Deadeye_Amulet: items[CONSTANTS.item.Deadeye_Amulet],
       Confetti_Crossbow: items[CONSTANTS.item.Confetti_Crossbow],
       Warlock_Amulet: items[CONSTANTS.item.Warlock_Amulet],
+      CURSEIDS: CONSTANTS.curse,
     });
   }
   /**
@@ -3130,6 +3498,10 @@ class McsSimulator {
       if (i == CONSTANTS.equipmentSlot.Weapon) {
         this.equipStats.attackSpeed = (curItem.attackSpeed) ? curItem.attackSpeed : 4000;
       }
+      if (curItem.increasedMinAirSpellDmg !== undefined) this.equipStats.increasedMinSpellDmg[CONSTANTS.spellType.Air] += curItem.increasedMinAirSpellDmg;
+      if (curItem.increasedMinWaterSpellDmg !== undefined) this.equipStats.increasedMinSpellDmg[CONSTANTS.spellType.Water] += curItem.increasedMinWaterSpellDmg;
+      if (curItem.increasedMinEarthSpellDmg !== undefined) this.equipStats.increasedMinSpellDmg[CONSTANTS.spellType.Earth] += curItem.increasedMinEarthSpellDmg;
+      if (curItem.increasedMinFireSpellDmg !== undefined) this.equipStats.increasedMinSpellDmg[CONSTANTS.spellType.Fire] += curItem.increasedMinFireSpellDmg;
     }
   }
   /**
@@ -3141,8 +3513,8 @@ class McsSimulator {
     let attackStyleBonus = 1;
     let meleeDefenceBonus = 1;
     const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
-    // Ranged
     if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
+      // Ranged
       this.combatStats.attackType = CONSTANTS.attackType.Ranged;
       if (this.attackStyle.Ranged == 0) {
         attackStyleBonus += 3;
@@ -3158,19 +3530,26 @@ class McsSimulator {
 
       const effectiveStrengthLevel = Math.floor(this.playerLevels.Ranged + attackStyleBonus);
       this.combatStats.maxHit = Math.floor(numberMultiplier * ((1.3 + effectiveStrengthLevel / 10 + this.equipStats.rangedStrengthBonus / 80 + effectiveStrengthLevel * this.equipStats.rangedStrengthBonus / 640) * (1 + (this.prayerBonus.rangedDamage / 100)) * (1 + this.herbloreBonus.rangedStrength / 100)));
-      // Magic
     } else if (items[weaponID].isMagic) {
+      // Magic
       this.combatStats.attackType = CONSTANTS.attackType.Magic;
       effectiveAttackLevel = Math.floor(this.playerLevels.Magic + 8 + attackStyleBonus);
       this.combatStats.maxAttackRoll = Math.floor(effectiveAttackLevel * (this.equipStats.magicAttackBonus + 64) * (1 + (this.prayerBonus.magicAccuracy / 100)) * (1 + this.herbloreBonus.magicAccuracy / 100));
-      this.combatStats.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.selectedSpell].maxHit + SPELLS[this.selectedSpell].maxHit * (this.equipStats.magicDamageBonus / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonus.magicDamage / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
-      // Cloudburst Water Spell Bonus
-      if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Cloudburst_Staff && (this.waterSpells.includes(this.selectedSpell))) {
-        this.combatStats.maxHit += items[CONSTANTS.item.Cloudburst_Staff].increasedWaterSpellDamage * numberMultiplier;
+      if (this.spells.standard.isSelected) {
+        this.combatStats.maxHit = Math.floor(numberMultiplier * ((SPELLS[this.spells.standard.selectedID].maxHit + SPELLS[this.spells.standard.selectedID].maxHit * (this.equipStats.magicDamageBonus / 100)) * (1 + (this.playerLevels.Magic + 1) / 200) * (1 + this.prayerBonus.magicDamage / 100) * (1 + this.herbloreBonus.magicDamage / 100)));
+        this.combatStats.minHit = this.equipStats.increasedMinSpellDmg[SPELLS[this.spells.standard.selectedID].spellType];
+        // Cloudburst Water Spell Bonus
+        if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] === CONSTANTS.item.Cloudburst_Staff && SPELLS[this.spells.standard.selectedID].spellType === CONSTANTS.spellType.Water) {
+          this.combatStats.maxHit += items[CONSTANTS.item.Cloudburst_Staff].increasedWaterSpellDamage * numberMultiplier;
+        }
+      } else {
+        this.combatStats.maxHit = ANCIENT[this.spells.ancient.selectedID].maxHit * numberMultiplier;
+        this.combatStats.minHit = 0;
       }
+      // Minimum Hit
       this.combatStats.attackSpeed = this.equipStats.attackSpeed;
-      // Melee
     } else {
+      // Melee
       this.combatStats.attackType = CONSTANTS.attackType.Melee;
       if (this.petOwned[12]) attackStyleBonus += 3;
       effectiveAttackLevel = Math.floor(this.playerLevels.Attack + 8 + attackStyleBonus);
@@ -3187,6 +3566,14 @@ class McsSimulator {
     this.combatStats.maxRngDefRoll = Math.floor(effectiveRngDefenceLevel * (this.equipStats.rangedDefenceBonus + 64) * (1 + (this.prayerBonus.rangedEvasion) / 100) * (1 + this.herbloreBonus.rangedEvasion / 100));
     const effectiveMagicDefenceLevel = Math.floor(this.playerLevels.Magic * 0.7 + this.playerLevels.Defence * 0.3 + 9);
     this.combatStats.maxMagDefRoll = Math.floor(effectiveMagicDefenceLevel * (this.equipStats.magicDefenceBonus + 64) * (1 + (this.prayerBonus.magicEvasion / 100)) * (1 + this.herbloreBonus.magicEvasion / 100));
+    // Update aurora bonuses
+    this.computeAuroraBonus();
+    if (this.auroraBonus.meleeEvasionBuff !== 0) this.combatStats.maxDefRoll = Math.floor(this.combatStats.maxDefRoll * (1 + this.auroraBonus.meleeEvasionBuff / 100));
+    if (this.auroraBonus.rangedEvasionBuff !== 0) this.combatStats.maxRngDefRoll = Math.floor(this.combatStats.maxRngDefRoll * (1 + this.auroraBonus.rangedEvasionBuff / 100));
+    if (this.auroraBonus.magicEvasionBuff !== 0) this.combatStats.maxMagDefRoll = Math.floor(this.combatStats.maxMagDefRoll * (1 + this.auroraBonus.magicEvasionBuff / 100));
+    if (this.auroraBonus.increasedMaxHit !== 0 && this.spells.standard.isSelected) this.combatStats.maxHit += this.auroraBonus.increasedMaxHit;
+    if (this.auroraBonus.increasedMinHit !== 0 && this.spells.standard.isSelected) this.combatStats.minHit += this.auroraBonus.increasedMinHit;
+    // Calculate damage reduction
     this.combatStats.damageReduction = this.equipStats.damageReduction + this.herbloreBonus.damageReduction + this.prayerBonus.damageReduction;
     if (this.petOwned[14]) this.combatStats.damageReduction++;
     // Max Hitpoints
@@ -3228,7 +3615,48 @@ class McsSimulator {
     this.prayerBonus.hitpointHeal = 0;
     this.prayerBonus.damageReduction = 0;
   }
-
+  /**
+   * Sets aurora bonuses
+   */
+  computeAuroraBonus() {
+    this.resetAuroraBonus();
+    if (this.combatStats.attackType === CONSTANTS.attackType.Magic && this.spells.aurora.isSelected && !this.spells.ancient.isSelected) {
+      const auroraID = this.spells.aurora.selectedID;
+      switch (auroraID) {
+        case CONSTANTS.aurora.Surge_I:
+        case CONSTANTS.aurora.Surge_II:
+        case CONSTANTS.aurora.Surge_III:
+          this.auroraBonus.attackSpeedBuff = AURORAS[auroraID].effectValue[0];
+          this.auroraBonus.rangedEvasionBuff = AURORAS[auroraID].effectValue[1];
+          break;
+        case CONSTANTS.aurora.Fury_I:
+        case CONSTANTS.aurora.Fury_II:
+        case CONSTANTS.aurora.Fury_III:
+          this.auroraBonus.increasedMaxHit = AURORAS[auroraID].effectValue[0];
+          this.auroraBonus.magicEvasionBuff = AURORAS[auroraID].effectValue[1];
+          break;
+        case CONSTANTS.aurora.Fervor_I:
+        case CONSTANTS.aurora.Fervor_II:
+        case CONSTANTS.aurora.Fervor_III:
+          this.auroraBonus.lifesteal = AURORAS[auroraID].effectValue[0];
+          this.auroraBonus.meleeEvasionBuff = AURORAS[auroraID].effectValue[1];
+          break;
+        case CONSTANTS.aurora.Charged_I:
+        case CONSTANTS.aurora.Charged_II:
+        case CONSTANTS.aurora.Charged_III:
+          this.auroraBonus.increasedMinHit = AURORAS[auroraID].effectValue;
+          break;
+      }
+    }
+  }
+  /**
+   * Resets the aurora bonuses to default
+   */
+  resetAuroraBonus() {
+    Object.keys(this.auroraBonus).forEach((key)=>{
+      this.auroraBonus[key] = 0;
+    });
+  }
   /**
    * Computes the potion bonuses for the selected potion
    * */
@@ -3322,6 +3750,9 @@ class McsSimulator {
     this.equipStats.slayerXPBonus = 0;
     this.equipStats.chanceToDoubleLoot = 0;
     this.equipStats.maxHitpointsBonus = 0;
+    this.equipStats.increasedMinSpellDmg.forEach((_element, index, array)=>{
+      array[index] = 0;
+    });
   }
   /**
   * Iterate through all the combatAreas and DUNGEONS to create a set of monsterSimData and dungeonSimData
@@ -3335,13 +3766,17 @@ class McsSimulator {
       attackType: this.combatStats.attackType,
       maxAttackRoll: this.combatStats.maxAttackRoll,
       maxHit: this.combatStats.maxHit,
+      minHit: this.combatStats.minHit,
       maxDefRoll: this.combatStats.maxDefRoll,
       maxMagDefRoll: this.combatStats.maxMagDefRoll,
       maxRngDefRoll: this.combatStats.maxRngDefRoll,
       xpBonus: 0,
-      avgHPRegen: 1 + Math.floor(this.playerLevels.Hitpoints / 10),
+      globalXPMult: 1,
+      maxHitpoints: this.combatStats.maxHitpoints,
+      avgHPRegen: 0,
       damageReduction: this.combatStats.damageReduction,
       diamondLuck: this.herbloreBonus.diamondLuck,
+      usingAncient: false,
       hasSpecialAttack: false,
       specialData: {},
       startingGP: 50000000,
@@ -3364,7 +3799,6 @@ class McsSimulator {
         Guardian_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Guardian_Amulet), // Damage reduction on getting hit
         Deadeye_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Deadeye_Amulet && this.combatStats.attackType == 1), // Ranged criticals
 
-        Cloudburst_Staff: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Cloudburst_Staff && (this.waterSpells.includes(this.selectedSpell))),
         Confetti_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Confetti_Crossbow),
         Stormsnap: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Stormsnap),
         Slayer_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Slayer_Crossbow),
@@ -3375,21 +3809,47 @@ class McsSimulator {
       prayerPointsPerHeal: 0,
       prayerXPperDamage: 1 / numberMultiplier / 2,
       isProtected: false,
+      hardcore: this.isHardcore,
+      lifesteal: this.auroraBonus.lifesteal,
+      attackSpeedDecrease: this.auroraBonus.attackSpeedBuff,
+      canCurse: false,
+      curseID: -1,
+      curseData: {},
     };
-    // Special Attack
-    if (items[this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon]].hasSpecialAttack) {
+    // Special Attack and Ancient Magicks
+    if (this.combatStats.attackType === CONSTANTS.attackType.Magic && this.spells.ancient.isSelected) {
+      playerStats.usingAncient = true;
+      playerStats.specialData = playerSpecialAttacks[ANCIENT[this.spells.ancient.selectedID].specID];
+    } else if (items[this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon]].hasSpecialAttack) {
       playerStats.hasSpecialAttack = true;
       playerStats.specialData = playerSpecialAttacks[items[this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon]].specialAttackID];
     }
+    // Curses
+    if (this.combatStats.attackType === CONSTANTS.attackType.Magic && !this.spells.ancient.isSelected && this.spells.curse.isSelected) {
+      playerStats.canCurse = true;
+      playerStats.curseID = this.spells.curse.selectedID;
+      playerStats.curseData = CURSES[this.spells.curse.selectedID];
+    }
     // Regen Calculation
-    if (playerStats.activeItems.Hitpoints_Skillcape) {
-      playerStats.avgHPRegen += 1 * numberMultiplier;
+    if (!this.isHardcore) {
+      playerStats.avgHPRegen = 1 + Math.floor(this.combatStats.maxHitpoints / 10 / numberMultiplier);
+      if (playerStats.activeItems.Hitpoints_Skillcape) {
+        playerStats.avgHPRegen += 1 * numberMultiplier;
+      }
+      if (this.prayerSelected[CONSTANTS.prayer.Rapid_Heal]) playerStats.avgHPRegen *= 2;
+      playerStats.avgHPRegen *= (1 + this.herbloreBonus.hpRegen / 100);
+      if (playerStats.activeItems.Gold_Ruby_Ring) {
+        playerStats.avgHPRegen = Math.floor(playerStats.avgHPRegen * (1 + items[CONSTANTS.item.Gold_Ruby_Ring].hpRegenBonus / 100));
+      }
     }
-    if (this.prayerSelected[CONSTANTS.prayer.Rapid_Heal]) playerStats.avgHPRegen *= 2;
-    playerStats.avgHPRegen *= (1 + this.herbloreBonus.hpRegen / 100);
-    if (playerStats.activeItems.Gold_Ruby_Ring) {
-      playerStats.avgHPRegen = Math.floor(playerStats.avgHPRegen * (1 + items[CONSTANTS.item.Gold_Ruby_Ring].hpRegenBonus / 100));
+    // Calculate Global XP Multiplier
+    if (playerStats.activeItems.Firemaking_Skillcape) {
+      playerStats.globalXPMult += 0.05;
     }
+    if (this.petOwned[2]) {
+      playerStats.globalXPMult += 0.01;
+    }
+
     // Other Bonuses
     if (playerStats.activeItems.Gold_Emerald_Ring) {
       playerStats.xpBonus = 0.07;
@@ -3457,6 +3917,7 @@ class McsSimulator {
     Object.assign(this.currentSim.prayerBonus, this.prayerBonus);
     Object.assign(this.currentSim.combatStats, this.combatStats);
     Object.assign(this.currentSim.attackStyle, this.attackStyle);
+    Object.assign(this.currentSim.virtualLevels, this.virtualLevels);
 
     // Reset the simulation status of all enemies
     this.resetSimDone();
@@ -3645,6 +4106,7 @@ class McsSimulator {
     this.updateSlayerXP();
     this.updateHerbloreXP();
     this.updateSignetChance();
+    this.updatePetChance();
     console.log(`Elapsed Simulation Time: ${performance.now() - this.simStartTime}ms`);
   }
   /** Starts processing simulation jobs */
@@ -3724,7 +4186,7 @@ class McsSimulator {
         this.currentSim.playerStats.isProtected = this.currentSim.prayerBonus.protectFromMagic > 0;
         break;
     }
-    // Do preprocessing of player stats for special weapons TODO: Modify this so it doesn't draw from current UI options
+    // Do preprocessing of player stats for special weapons
     if (this.currentSim.playerStats.activeItems.Stormsnap || this.currentSim.playerStats.activeItems.Slayer_Crossbow) {
       let attackStyleBonus = 1;
       // Ranged
@@ -3836,22 +4298,30 @@ class McsSimulator {
     if (this.selectedPlotIsTime) {
       dataMultiplier = this.timeMultiplier;
     }
+    let isKillTime = (this.timeMultiplier === -1 && this.selectedPlotIsTime);
+    if (keyValue === 'petChance') {
+      isKillTime = false;
+      dataMultiplier = 1;
+    }
     const dataSet = [];
     if (!this.parent.isViewingDungeon) {
       // Compile data from monsters in combat zones
       combatAreas.forEach((area) => {
         area.monsters.forEach((monsterID) => {
+          if (isKillTime) dataMultiplier = this.monsterSimData[monsterID].killTimeS;
           dataSet.push((this.monsterSimFilter[monsterID] && this.monsterSimData[monsterID].simSuccess) ? this.monsterSimData[monsterID][keyValue] * dataMultiplier : 0);
         });
       });
       // Compile data from monsters in slayer zones
       slayerAreas.forEach((area) => {
         area.monsters.forEach((monsterID) => {
+          if (isKillTime) dataMultiplier = this.monsterSimData[monsterID].killTimeS;
           dataSet.push((this.monsterSimFilter[monsterID] && this.monsterSimData[monsterID].simSuccess) ? this.monsterSimData[monsterID][keyValue] * dataMultiplier : 0);
         });
       });
       // Perform simulation of monsters in dungeons
       for (let i = 0; i < DUNGEONS.length; i++) {
+        if (isKillTime) dataMultiplier = this.dungeonSimData[i].killTimeS;
         dataSet.push((this.dungeonSimFilter[i] && this.dungeonSimData[i].simSuccess) ? this.dungeonSimData[i][keyValue] * dataMultiplier : 0);
       }
     } else {
@@ -3862,6 +4332,7 @@ class McsSimulator {
       // 'xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance'
       this.condensedDungeonMonsters[dungeonID].forEach((monster) => {
         if (!isSignet) {
+          if (isKillTime) dataMultiplier = this.monsterSimData[monster.id].killTimeS;
           if (qtyMultiplier) {
             dataSet.push((this.monsterSimData[monster.id].simSuccess) ? this.monsterSimData[monster.id][keyValue] * dataMultiplier * monster.quantity : 0);
           } else {
@@ -4531,7 +5002,7 @@ class McsSimulator {
             if (this.isSlayerTask) {
               monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
-            this.monsterSimData[monster].slayerXpPerSecond = monsterXP / this.monsterSimData[monster].killTimeS;
+            this.monsterSimData[monster].slayerXpPerSecond = monsterXP * this.currentSim.playerStats.globalXPMult / this.monsterSimData[monster].killTimeS;
           } else {
             this.monsterSimData[monster].slayerXpPerSecond = 0;
           }
@@ -4545,7 +5016,7 @@ class McsSimulator {
             if (this.isSlayerTask) {
               monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
-            this.monsterSimData[monster].slayerXpPerSecond = monsterXP / this.monsterSimData[monster].killTimeS;
+            this.monsterSimData[monster].slayerXpPerSecond = monsterXP * this.currentSim.playerStats.globalXPMult / this.monsterSimData[monster].killTimeS;
           } else {
             this.monsterSimData[monster].slayerXpPerSecond = 0;
           }
@@ -4613,6 +5084,94 @@ class McsSimulator {
     const levels = [melee, range, magic];
     return Math.floor(base + Math.max(...levels));
   }
+  /** Updates the chance to get a pet for the given skill*/
+  updatePetChance() {
+    const xpSkills = ['Hitpoints', 'Prayer'];
+    const attackType = this.currentSim.playerStats.attackType;
+    const attackStyle = this.currentSim.attackStyle[attackType];
+    switch (attackType) {
+      case CONSTANTS.attackType.Melee:
+        switch (attackStyle) {
+          case 0:
+            xpSkills.push('Attack');
+            break;
+          case 1:
+            xpSkills.push('Strength');
+            break;
+          case 2:
+            xpSkills.push('Defence');
+            break;
+        }
+        break;
+      case CONSTANTS.attackType.Ranged:
+        xpSkills.push('Ranged');
+        if (attackStyle === 2) xpSkills.push('Defence');
+        break;
+      case CONSTANTS.attackType.Magic:
+        xpSkills.push('Magic');
+        if (attackStyle === 1) xpSkills.push('Defence');
+        break;
+    }
+    if (xpSkills.includes(this.petSkill)) {
+      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill];
+      this.monsterSimData.forEach((simResult)=>{
+        if (!simResult.simSuccess) {
+          simResult.petChance = 0;
+          return;
+        }
+        const timePeriod = (this.timeMultiplier === -1) ? simResult.killTimeS : this.timeMultiplier;
+        simResult.petChance = 1 - simResult.petRolls.reduce((chanceToNotGet, petRoll)=>{
+          return chanceToNotGet * Math.pow((1 - petRoll.speed * petSkillLevel / 25000000000), timePeriod * petRoll.rollsPerSecond);
+        }, 1);
+        simResult.petChance *= 100;
+      });
+      this.condensedDungeonMonsters.forEach((condensedArray, index)=>{
+        const dungeonResult = this.dungeonSimData[index];
+        if (!dungeonResult.simSuccess) {
+          dungeonResult.petChance = 0;
+          return;
+        }
+        const timePeriod = (this.timeMultiplier === -1) ? dungeonResult.killTimeS : this.timeMultiplier;
+        dungeonResult.petChance = 1 - condensedArray.reduce((cumChanceToNotGet, monster)=>{
+          const monsterResult = this.monsterSimData[monster.id];
+          const timeRatio = monster.quantity * monsterResult.killTimeS / this.dungeonSimData[index].killTimeS;
+          const chanceToNotGet = monsterResult.petRolls.reduce((product, petRoll)=>{
+            return product * Math.pow((1 - petRoll.speed * petSkillLevel / 25000000000), timePeriod * timeRatio * petRoll.rollsPerSecond);
+          }, 1);
+          return cumChanceToNotGet * chanceToNotGet;
+        }, 1);
+        dungeonResult.petChance *= 100;
+      });
+    } else if (this.petSkill === 'Slayer' && this.currentSim.isSlayerTask) {
+      // Slayer pet is currently only rolled once for the players attack speed per kill
+      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill];
+      const computeForArea = (area)=>{
+        area.monsters.forEach((mID)=>{
+          const simResult = this.monsterSimData[mID];
+          if (!simResult.simSuccess) {
+            simResult.petChance = 0;
+            return;
+          }
+          const attackSpeed = this.currentSim.playerStats.attackSpeed - this.currentSim.playerStats.attackSpeedDecrease;
+          const numRolls = (this.timeMultiplier === -1) ? 1 : this.timeMultiplier / simResult.killTimeS;
+          simResult.petChance = 1 - Math.pow((1 - attackSpeed * petSkillLevel / 25000000000), numRolls);
+          simResult.petChance *= 100;
+        });
+      };
+      combatAreas.forEach(computeForArea);
+      slayerAreas.forEach(computeForArea);
+      this.dungeonSimData.forEach((simResult)=>{
+        simResult.petChance = 0;
+      });
+    } else {
+      this.monsterSimData.forEach((simResult)=>{
+        simResult.petChance = 0;
+      });
+      this.dungeonSimData.forEach((simResult)=>{
+        simResult.petChance = 0;
+      });
+    }
+  }
 }
 
 /**
@@ -4625,11 +5184,14 @@ class McsCard {
    * @param {string} width The width of the card
    * @param {string} height The height of the card
    * @param {string} inputWidth The width of inputs for the card's ui elements
+   * @param {boolean} outer This card is an outside card
    */
-  constructor(parentElement, width, height, inputWidth) {
+  constructor(parentElement, width, height, inputWidth, outer = false) {
     this.container = document.createElement('div');
-    this.container.className = 'mcsCardContainer';
-    this.container.style.minWidth = width;
+    this.container.className = `mcsCardContainer${outer ? ' mcsOuter' : ''}`;
+    if (width !== '') {
+      this.container.style.width = width;
+    }
     if (height !== '') {
       this.container.style.height = height;
     }
@@ -4657,11 +5219,12 @@ class McsCard {
   * @param {Function} onclickCallback Callback to excute when pressed
   * @param {number} width Width of button in px
   * @param {number} height Height of button in px
+  * @param {string} idTag Optional ID Tag
   */
-  addButton(buttonText, onclickCallback, width, height) {
+  addButton(buttonText, onclickCallback, width, height, idTag = '') {
     const newButton = document.createElement('button');
     newButton.type = 'button';
-    newButton.id = `MCS ${buttonText} Button`;
+    newButton.id = `MCS ${buttonText} ${(idTag === '') ? '' : `${idTag} `}Button`;
     newButton.className = 'mcsButton';
     newButton.style.width = `${width}px`;
     newButton.style.height = `${height}px`;
@@ -4670,47 +5233,94 @@ class McsCard {
     this.container.appendChild(newButton);
     this.buttons.push(newButton);
   }
+
+  /**
+   * Adds an image to the card
+   * @param {string} imageSource Source of image file
+   * @param {number} imageSize size of image in pixels
+   * @param {string} imageID Element ID
+   * @return {HTMLImageElement}
+   */
+  addImage(imageSource, imageSize, imageID = '') {
+    const newImage = document.createElement('img');
+    newImage.style.width = `${imageSize}px`;
+    newImage.style.height = `${imageSize}px`;
+    newImage.id = imageID;
+    newImage.src = imageSource;
+    this.container.appendChild(newImage);
+    return newImage;
+  }
   /**
   * Creates a new button with the image
   * @param {string} imageSource Source of the image on the button
   * @param {string} idText Text to put in the id of the button
   * @param {Function} onclickCallback Callback when clicking the button
-  * @param {number} width Width of the button and image in px
-  * @param {number} height Height of the button and image in px
-  * @param {HTMLElement} tooltip
+  * @param {string} size Image Size
   * @return {HTMLButtonElement} The created button element
   */
-  createImageButton(imageSource, idText, onclickCallback, width, height, tooltip) {
+  createImageButton(imageSource, idText, onclickCallback, size) {
     const newButton = document.createElement('button');
     newButton.type = 'button';
     newButton.id = `MCS ${idText} Button`;
     newButton.className = 'mcsImageButton';
     newButton.onclick = onclickCallback;
     const newImage = document.createElement('img');
-    newImage.className = 'mcsButtonImage';
+    newImage.className = `mcsButtonImage mcsImage${size}`;
     newImage.id = `MCS ${idText} Button Image`;
     newImage.src = imageSource;
-    newImage.width = width;
-    newImage.height = height;
     newButton.appendChild(newImage);
     return newButton;
+  }
+
+  /**
+   * Adds a tab menu to the card, the tab elements will have their display toggled on and off when the tab is clicked
+   * @param {string[]} tabNames
+   * @param {string[]} tabImages
+   * @param {Function[]} tabCallbacks
+   * @param {number} imageSize Size of images in px
+   * @return {HTMLDivElement}
+   */
+  addTabMenu(tabNames, tabImages, tabCallbacks, imageSize) {
+    const newCCContainer = document.createElement('div');
+    newCCContainer.className = 'mcsTabButtonContainer';
+    tabNames.forEach((name, index)=>{
+      const newTab = document.createElement('button');
+      newTab.type = 'button';
+      newTab.id = `MCS ${name} Tab`;
+      newTab.className = 'mcsTabButton';
+      newTab.onclick = tabCallbacks[index];
+      const newImage = document.createElement('img');
+      newImage.className = 'mcsButtonImage';
+      newImage.id = `MCS ${name} Tab Image`;
+      newImage.src = tabImages[index];
+      newImage.style.width = `${imageSize}px`;
+      newImage.style.height = `${imageSize}px`;
+      newTab.appendChild(newImage);
+      newCCContainer.appendChild(newTab);
+      const ttBuilder = new McsTooltipBuilder(this.addTooltip(newTab));
+      ttBuilder.addTitle(name);
+    });
+    this.container.appendChild(newCCContainer);
+    const tabContainer = document.createElement('div');
+    tabContainer.className = 'mcsTabContainer';
+    this.container.appendChild(tabContainer);
+    return tabContainer;
   }
   /**
    * Creates multiple image button in an array
    * @param {Array<string>} sources The image source paths
    * @param {Array<string>} idtexts The ids for the buttons
-   * @param {number} height The height of the buttons in px
-   * @param {number} width The width of the buttons in px
+   * @param {string} size The size of the buttons: Small, Medium
    * @param {Array<Function>} onclickCallbacks The callbacks for the buttons
    * @param {number} containerWidth container width in px
    * @return {Array<HTMLDivElement>} The tooltips of the buttons
    */
-  addMultiImageButton(sources, idtexts, height, width, onclickCallbacks, containerWidth = 176) {
+  addMultiImageButton(sources, idtexts, size, onclickCallbacks, containerWidth = 200) {
     const toolTips = [];
     const newCCContainer = document.createElement('div');
     newCCContainer.className = 'mcsMultiImageButtonContainer';
     for (let i = 0; i < sources.length; i++) {
-      const newButton = this.createImageButton(sources[i], idtexts[i], onclickCallbacks[i], width, height);
+      const newButton = this.createImageButton(sources[i], idtexts[i], onclickCallbacks[i], size);
       toolTips.push(this.addTooltip(newButton));
       newCCContainer.appendChild(newButton);
     }
@@ -4756,6 +5366,7 @@ class McsCard {
     for (let i = 0; i < sources.length; i++) {
       const containerDiv = document.createElement('div');
       containerDiv.style.position = 'relative';
+      containerDiv.style.cursor = 'pointer';
       const newImage = document.createElement('img');
       newImage.style.width = `${width}px`;
       newImage.style.height = `${height}px`;
@@ -4856,6 +5467,19 @@ class McsCard {
     newInput.addEventListener('input', onInputCallback);
     newCCContainer.appendChild(newInput);
     this.container.appendChild(newCCContainer);
+  }
+
+  /**
+   * Adds info text
+   * @param {string} textToDisplay
+   * @return {HTMLDivElement}
+   */
+  addInfoText(textToDisplay) {
+    const textDiv = document.createElement('div');
+    textDiv.textContent = textToDisplay;
+    textDiv.className = 'mcsInfoText';
+    this.container.appendChild(textDiv);
+    return textDiv;
   }
   /**
    * Adds a number output to the card
@@ -5051,54 +5675,90 @@ class McsCard {
     tooltip.style.display = '';
   }
 }
+
+/**
+ * Class to build tooltips
+ */
+class McsTooltipBuilder {
+  /**
+   * Constructs an instance of McsTooltipBuilder.
+   * @param {HTMLDivElement} tooltipDiv Parent div element where all tooltip sub elements will be appended
+   */
+  constructor(tooltipDiv) {
+    this.container = tooltipDiv;
+  }
+  /**
+   * Adds a title <span> element to the tooltip
+   * @param {string} textContent The text to put in the title
+   * @return {HTMLSpanElement}
+   */
+  addTitle(textContent) {
+    return this.addSpan('mcsTTTitle', textContent);
+  }
+  /**
+  * Adds a text <span> element to the tooltip
+  * @param {string} textContent The text to put in the title
+  * @return {HTMLSpanElement}
+  */
+  addText(textContent) {
+    return this.addSpan('mcsTTText', textContent);
+  }
+  /**
+  * Adds a <div> element to the tooltip with seperation lines
+  * @return {HTMLDivElement}
+  */
+  addDivider() {
+    const newDivider = document.createElement('div');
+    newDivider.className = 'mcsTTDivider';
+    this.container.appendChild(newDivider);
+    return newDivider;
+  }
+  /**
+  * Adds a <br> element to the tooltip
+  * @return {HTMLBRElement}
+  */
+  addLineBreak() {
+    const newBreak = document.createElement('br');
+    this.container.appendChild(newBreak);
+    return newBreak;
+  }
+  /**
+   * Adds a span element with the given classname and text to the tooltip
+   * @param {string} className
+   * @param {string} textContent
+   * @return {HTMLSpanElement}
+   */
+  addSpan(className, textContent) {
+    const newSpan = document.createElement('span');
+    newSpan.className = className;
+    newSpan.textContent = textContent;
+    this.container.appendChild(newSpan);
+    return newSpan;
+  }
+}
 /**
  * @description Formats a number with the specified number of sigfigs, Addings suffixes as required
- * @param {number} numberToFormat Number
- * @param {number} numDigits Number of significant digits
+ * @param {number} number Number
+ * @param {number} digits Number of significant digits
  * @return {string}
  */
-function mcsFormatNum(numberToFormat, numDigits) {
-  let outStr;
-  let magnitude = 0;
-  if (numberToFormat != 0) {
-    magnitude = Math.floor(Math.log10(numberToFormat));
-  }
-  if (magnitude < numDigits) {
-    let numDecimals = numDigits - magnitude - 1;
-    if (numDecimals + 1 > numDigits) {
-      numDecimals = numDigits - 1;
-    };
-    outStr = (numberToFormat).toFixed(numDecimals);
-  } else {
-    const threeMag = Math.floor(magnitude / 3);
-    const formatEnd = ['k', 'M', 'B', 'T'];
-    if (formatEnd.length >= threeMag) {
-      outStr = (numberToFormat / Math.pow(10, threeMag * 3)).toFixed(numDigits - (magnitude - 3 * threeMag) - 1) + formatEnd[threeMag - 1];
+function mcsFormatNum(number, digits) {
+  let output;
+  output = number.toPrecision(digits);
+  if (output.includes('e+')) {
+    const power = parseInt(output.match(/\d*?$/));
+    const powerCount = Math.floor(power / 3);
+    output = `${output.match(/^[\d,\.]*/)}e+${power % 3}`;
+    const formatEnd = ['', 'k', 'M', 'B', 'T'];
+    let end;
+    if (powerCount < formatEnd.length) {
+      end = formatEnd[powerCount];
     } else {
-      outStr = (numberToFormat / Math.pow(10, threeMag * 3)).toFixed(numDigits - (magnitude - 3 * threeMag) - 1) + `e${3 * threeMag}`;
+      end = `e${powerCount * 3}`;
     }
+    return `${parseFloat(output).toLocaleString(undefined, {minimumSignificantDigits: digits})}${end}`;
   }
-  // Go Forward in string until decimal is found (or not);
-  let decInd;
-  for (i = 0; i < outStr.length; i++) {
-    if (outStr.charAt(i) == '.') {
-      decInd = i;
-      break;
-    }
-  }
-  if (decInd == undefined) {
-    decInd = outStr.length;
-  }
-  // Move backwards in the string and insert commas
-  let commaCount = 0;
-  for (let i = decInd; i > 1; i--) {
-    commaCount++;
-    if (commaCount == 3) {
-      outStr = outStr.slice(0, i - 1) + ',' + outStr.slice(i - 1);
-      commaCount = 0;
-    }
-  }
-  return outStr;
+  return parseFloat(output).toLocaleString(undefined, {minimumSignificantDigits: digits});
 }
 // Define the message listeners from the content script
 window.addEventListener('message', (event) => {
@@ -5113,7 +5773,7 @@ window.addEventListener('message', (event) => {
         // console.log('Loading sim with provided URLS');
         let tryLoad = true;
         let wrongVersion = false;
-        if (gameVersion != 'Alpha v0.15.4') {
+        if (gameVersion != 'Alpha v0.16') {
           wrongVersion = true;
           tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
         }
@@ -5121,9 +5781,9 @@ window.addEventListener('message', (event) => {
           try {
             melvorCombatSim = new McsApp(event.data.urls);
             if (wrongVersion) {
-              console.log('Melvor Combat Sim v0.9.1 Loaded, but simulation results may be inaccurate.');
+              console.log('Melvor Combat Sim v0.10.0 Loaded, but simulation results may be inaccurate.');
             } else {
-              console.log('Melvor Combat Sim v0.9.1 Loaded');
+              console.log('Melvor Combat Sim v0.10.0 Loaded');
             }
           } catch (error) {
             console.warn('Melvor Combat Sim was not properly loaded due to the following error:');
