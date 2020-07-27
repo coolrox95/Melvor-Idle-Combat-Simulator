@@ -1,3 +1,36 @@
+v0.10.0:
+Melvor Combat Sim has been updated for game version Alpha v0.16
+New: The user interface has been overhauled significantly
+  The simulator has been moved to its own page instead of being an in game overlay
+  The options for selecting different simulation settings have been moved into a tab based system
+  Gear selection has been changed to a popup menu system, simply click on a gear icon and select what you want to equipment
+  The plot has been shrunk in size slightly to better fit lower resolution monitors
+  Plot type selection has been moved to the top of the plot
+  The simulate and export buttons have been moved from simulation settings so they are constantly visible
+  Several joint menus have been split into individual tabs
+  Rounded the sharp pointy corners
+New: Implemented the Combat Triangle
+New: Implemented Pets, which can be selected from the new Pets tab.
+New: Implemented Auroras, Curses and Ancient Magicks, selectable from their indivdual tabs in the Spells tab.
+New: Implemented new plot type: Pet Chance. Calculates the probability to recieve the pet in the given time unit.
+New: Implemented new special attack effects: Decreased Ranged Evasion, Stun that only has a chance to apply, Bleed that only has a chance to apply
+New: Implemented maxHitpoints
+  Adjusted regeneration calculation, burn damage calculation to scale on max HP.
+  Implemented equipment and pets that can increase max HP.
+New: Impemented Hardcore Mode:
+  A hardcore toggle has been added to Simulation settings, it disables regeneration and adjusts the combat triangle
+New: Implemented minimum hit for standard magic spells
+New: Added a 'per Kill' time unit to the existing time units.
+New: Spells and Prayers now obey their basic unlock requirements
+New: Player levels can now be set to virtual values higher than 99
+  This is used to calculate pet chances
+  Virtual levels do not contribute to combat stats
+
+Change: Adjusted deadeye roll calculation to match in game change
+Change: The standard spell select dropdown menu has been replaced with a tab in the Spells tab
+Removed: The duplicated Gp per Kill plot option has been removed
+Removed: The simulation time plot option has been removed
+
 v0.9.1:
 Fixed a bug where incorrect player stats were being used for simulations when using Stormsnap, Slayer's Crossbow and Big Ol Ron.
 

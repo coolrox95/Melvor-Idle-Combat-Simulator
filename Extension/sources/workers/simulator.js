@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.9.1: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.10.0: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -16,10 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** @typedef {Object} curse element of CURSES
+ * @property {number} chance Chance for curse to apply (%)
+ * @property {string} description Curse description
+ * @property {number|number[]} effectValue Curse effect value(s)
+ * @property {number} magicLevelRequired Magic level required to use curse
+ * @property {string} media URL of curse image
+ * @property {string} name Name of curse
+ * @property {Object[]} runesRequired Runes needed to use curse
+*/
+
 /** @typedef {Object} enemyStats
 * @property {number} hitpoints Max Enemy HP
 * @property {number} attackSpeed Enemy attack speed (ms)
 * @property {number} attackType Enemy attack type
+* @property {number} maxAttackRoll Accuracy Rating
 * @property {number} maxHit Normal attack max hit
 * @property {number} maxDefRoll Melee Evasion Rating
 * @property {number} maxMagDefRoll Magic Evasion Rating
@@ -36,10 +47,12 @@
  * @property {number} attackType Attack Type Melee:0, Ranged:1, Magic:2
  * @property {number} maxAttackRoll Accuracy Rating
  * @property {number} maxHit Maximum Hit of Normal Attack
+ * @property {number} minHit Minimum Hit of Normal Attack, for standard spells only
  * @property {number} maxDefRoll Melee Evasion Rating
  * @property {number} maxMagDefRoll Magic Evasion Rating
  * @property {number} maxRngDefRoll Ranged Evasion Rating
  * @property {number} xpBonus Fractional bonus to combat xp gain
+ * @property {number} maxHitpoints Maximum hitpoints
  * @property {number} avgHPRegen Average HP gained per regen interval
  * @property {number} damageReduction Damage Reduction in %
  * @property {boolean} diamondLuck If player has diamond luck potion active
@@ -54,7 +67,16 @@
  * @property {number} prayerPointsPerHeal Prayer points consumed per regen interval
  * @property {number} prayerXPperDamage Prayer xp gained per point of damage dealt
  * @property {boolean} isProtected Player has active protection prayer
+ * @property {boolean} hardcore If player is in hardcore mode
+ * @property {number} lifesteal Lifesteal from auroras
+ * @property {number} attackSpeedDecrease Decreased attack interval from auroras
+ * @property {boolean} usingAncient If player is using ancient magicks
+ * @property {boolean} canCurse If the player can apply curses
+ * @property {number} curseID The index of the selected CURSES
+ * @property {curse} curseData The element of the selected CURSES
+ * @property {number} globalXPMult Global XP multiplier from FM cape and pet
  */
+
 let protectFromValue;
 let numberMultiplier;
 let enemySpecialAttacks;
@@ -64,7 +86,37 @@ let deadeyeAmulet;
 let confettiCrossbow;
 let warlockAmulet;
 let cancelStatus = false;
-// Item Data we actually need:
+let CURSEIDS;
+/**
+ * [playerType][enemyType]
+ * 0:Melee 1:Ranged 2:Magic
+ */
+const combatTriangle = {
+  normal: {
+    damageModifier: [
+      [1, 1.1, 0.9],
+      [0.9, 1, 1.1],
+      [1.1, 0.9, 1],
+    ],
+    reductionModifier: [
+      [1, 1.25, 0.5],
+      [0.95, 1, 1.25],
+      [1.25, 0.85, 1],
+    ],
+  },
+  hardcore: {
+    damageModifier: [
+      [1, 1.1, 0.8],
+      [0.8, 1, 1.1],
+      [1.1, 0.8, 1],
+    ],
+    reductionModifier: [
+      [1, 1.25, 0.25],
+      [0.75, 1, 1.25],
+      [1.25, 0.75, 1],
+    ],
+  },
+};
 
 onmessage = (event) => {
   // console.log('Message Recieved from Simulator');
@@ -80,6 +132,7 @@ onmessage = (event) => {
       deadeyeAmulet = event.data.Deadeye_Amulet;
       confettiCrossbow = event.data.Confetti_Crossbow;
       warlockAmulet = event.data.Warlock_Amulet;
+      CURSEIDS = event.data.CURSEIDS;
       break;
     case 'START_SIMULATION':
       // console.log(`Simulation started for monster with ID: ${event.data.monsterID}`);
@@ -106,15 +159,28 @@ onmessage = (event) => {
  */
 async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   // Calculate Accuracy
-  // Need to brind in calculate accuracy so it is no longer undefined here
   let playerAccuracy = calculateAccuracy(playerStats, enemyStats);
   let enemyAccuracy;
-  // Add a definition for if the player is using a proper protection prayer in playerStats, defined on job creation
+  // Set accuracy if using protection prayer
   if (playerStats.isProtected) {
     enemyAccuracy = 100 - protectFromValue;
   } else {
     enemyAccuracy = calculateAccuracy(enemyStats, playerStats);
   }
+  let reductionModifier;
+  let damageModifier;
+  // Set Combat Triangle
+  if (playerStats.hardcore) {
+    reductionModifier = combatTriangle.hardcore.reductionModifier[playerStats.attackType][enemyStats.attackType];
+    damageModifier = combatTriangle.hardcore.damageModifier[playerStats.attackType][enemyStats.attackType];
+  } else {
+    reductionModifier = combatTriangle.normal.reductionModifier[playerStats.attackType][enemyStats.attackType];
+    damageModifier = combatTriangle.normal.damageModifier[playerStats.attackType][enemyStats.attackType];
+  }
+  // Multiply player special setDamage
+  if (playerStats.specialData.setDamage) playerStats.specialData.setDamage *= numberMultiplier;
+  // Multiply player max hit
+  playerStats.maxHit = Math.floor(playerStats.maxHit * damageModifier);
   // Start Monte Carlo simulation
   let enemyKills = 0;
   let xpToAdd = 0;
@@ -135,6 +201,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     gpGainedFromDamage: 0,
     playerActions: 0,
     enemyActions: 0,
+    petRolls: {},
   };
   // Final Result from simulation
   const simResult = {
@@ -158,6 +225,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     attacksTaken: 0,
     attacksTakenPerSecond: 0,
     attacksMadePerSecond: 0,
+    petRolls: {},
   };
 
   // Variables for player and enemy to track status
@@ -178,6 +246,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     burnInterval: 500,
     currentSpeed: 0,
     reductionBuff: 0,
+    damageReduction: Math.floor(playerStats.damageReduction * reductionModifier),
     attackCount: 0,
     countMax: 0,
     isSlowed: false,
@@ -213,7 +282,42 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     attackInterval: 0,
     isBuffed: false,
     buffTurns: 0,
+    isCursed: false,
+    curseTurns: 0,
+    maxAttackRoll: enemyStats.maxAttackRoll,
+    maxHit: enemyStats.maxHit,
+    maxDefRoll: enemyStats.maxDefRoll,
+    maxMagDefRoll: enemyStats.maxMagDefRoll,
+    maxRngDefRoll: enemyStats.maxRngDefRoll,
+    rangedEvasionDebuff: 1,
+    meleeEvasionBuff: 1,
+    magicEvasionBuff: 1,
+    rangedEvasionBuff: 1,
+    attackType: enemyStats.attackType,
+    curse: {
+      type: '',
+      accuracyDebuff: 1,
+      maxHitDebuff: 1,
+      damageMult: 1,
+      magicEvasionDebuff: 1,
+      meleeEvasionDebuff: 1,
+      rangedEvasionDebuff: 1,
+      confusionMult: 0,
+      decayDamage: 0,
+    },
   };
+  if (playerStats.canCurse) {
+    setEnemyCurseValues(enemy, playerStats.curseID, playerStats.curseData.effectValue);
+  }
+  // Pre-populate pet rolls
+  stats.petRolls[playerStats.attackSpeed - playerStats.attackSpeedDecrease] = 0;
+  enemyStats.specialIDs.forEach((id)=>{
+    const specialAttack = enemySpecialAttacks[id];
+    if (specialAttack.attackSpeedDebuff) {
+      const slowedSpeed = Math.floor(playerStats.attackSpeed * (1 + specialAttack.attackSpeedDebuff / 100)) - playerStats.attackSpeedDecrease;
+      stats.petRolls[slowedSpeed] = 0;
+    }
+  });
   // var enemyReflectDamage = 0; //Damage caused by reflect
   // Start simulation for each trial
   while (enemyKills < Ntrials && simSuccess) {
@@ -232,7 +336,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     player.isBurning = false;
     player.burnCount = 0;
     player.burnDamage = 0;
-    player.currentSpeed = playerStats.attackSpeed;
+    player.currentSpeed = playerStats.attackSpeed - playerStats.attackSpeedDecrease;
     player.reductionBuff = 0;
     player.attackCount = 0;
     player.countMax = 0;
@@ -265,6 +369,17 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     enemy.attackInterval = 0;
     enemy.isSlowed = false;
     enemy.slowTurns = 0;
+    enemy.isCursed = false;
+    enemy.curseTurns = 0;
+    enemy.maxAttackRoll = enemyStats.maxAttackRoll;
+    enemy.maxHit = enemyStats.maxHit;
+    enemy.maxDefRoll = enemyStats.maxDefRoll;
+    enemy.maxMagDefRoll = enemyStats.maxMagDefRoll;
+    enemy.maxRngDefRoll = enemyStats.maxRngDefRoll;
+    enemy.rangedEvasionDebuff = 1;
+    enemy.meleeEvasionBuff = 1;
+    enemy.magicEvasionBuff = 1;
+    enemy.rangedEvasionBuff = 1;
 
     // Simulate combat until enemy is dead or max hits has been reached
     while (enemy.hitpoints > 0) {
@@ -309,11 +424,48 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
         } else {
           stats.playerAttackCalls++;
           let specialAttack = false;
-          if (playerStats.hasSpecialAttack) {
+          if (playerStats.usingAncient) {
+            specialAttack = true;
+          } else if (playerStats.hasSpecialAttack) {
             // Roll for player special
             const specialRoll = Math.floor(Math.random() * 100);
             if (specialRoll <= playerStats.specialData.chance) {
               specialAttack = true;
+            }
+          }
+          // Apply pre-attack special effects
+          if (specialAttack && playerStats.specialData.decreasedRangedEvasion !== undefined) {
+            enemy.rangedEvasionDebuff = 1 - playerStats.specialData.decreasedRangedEvasion / 100;
+            setEvasionDebuffs(enemyStats, enemy);
+            playerAccuracy = calculateAccuracy(playerStats, enemy);
+          }
+          // Apply curse
+          if (playerStats.canCurse) {
+            const curseRoll = Math.random() * 100;
+            if (playerStats.curseData.chance > curseRoll) {
+              if (enemy.isCursed) { // Already cursed reset the turns
+                enemy.curseTurns = 3;
+              } else {
+                enemy.isCursed = true;
+                enemy.curseTurns = 3;
+                // Update the curses that change stats
+                switch (enemy.curse.type) {
+                  case 'Blinding':
+                    enemy.maxAttackRoll = Math.floor(enemy.maxAttackRoll * enemy.curse.accuracyDebuff);
+                    if (!playerStats.isProtected) {
+                      enemyAccuracy = calculateAccuracy(enemy, playerStats);
+                    }
+                    break;
+                  case 'Soul Split':
+                  case 'Decay':
+                    setEvasionDebuffs(enemyStats, enemy);
+                    playerAccuracy = calculateAccuracy(playerStats, enemy);
+                    break;
+                  case 'Weakening':
+                    enemy.maxHit = Math.floor(enemy.maxHit * enemy.curse.maxHitDebuff);
+                    break;
+                }
+              }
             }
           }
           // Attack parameters
@@ -335,31 +487,53 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               if (playerAccuracy > hitChance) attackHits = true;
             }
             if (attackHits) {
-              if (playerStats.specialData.setDamage) damageToEnemy = Math.floor(playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier);
+              stats.petRolls[player.currentSpeed]++;
+              if (playerStats.specialData.setDamage) damageToEnemy = playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier * damageModifier;
               else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
-              else if (playerStats.specialData.stormsnap) damageToEnemy = 6 + 6 * playerStats.levels.Magic;
-              else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
+              else if (playerStats.specialData.stormsnap) damageToEnemy = (6 + 6 * playerStats.levels.Magic) * damageModifier;
+              else {
+                damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
+                if (playerStats.minHit !== 0) {
+                  damageToEnemy += playerStats.minHit;
+                  damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit * playerStats.specialData.damageMultiplier);
+                }
+              }
+              if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
               if (playerStats.activeItems.Deadeye_Amulet) {
-                const chance = Math.floor(Math.random() * 100);
+                const chance = Math.random() * 100;
                 if (chance < deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
               }
               if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
               if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-              enemy.hitpoints -= damageToEnemy;
+              enemy.hitpoints -= Math.floor(damageToEnemy);
               if (playerStats.specialData.canBleed && !enemy.isBleeding) {
+                let applyBleed = false;
+                if (playerStats.specialData.bleedChance !== undefined) {
+                  const bleedRoll = Math.random() * 100;
+                  if (playerStats.specialData.bleedChance > bleedRoll) applyBleed = true;
+                } else {
+                  applyBleed = true;
+                }
+                if (applyBleed) {
                 // Start bleed effect
-                enemy.isBleeding = true;
-                enemy.bleedMaxCount = playerStats.specialData.bleedCount;
-                enemy.bleedInterval = playerStats.specialData.bleedInterval;
-                enemy.bleedCount = 0;
-                enemy.bleedDamage = Math.floor(damageToEnemy * playerStats.specialData.totalBleedHP / enemy.bleedMaxCount);
-                enemy.bleedTimer = enemy.bleedInterval;
+                  enemy.isBleeding = true;
+                  enemy.bleedMaxCount = playerStats.specialData.bleedCount;
+                  enemy.bleedInterval = playerStats.specialData.bleedInterval;
+                  enemy.bleedCount = 0;
+                  enemy.bleedDamage = Math.floor(damageToEnemy * playerStats.specialData.totalBleedHP / enemy.bleedMaxCount);
+                  enemy.bleedTimer = enemy.bleedInterval;
+                }
               }
               if (enemy.reflectMelee > 0) stats.damageTaken += enemy.reflectMelee * numberMultiplier;
               // Enemy Stun
-              canStun = playerStats.specialData.canStun;
+              if (playerStats.specialData.stunChance !== undefined) {
+                const stunRoll = Math.random() * 100;
+                if (playerStats.specialData.stunChance > stunRoll) canStun = true;
+              } else {
+                canStun = playerStats.specialData.canStun;
+              }
               if (canStun) stunTurns = playerStats.specialData.stunTurns;
-              if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.75) {
+              if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
                 canStun = true;
                 stunTurns = 1;
               }
@@ -371,6 +545,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 stats.gpGainedFromDamage += Math.floor(damageToEnemy * gpMultiplier);
               }
               if (playerStats.activeItems.Warlock_Amulet) stats.damageHealed += Math.floor(damageToEnemy * warlockAmulet.spellHeal);
+              if (playerStats.lifesteal !== 0) stats.damageHealed += Math.floor(damageToEnemy * playerStats.lifesteal / 100);
               if (playerStats.specialData.healsFor > 0) stats.damageHealed += Math.floor(damageToEnemy * playerStats.specialData.healsFor);
               // Enemy Slow
               if (playerStats.specialData.attackSpeedDebuff && !enemy.isSlowed) {
@@ -405,17 +580,23 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               if (playerAccuracy > hitChance) attackHits = true;
             }
             if (attackHits) {
+              stats.petRolls[player.currentSpeed]++;
               // Calculate attack Damage
               damageToEnemy = Math.floor(Math.random() * playerStats.maxHit + 1);
+              if (playerStats.minHit !== 0) {
+                damageToEnemy += playerStats.minHit;
+                damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit);
+              }
+              if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
               if (playerStats.activeItems.Deadeye_Amulet) {
-                const chance = Math.floor(Math.random() * 100);
+                const chance = Math.random() * 100;
                 if (chance > deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
               }
               if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
               if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-              enemy.hitpoints -= damageToEnemy;
+              enemy.hitpoints -= Math.floor(damageToEnemy);
               if (enemy.reflectMelee > 0) stats.damageTaken += enemy.reflectMelee * numberMultiplier;
-              if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.75) {
+              if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
                 canStun = true;
                 stunTurns = 1;
               }
@@ -427,6 +608,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 stats.gpGainedFromDamage += Math.floor(damageToEnemy * gpMultiplier);
               }
               if (playerStats.activeItems.Warlock_Amulet) stats.damageHealed += Math.floor(damageToEnemy * warlockAmulet.spellHeal);
+              if (playerStats.lifesteal !== 0) stats.damageHealed += Math.floor(damageToEnemy * playerStats.lifesteal / 100);
             }
             player.actionTimer = player.currentSpeed;
           }
@@ -451,7 +633,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             player.slowTurns--;
             if (player.slowTurns <= 0) {
               player.isSlowed = false;
-              player.currentSpeed = playerStats.attackSpeed;
+              player.currentSpeed = playerStats.attackSpeed - playerStats.attackSpeedDecrease;
             }
           }
         }
@@ -460,6 +642,41 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
       if (player.isAttacking && player.attackTimer <= 0 && enemyAlive) {
         // Do player multi attacks
         stats.playerAttackCalls++;
+        // Apply pre-attack special effects
+        if (playerStats.specialData.decreasedRangedEvasion !== undefined) {
+          enemy.rangedEvasionDebuff = 1 - playerStats.specialData.decreasedRangedEvasion / 100;
+          setEvasionDebuffs(enemyStats, enemy);
+          playerAccuracy = calculateAccuracy(playerStats, enemy);
+        }
+        // Apply curse
+        if (playerStats.canCurse) {
+          const curseRoll = Math.random() * 100;
+          if (playerStats.curseData.chance > curseRoll) {
+            if (enemy.isCursed) { // Already cursed reset the turns
+              enemy.curseTurns = 3;
+            } else {
+              enemy.isCursed = true;
+              enemy.curseTurns = 3;
+              // Update the curses that change stats
+              switch (enemy.curse.type) {
+                case 'Blinding':
+                  enemy.maxAttackRoll = Math.floor(enemy.maxAttackRoll * enemy.curse.accuracyDebuff);
+                  if (!playerStats.isProtected) {
+                    enemyAccuracy = calculateAccuracy(enemy, playerStats);
+                  }
+                  break;
+                case 'Soul Split':
+                case 'Decay':
+                  setEvasionDebuffs(enemyStats, enemy);
+                  playerAccuracy = calculateAccuracy(playerStats, enemy);
+                  break;
+                case 'Weakening':
+                  enemy.maxHit = Math.floor(enemy.maxHit * enemy.curse.maxHitDebuff);
+                  break;
+              }
+            }
+          }
+        }
         // Attack parameters
         let canStun = false;
         let stunTurns = 0;
@@ -478,31 +695,54 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (playerAccuracy > hitChance) attackHits = true;
         }
         if (attackHits) {
-          if (playerStats.specialData.setDamage) damageToEnemy = Math.floor(playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier);
+          stats.petRolls[player.currentSpeed]++;
+          if (playerStats.specialData.setDamage) damageToEnemy = playerStats.specialData.setDamage * playerStats.specialData.damageMultiplier * damageModifier;
           else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
-          else if (playerStats.specialData.stormsnap) damageToEnemy = 6 + 6 * playerStats.levels.Magic;
-          else damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
+          else if (playerStats.specialData.stormsnap) damageToEnemy = (6 + 6 * playerStats.levels.Magic) * damageModifier;
+          else {
+            damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
+            if (playerStats.minHit !== 0) {
+              damageToEnemy += playerStats.minHit;
+              damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit * playerStats.specialData.damageMultiplier);
+            }
+          }
+          if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
           if (playerStats.activeItems.Deadeye_Amulet) {
-            const chance = Math.floor(Math.random() * 100);
-            if (chance > deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
+            const chance = Math.random() * 100;
+            if (chance < deadeyeAmulet.chanceToCrit) damageToEnemy = Math.floor(damageToEnemy * deadeyeAmulet.critDamage);
           }
           if (enemy.damageReduction > 0) damageToEnemy = Math.floor(damageToEnemy * (1 - (enemy.damageReduction / 100)));
           if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
-          enemy.hitpoints -= damageToEnemy;
+          enemy.hitpoints -= Math.floor(damageToEnemy);
+
           if (playerStats.specialData.canBleed && !enemy.isBleeding) {
+            let applyBleed = false;
+            if (playerStats.specialData.bleedChance !== undefined) {
+              const bleedRoll = Math.random() * 100;
+              if (playerStats.specialData.bleedChance > bleedRoll) applyBleed = true;
+            } else {
+              applyBleed = true;
+            }
+            if (applyBleed) {
             // Start bleed effect
-            enemy.isBleeding = true;
-            enemy.bleedMaxCount = playerStats.specialData.bleedCount;
-            enemy.bleedInterval = playerStats.specialData.bleedInterval;
-            enemy.bleedCount = 0;
-            enemy.bleedDamage = Math.floor(damageToEnemy * playerStats.specialData.totalBleedHP / enemy.bleedMaxCount);
-            enemy.bleedTimer = enemy.bleedInterval;
+              enemy.isBleeding = true;
+              enemy.bleedMaxCount = playerStats.specialData.bleedCount;
+              enemy.bleedInterval = playerStats.specialData.bleedInterval;
+              enemy.bleedCount = 0;
+              enemy.bleedDamage = Math.floor(damageToEnemy * playerStats.specialData.totalBleedHP / enemy.bleedMaxCount);
+              enemy.bleedTimer = enemy.bleedInterval;
+            }
           }
           if (enemy.reflectMelee > 0) stats.damageTaken += enemy.reflectMelee * numberMultiplier;
           // Enemy Stun
-          canStun = playerStats.specialData.canStun;
+          if (playerStats.specialData.stunChance !== undefined) {
+            const stunRoll = Math.random() * 100;
+            if (playerStats.specialData.stunChance > stunRoll) canStun = true;
+          } else {
+            canStun = playerStats.specialData.canStun;
+          }
           if (canStun) stunTurns = playerStats.specialData.stunTurns;
-          if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.75) {
+          if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
             canStun = true;
             stunTurns = 1;
           }
@@ -514,6 +754,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             stats.gpGainedFromDamage += Math.floor(damageToEnemy * gpMultiplier);
           }
           if (playerStats.activeItems.Warlock_Amulet) stats.damageHealed += Math.floor(damageToEnemy * warlockAmulet.spellHeal);
+          if (playerStats.lifesteal !== 0) stats.damageHealed += Math.floor(damageToEnemy * playerStats.lifesteal / 100);
           if (playerStats.specialData.healsFor > 0) stats.damageHealed += Math.floor(damageToEnemy * playerStats.specialData.healsFor);
           // Enemy Slow
           if (playerStats.specialData.attackSpeedDebuff && !enemy.isSlowed) {
@@ -543,7 +784,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           player.slowTurns--;
           if (player.slowTurns <= 0) {
             player.isSlowed = false;
-            player.currentSpeed = playerStats.attackSpeed;
+            player.currentSpeed = playerStats.attackSpeed - playerStats.attackSpeedDecrease;
           }
         }
         // Track attacks and determine next action
@@ -605,28 +846,21 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               enemy.isBuffed = true;
               if (currentSpecial.activeBuffTurns !== null && currentSpecial.activeBuffTurns !== undefined) enemy.buffTurns = currentSpecial.activeBuffTurns;
               else enemy.buffTurns = currentSpecial.attackCount;
-              let newEnemyEvasion;
-              if (playerStats.attackType == 0) {
-                newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + currentSpecial.increasedMeleeEvasion / 100));
-              } else if (playerStats.attackType == 1) {
-                newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + currentSpecial.increasedRangedEvasion / 100));
-              } else {
-                newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + currentSpecial.increasedMagicEvasion / 100));
-              }
-              // Modify Player Accuracy according to buff
-              if (playerStats.maxAttackRoll < newEnemyEvasion) {
-                playerAccuracy = (0.5 * playerStats.maxAttackRoll / newEnemyEvasion) * 100;
-              } else {
-                playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
-              }
+              // Set evasion buffs
+              enemy.meleeEvasionBuff = 1 + currentSpecial.increasedMeleeEvasion / 100;
+              enemy.rangedEvasionBuff = 1 + currentSpecial.increasedRangedEvasion / 100;
+              enemy.magicEvasionBuff = 1 + currentSpecial.increasedMagicEvasion / 100;
               enemy.reflectMelee = currentSpecial.reflectMelee;
               enemy.damageReduction = currentSpecial.increasedDamageReduction;
+              // Modify Player Accuracy according to buff
+              setEvasionDebuffs(enemyStats, enemy);
+              playerAccuracy = calculateAccuracy(playerStats, enemy);
             }
             // Apply Player Slow
             if (currentSpecial.attackSpeedDebuff && !player.isSlowed) {
               // Modify current player speed
               player.isSlowed = true;
-              player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100));
+              player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100)) - playerStats.attackSpeedDecrease;
               player.slowTurns = currentSpecial.attackSpeedDebuffTurns;
             }
             // Do the first hit
@@ -642,10 +876,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               if (currentSpecial.setDamage !== null) {
                 damageToPlayer = currentSpecial.setDamage * numberMultiplier;
               } else {
-                damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
+                damageToPlayer = Math.floor(Math.random() * enemy.maxHit) + 1;
               }
               if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
-              damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+              damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
               stats.damageTaken += damageToPlayer;
               if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
                 const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -656,7 +890,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                   player.recoilTimer = 2000;
                 }
               }
-              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+              if (enemy.isCursed && enemy.curse.type === 'Confusion') {
+                enemy.hitpoints -= Math.floor(enemy.hitpoints * enemy.curse.confusionMult);
+              }
+              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {};
               // Apply Stun
               if (currentSpecial.canStun && !player.isStunned) {
                 player.isStunned = true;
@@ -697,8 +934,8 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               if (enemyAccuracy > hitChance) attackHits = true;
             }
             if (attackHits) {
-              let damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
-              damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+              let damageToPlayer = Math.floor(Math.random() * enemy.maxHit) + 1;
+              damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
               stats.damageTaken += damageToPlayer;
               if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
                 const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -709,7 +946,13 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                   player.recoilTimer = 2000;
                 }
               }
-              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+              if (enemy.isCursed && enemy.curse.type === 'Confusion') {
+                enemy.hitpoints -= Math.floor(enemy.hitpoints * enemy.curse.confusionMult);
+              }
+              if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {
+                player.reductionBuff += 2;
+                player.damageReduction = Math.floor((playerStats.damageReduction + player.reductionBuff) * reductionModifier);
+              }
             }
             enemy.actionTimer = enemy.currentSpeed;
           }
@@ -719,20 +962,8 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             if (enemy.buffTurns <= 0) {
               enemy.isBuffed = false;
               // Undo buffs
-              let newEnemyEvasion;
-              if (playerStats.attackType == 0) {
-                newEnemyEvasion = enemyStats.maxDefRoll;
-              } else if (playerStats.attackType == 1) {
-                newEnemyEvasion = enemyStats.maxRngDefRoll;
-              } else {
-                newEnemyEvasion = enemyStats.maxMagDefRoll;
-              }
-              // Modify Player Accuracy according to buff
-              if (playerStats.maxAttackRoll < newEnemyEvasion) {
-                playerAccuracy = (0.5 * playerStats.maxAttackRoll / newEnemyEvasion) * 100;
-              } else {
-                playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
-              }
+              setEvasionDebuffs(enemyStats, enemy);
+              playerAccuracy = calculateAccuracy(playerStats, enemy);
               enemy.reflectMelee = 0;
               enemy.damageReduction = 0;
             }
@@ -743,6 +974,32 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             if (enemy.slowTurns <= 0) {
               enemy.isSlowed = false;
               enemy.currentSpeed = enemyStats.attackSpeed;
+            }
+          }
+          // Curse Tracking
+          if (enemy.isCursed) {
+            // Apply decay
+            if (enemy.curse.type === 'Decay') enemy.hitpoints -= enemy.curse.decayDamage;
+            enemy.curseTurns--;
+            if (enemy.curseTurns <= 0) {
+              enemy.isCursed = false;
+              // Undo curse stat changes
+              switch (enemy.curse.type) {
+                case 'Blinding':
+                  enemy.maxAttackRoll = enemyStats.maxAttackRoll;
+                  if (!playerStats.isProtected) {
+                    enemyAccuracy = calculateAccuracy(enemy, playerStats);
+                  }
+                  break;
+                case 'Soul Split':
+                case 'Decay':
+                  setEvasionDebuffs(enemyStats, enemy);
+                  playerAccuracy = calculateAccuracy(playerStats, enemy);
+                  break;
+                case 'Weakening':
+                  enemy.maxHit = enemyStats.maxHit;
+                  break;
+              }
             }
           }
         }
@@ -757,28 +1014,21 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           enemy.isBuffed = true;
           if (currentSpecial.activeBuffTurns !== null && currentSpecial.activeBuffTurns !== undefined) enemy.buffTurns = currentSpecial.activeBuffTurns;
           else enemy.buffTurns = currentSpecial.attackCount;
-          let newEnemyEvasion;
-          if (playerStats.attackType == 0) {
-            newEnemyEvasion = Math.floor(enemyStats.maxDefRoll * (1 + currentSpecial.increasedMeleeEvasion / 100));
-          } else if (playerStats.attackType == 1) {
-            newEnemyEvasion = Math.floor(enemyStats.maxRngDefRoll * (1 + currentSpecial.increasedRangedEvasion / 100));
-          } else {
-            newEnemyEvasion = Math.floor(enemyStats.maxMagDefRoll * (1 + currentSpecial.increasedMagicEvasion / 100));
-          }
-          // Modify Player Accuracy according to buff
-          if (playerStats.maxAttackRoll < newEnemyEvasion) {
-            playerAccuracy = (0.5 * playerStats.maxAttackRoll / newEnemyEvasion) * 100;
-          } else {
-            playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
-          }
+          // Set evasion buffs
+          enemy.meleeEvasionBuff = 1 + currentSpecial.increasedMeleeEvasion / 100;
+          enemy.rangedEvasionBuff = 1 + currentSpecial.increasedRangedEvasion / 100;
+          enemy.magicEvasionBuff = 1 + currentSpecial.increasedMagicEvasion / 100;
           enemy.reflectMelee = currentSpecial.reflectMelee;
           enemy.damageReduction = currentSpecial.increasedDamageReduction;
+          // Modify Player Accuracy according to buff
+          setEvasionDebuffs(enemyStats, enemy);
+          playerAccuracy = calculateAccuracy(playerStats, enemy);
         }
         // Apply Player Slow
         if (currentSpecial.attackSpeedDebuff && !player.isSlowed) {
           // Modify current player speed
           player.isSlowed = true;
-          player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100));
+          player.currentSpeed = Math.floor(playerStats.attackSpeed * (1 + currentSpecial.attackSpeedDebuff / 100)) - playerStats.attackSpeedDecrease;
           player.slowTurns = currentSpecial.attackSpeedDebuffTurns;
         }
         // Do the first hit
@@ -794,10 +1044,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (currentSpecial.setDamage !== null) {
             damageToPlayer = currentSpecial.setDamage * numberMultiplier;
           } else {
-            damageToPlayer = Math.floor(Math.random() * enemyStats.maxHit) + 1;
+            damageToPlayer = Math.floor(Math.random() * enemy.maxHit) + 1;
           }
           if (player.isStunned) damageToPlayer *= currentSpecial.stunDamageMultiplier;
-          damageToPlayer -= Math.floor((playerStats.damageReduction + player.reductionBuff) / 100 * damageToPlayer);
+          damageToPlayer -= Math.floor(player.damageReduction / 100 * damageToPlayer);
           stats.damageTaken += damageToPlayer;
           if (playerStats.activeItems.Gold_Sapphire_Ring && player.canRecoil) {
             const reflectDamage = Math.floor(Math.random() * 3 * numberMultiplier);
@@ -808,7 +1058,13 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               player.recoilTimer = 2000;
             }
           }
-          if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) player.reductionBuff += 2;
+          if (enemy.isCursed && enemy.curse.type === 'Confusion') {
+            enemy.hitpoints -= Math.floor(enemy.hitpoints * enemy.curse.confusionMult);
+          }
+          if (playerStats.activeItems.Guardian_Amulet && player.reductionBuff < 12) {
+            player.reductionBuff += 2;
+            player.damageReduction = Math.floor((playerStats.damageReduction + player.reductionBuff) * reductionModifier);
+          }
           // Apply Stun
           if (currentSpecial.canStun && !player.isStunned) {
             player.isStunned = true;
@@ -821,7 +1077,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (currentSpecial.burnDebuff > 0 && !player.isBurning) {
             player.isBurning = true;
             player.burnCount = 0;
-            player.burnDamage = Math.floor((playerStats.levels.Hitpoints * numberMultiplier * (currentSpecial.burnDebuff / 100)) / player.burnMaxCount);
+            player.burnDamage = Math.floor((playerStats.maxHitpoints * (currentSpecial.burnDebuff / 100)) / player.burnMaxCount);
             player.burnTimer = player.burnInterval;
           }
         }
@@ -831,20 +1087,8 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (enemy.buffTurns <= 0) {
             enemy.isBuffed = false;
             // Undo buffs
-            let newEnemyEvasion;
-            if (playerStats.attackType == 0) {
-              newEnemyEvasion = enemyStats.maxDefRoll;
-            } else if (playerStats.attackType == 1) {
-              newEnemyEvasion = enemyStats.maxRngDefRoll;
-            } else {
-              newEnemyEvasion = enemyStats.maxMagDefRoll;
-            }
-            // Modify Player Accuracy according to buff
-            if (playerStats.maxAttackRoll < newEnemyEvasion) {
-              playerAccuracy = (0.5 * playerStats.maxAttackRoll / newEnemyEvasion) * 100;
-            } else {
-              playerAccuracy = (1 - 0.5 * newEnemyEvasion / playerStats.maxAttackRoll) * 100;
-            }
+            setEvasionDebuffs(enemyStats, enemy);
+            playerAccuracy = calculateAccuracy(playerStats, enemy);
             enemy.reflectMelee = 0;
             enemy.damageReduction = 0;
           }
@@ -855,6 +1099,32 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           if (enemy.slowTurns <= 0) {
             enemy.isSlowed = false;
             enemy.currentSpeed = enemyStats.attackSpeed;
+          }
+        }
+        // Curse Tracking
+        if (enemy.isCursed) {
+          // Apply decay
+          if (enemy.curse.type === 'Decay') enemy.hitpoints -= enemy.curse.decayDamage;
+          enemy.curseTurns--;
+          if (enemy.curseTurns <= 0) {
+            enemy.isCursed = false;
+            // Undo curse stat changes
+            switch (enemy.curse.type) {
+              case 'Blinding':
+                enemy.maxAttackRoll = enemyStats.maxAttackRoll;
+                if (!playerStats.isProtected) {
+                  enemyAccuracy = calculateAccuracy(enemy, playerStats);
+                }
+                break;
+              case 'Soul Split':
+              case 'Decay':
+                setEvasionDebuffs(enemyStats, enemy);
+                playerAccuracy = calculateAccuracy(playerStats, enemy);
+                break;
+              case 'Weakening':
+                enemy.maxHit = enemyStats.maxHit;
+                break;
+            }
           }
         }
         // Track attacks and determine next action
@@ -889,16 +1159,14 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     stats.totalCombatXP += stats.totalCombatXP * playerStats.xpBonus;
     stats.totalHpXP += stats.totalHpXP * playerStats.xpBonus;
     stats.totalPrayerXP += stats.totalPrayerXP * playerStats.xpBonus;
-    // Cape Bonus
-    if (playerStats.activeItems.Firemaking_Skillcape) {
-      stats.totalCombatXP *= 1.05;
-      stats.totalHpXP *= 1.05;
-      stats.totalPrayerXP *= 1.05;
-    }
+    // Global XP Bonus
+    stats.totalCombatXP *= playerStats.globalXPMult;
+    stats.totalHpXP *= playerStats.globalXPMult;
+    stats.totalPrayerXP *= playerStats.globalXPMult;
+    // Tabulate Simulation results
     simResult.attacksMade = stats.playerAttackCalls / Ntrials;
     simResult.avgHitDmg = enemyStats.hitpoints * Ntrials / stats.playerAttackCalls;
     simResult.avgKillTime = enemySpawnTimer + stats.totalTime / Ntrials;
-
     simResult.hpPerEnemy = (stats.damageTaken - stats.damageHealed) / Ntrials - simResult.avgKillTime / hitpointRegenInterval * playerStats.avgHPRegen;
     if (simResult.hpPerEnemy < 0) simResult.hpPerEnemy = 0;
     simResult.hpPerSecond = simResult.hpPerEnemy / simResult.avgKillTime * 1000;
@@ -919,6 +1187,14 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
     simResult.attacksTaken = stats.enemyAttackCalls / Ntrials;
     simResult.attacksTakenPerSecond = stats.enemyAttackCalls / Ntrials / simResult.killTimeS;
     simResult.attacksMadePerSecond = stats.playerAttackCalls / Ntrials / simResult.killTimeS;
+
+    // Throw pet rolls in here to be further processed later
+    simResult.petRolls = Object.keys(stats.petRolls).map((attackSpeed)=>{
+      return {
+        speed: parseInt(attackSpeed),
+        rollsPerSecond: stats.petRolls[attackSpeed] / Ntrials / simResult.killTimeS,
+      };
+    });
   }
   return simResult;
 };
@@ -952,6 +1228,75 @@ function calculateAccuracy(attacker, target) {
   return accuracy;
 }
 
+/**
+ * Modifies the stats of the enemy by the curse
+ * @param {Object} enemy
+ * @param {number} curseID
+ * @param {number|number[]} effectValue
+ */
+function setEnemyCurseValues(enemy, curseID, effectValue) {
+  switch (curseID) {
+    case CURSEIDS.Blinding_I:
+    case CURSEIDS.Blinding_II:
+    case CURSEIDS.Blinding_III:
+      enemy.curse.accuracyDebuff = 1 - effectValue / 100;
+      enemy.curse.type = 'Blinding';
+      break;
+    case CURSEIDS.Soul_Split_I:
+    case CURSEIDS.Soul_Split_II:
+    case CURSEIDS.Soul_Split_III:
+      enemy.curse.magicEvasionDebuff = 1 - effectValue / 100;
+      enemy.curse.type = 'Soul Split';
+      break;
+    case CURSEIDS.Weakening_I:
+    case CURSEIDS.Weakening_II:
+    case CURSEIDS.Weakening_III:
+      enemy.curse.maxHitDebuff = 1 - effectValue / 100;
+      enemy.curse.type = 'Weakening';
+      break;
+    case CURSEIDS.Anguish_I:
+    case CURSEIDS.Anguish_II:
+    case CURSEIDS.Anguish_III:
+      enemy.curse.damageMult = 1 + effectValue / 100;
+      enemy.curse.type = 'Anguish';
+      break;
+    case CURSEIDS.Decay:
+      enemy.curse.meleeEvasionDebuff = 1 - effectValue[1] / 100;
+      enemy.curse.magicEvasionDebuff = 1 - effectValue[1] / 100;
+      enemy.curse.rangedEvasionDebuff = 1 - effectValue[1] / 100;
+      enemy.curse.decayDamage = Math.floor(enemy.hitpoints * effectValue[0] / 100);
+      enemy.curse.type = 'Decay';
+      break;
+    case CURSEIDS.Confusion:
+      enemy.curse.confusionMult = effectValue / 100;
+      enemy.curse.type = 'Confusion';
+      break;
+  }
+}
+
+/**
+ * Modifies the stats of the enemy by the curse
+ * @param {enemyStats} enemyStats
+ * @param {Object} enemy
+ */
+function setEvasionDebuffs(enemyStats, enemy) {
+  enemy.maxDefRoll = enemyStats.maxDefRoll;
+  enemy.maxMagDefRoll = enemyStats.maxMagDefRoll;
+  enemy.maxRngDefRoll = enemyStats.maxRngDefRoll;
+  if (enemy.rangedEvasionDebuff !== 1) {
+    enemy.maxRngDefRoll = Math.floor(enemy.maxRngDefRoll * enemy.rangedEvasionDebuff);
+  }
+  if (enemy.isBuffed) {
+    enemy.maxDefRoll = Math.floor(enemy.maxDefRoll * enemy.meleeEvasionBuff);
+    enemy.maxMagDefRoll = Math.floor(enemy.maxMagDefRoll * enemy.magicEvasionBuff);
+    enemy.maxRngDefRoll = Math.floor(enemy.maxRngDefRoll * enemy.rangedEvasionBuff);
+  }
+  if (enemy.isCursed && enemy.curse.type === 'Decay' || enemy.curse.type === 'Soul Split') {
+    enemy.maxDefRoll = Math.floor(enemy.maxDefRoll * enemy.curse.meleeEvasionDebuff);
+    enemy.maxMagDefRoll = Math.floor(enemy.maxMagDefRoll * enemy.curse.magicEvasionDebuff);
+    enemy.maxRngDefRoll = Math.floor(enemy.maxRngDefRoll * enemy.curse.rangedEvasionDebuff);
+  }
+}
 /**
  * Checks if the simulation has been messaged to be cancelled
  * @return {Promise<boolean>}
