@@ -25,7 +25,6 @@ New: Spells and Prayers now obey their basic unlock requirements
 New: Player levels can now be set to virtual values higher than 99
   This is used to calculate pet chances
   Virtual levels do not contribute to combat stats
-
 Change: Adjusted deadeye roll calculation to match in game change
 Change: The standard spell select dropdown menu has been replaced with a tab in the Spells tab
 Removed: The duplicated Gp per Kill plot option has been removed
