@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.10.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.10.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -211,7 +211,7 @@ class McsApp {
       this.gearSubsets.push([this.emptyItems[this.slotKeys[j]]]);
       this.gearSelected.push(0);
       for (let i = 0; i < items.length; i++) {
-        if (items[i].equipmentSlot == CONSTANTS.equipmentSlot[this.slotKeys[j]]) {
+        if (items[i].equipmentSlot === CONSTANTS.equipmentSlot[this.slotKeys[j]]) {
           this.gearSubsets[j].push(items[i]);
           this.gearSubsets[j][this.gearSubsets[j].length - 1].itemID = i;
         }
@@ -219,7 +219,7 @@ class McsApp {
     }
     // Add ammoType 2 and 3 to weapon subsets
     for (let i = 0; i < items.length; i++) {
-      if (items[i].equipmentSlot == CONSTANTS.equipmentSlot.Quiver && (items[i].ammoType == 2 || items[i].ammoType == 3)) {
+      if (items[i].equipmentSlot === CONSTANTS.equipmentSlot.Quiver && (items[i].ammoType === 2 || items[i].ammoType === 3)) {
         this.gearSubsets[CONSTANTS.equipmentSlot.Weapon].push(items[i]);
         this.gearSubsets[CONSTANTS.equipmentSlot.Weapon][this.gearSubsets[CONSTANTS.equipmentSlot.Weapon].length - 1].itemID = i;
       }
@@ -238,7 +238,7 @@ class McsApp {
       this.gearSubsets[j].sort((a, b) => {
         return ((a.magicLevelRequired) ? a.magicLevelRequired : 0) - ((b.magicLevelRequired) ? b.magicLevelRequired : 0);
       });
-      if (j == CONSTANTS.equipmentSlot.Quiver) {
+      if (j === CONSTANTS.equipmentSlot.Quiver) {
         this.gearSubsets[j].sort((a, b) => {
           return ((a.ammoType) ? a.ammoType : -1) - ((b.ammoType) ? b.ammoType : -1);
         });
@@ -292,7 +292,7 @@ class McsApp {
     this.tabDiv.className = 'nav-main-item mcsNoSelect';
 
     document.getElementsByClassName('nav-main-heading').forEach((heading) => {
-      if (heading.textContent == 'Skills ') {
+      if (heading.textContent === 'Skills ') {
         heading.parentElement.insertBefore(newHeading, heading);
         heading.parentElement.insertBefore(this.tabDiv, heading);
       }
@@ -385,7 +385,7 @@ class McsApp {
       this.mainTabCards.push(this.spellSelectCard);
       this.spellSelectCard.addSectionTitle('Spells');
       this.selectedSpellTab = 0;
-      const spellTypeNames = ['Standard', 'Curses', 'Auroras', 'Ancient MAgicks'];
+      const spellTypeNames = ['Standard', 'Curses', 'Auroras', 'Ancient Magicks'];
       const spellTypeImages = [media.spellbook, media.curse, media.aurora, media.ancient];
       const spellTabCallbacks = spellTypeNames.map((_name, index)=>{
         return ()=>this.spellTabOnClick(index);
@@ -497,7 +497,7 @@ class McsApp {
       /** @type {Array<number>} */
       this.combatPotionIDs = [];
       for (let i = 0; i < herbloreItemData.length; i++) {
-        if (herbloreItemData[i].category == 0) {
+        if (herbloreItemData[i].category === 0) {
           potionSources.push(items[herbloreItemData[i].itemID[0]].media);
           potionNames.push(this.getPotionName(i));
           potionCallbacks.push((e) => this.potionImageButtonOnClick(e, i));
@@ -643,7 +643,7 @@ class McsApp {
         'maxHitpoints',
         'damageReduction'];
       for (let i = 0; i < combatStatNames.length; i++) {
-        this.combatStatCard.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] != '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} CS Output`);
+        this.combatStatCard.addNumberOutput(combatStatNames[i], 0, 20, (combatStatIcons[i] !== '') ? iconSources[combatStatIcons[i]] : '', `MCS ${this.combatStatKeys[i]} CS Output`);
       }
       this.combatStatCard.addSectionTitle('Simulate/Export');
       this.combatStatCard.addButton('Simulate', (event) => this.simulateButtonOnClick(event), 200, 25);
@@ -1129,17 +1129,12 @@ class McsApp {
    */
   tabOnClick() {
     if (!this.isVisible) {
-      $('[data-toggle="tooltip"]').tooltip('hide');
-      const pages = ['woodcutting', 'shop', 'bank', 'settings', 'changelog', 'milestones', 'statistics', 'fishing', 'firemaking', 'cooking', 'mining', 'smithing', 'mastery', 'combat', 'thieving', 'farming', 'fletching', 'crafting', 'runecrafting', 'herblore', 'archaeology', 'easter', 'caseoffortune'];
-      $(`#${pages[currentPage]}-container`).attr('class', 'content d-none');
+      changePage(3);
+      $('#settings-container').attr('class', 'content d-none');
       $('#header-title').text('Combat Simulator');
       $('#header-icon').attr('src', 'assets/media/skills/combat/combat.svg');
       $('#header-theme').attr('class', 'content-header bg-combat');
       $('#page-header').attr('class', 'bg-combat');
-      currentPage = 3;
-      updateMinibar(pages[currentPage]);
-      if (showCombatMinibar && isInCombat) $('#combat-footer-minibar').removeClass('d-none');
-      updatePotionHeader();
       this.topContent.style.display = '';
       this.botContent.style.display = '';
       this.isVisible = true;
@@ -1276,11 +1271,11 @@ class McsApp {
       this.simulator.playerLevels[skillName] = Math.min(newLevel, 99);
       this.simulator.virtualLevels[skillName] = newLevel;
       // Update Spell and Prayer Button UIS, and deselect things if they become invalid
-      if (skillName == 'Magic') {
+      if (skillName === 'Magic') {
         this.updateSpellOptions(newLevel);
         this.checkForElisAss();
       }
-      if (skillName == 'Prayer') {
+      if (skillName === 'Prayer') {
         this.updatePrayerOptions(newLevel);
       }
     }
@@ -1313,7 +1308,7 @@ class McsApp {
     this.updateStyleDropdowns();
     // Update levels from in game levels
     this.skillKeys.forEach((key) => {
-      const virtualLevel = exp.xp_to_level(skillXP[CONSTANTS.skill[key]]);
+      const virtualLevel = exp.xp_to_level(skillXP[CONSTANTS.skill[key]]) - 1;
       document.getElementById(`MCS ${key} Input`).value = virtualLevel;
       this.simulator.playerLevels[key] = Math.min(virtualLevel, 99);
       this.simulator.virtualLevels[key] = virtualLevel;
@@ -1388,13 +1383,13 @@ class McsApp {
     // Import Potion
     let potionID = -1;
     let potionTier = -1;
-    if (herbloreBonuses[13].itemID != 0) {
+    if (herbloreBonuses[13].itemID !== 0) {
       const itemID = herbloreBonuses[13].itemID;
       // Get tier and potionID
       for (let i = 0; i < herbloreItemData.length; i++) {
-        if (herbloreItemData[i].category == 0) {
+        if (herbloreItemData[i].category === 0) {
           for (let j = 0; j < herbloreItemData[i].itemID.length; j++) {
-            if (herbloreItemData[i].itemID[j] == itemID) {
+            if (herbloreItemData[i].itemID[j] === itemID) {
               potionID = i;
               potionTier = j;
             }
@@ -1409,13 +1404,13 @@ class McsApp {
       this.simulator.potionID = -1;
     }
     // Select new potion if applicable
-    if (potionID != -1) {
+    if (potionID !== -1) {
       this.simulator.potionSelected = true;
       this.simulator.potionID = potionID;
       document.getElementById(`MCS ${this.getPotionName(this.simulator.potionID)} Button`).className = 'mcsImageButton mcsButtonImageSelected';
     }
     // Set potion tier if applicable
-    if (potionTier != -1) {
+    if (potionTier !== -1) {
       this.simulator.potionTier = potionTier;
       this.updatePotionTier(potionTier);
       // Set dropdown to correct option
@@ -1501,7 +1496,7 @@ class McsApp {
    */
   potionImageButtonOnClick(event, potionID) {
     if (this.simulator.potionSelected) {
-      if (this.simulator.potionID == potionID) { // Deselect Potion
+      if (this.simulator.potionID === potionID) { // Deselect Potion
         this.simulator.potionSelected = false;
         this.simulator.potionID = -1;
         event.currentTarget.className = 'mcsImageButton';
@@ -1663,7 +1658,7 @@ class McsApp {
    * @param {MouseEvent} event The onclick event for a button
    */
   simulateButtonOnClick(event) {
-    if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && (items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired != items[this.gearSelected[CONSTANTS.equipmentSlot.Quiver]].ammoType)) {
+    if (((items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].type === 'Ranged Weapon') || items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].isRanged) && (items[this.gearSelected[CONSTANTS.equipmentSlot.Weapon]].ammoTypeRequired !== items[this.gearSelected[CONSTANTS.equipmentSlot.Quiver]].ammoType)) {
       notifyPlayer(CONSTANTS.skill.Ranged, 'Incorrect Ammo type equipped for weapon.', 'danger');
     } else {
       if (!this.simulator.simInProgress && this.simulator.simulationWorkers.length === this.simulator.maxThreads) {
@@ -1760,7 +1755,7 @@ class McsApp {
    */
   sellLootDropdownOnChange(event) {
     this.simulator.sellLoot = event.currentTarget.value;
-    if (this.simulator.sellLoot == 'Subset') {
+    if (this.simulator.sellLoot === 'Subset') {
       document.getElementById('MCS Edit Subset Button').style.display = 'block';
     } else {
       document.getElementById('MCS Edit Subset Button').style.display = 'none';
@@ -1902,7 +1897,7 @@ class McsApp {
   barOnClick(event, barID) {
     // let barID = parseInt(event.currentTarget.getAttribute('data-barid'),10);
     if (this.barSelected) {
-      if (this.selectedBar == barID) {
+      if (this.selectedBar === barID) {
         this.barSelected = false;
         this.removeBarhighlight(barID);
       } else {
@@ -1922,7 +1917,7 @@ class McsApp {
    * @param {number} barID The id of the bar
    */
   setBarHighlight(barID) {
-    if (this.plotter.bars[barID].className == 'mcsBar') {
+    if (this.plotter.bars[barID].className === 'mcsBar') {
       this.plotter.bars[barID].style.border = 'thin solid red';
     } else {
       this.plotter.bars[barID].style.border = 'thin solid blue';
@@ -1956,7 +1951,7 @@ class McsApp {
       } else {
         // Crossout
         this.plotter.crossOutBarImage(imageID);
-        if (this.selectedBar == imageID) {
+        if (this.selectedBar === imageID) {
           this.barSelected = false;
           this.removeBarhighlight(imageID);
         }
@@ -2154,11 +2149,11 @@ class McsApp {
   updateEquipStats() {
     let newStatValue;
     for (let i = 0; i < this.equipStatKeys.length; i++) {
-      if (this.equipStatKeys[i] == 'attBon0') {
+      if (this.equipStatKeys[i] === 'attBon0') {
         newStatValue = this.simulator.equipStats.attackBonus[0];
-      } else if (this.equipStatKeys[i] == 'attBon1') {
+      } else if (this.equipStatKeys[i] === 'attBon1') {
         newStatValue = this.simulator.equipStats.attackBonus[1];
-      } else if (this.equipStatKeys[i] == 'attBon2') {
+      } else if (this.equipStatKeys[i] === 'attBon2') {
         newStatValue = this.simulator.equipStats.attackBonus[2];
       } else {
         newStatValue = this.simulator.equipStats[this.equipStatKeys[i]];
@@ -2179,7 +2174,7 @@ class McsApp {
    */
   updatePlotForGP() {
     this.simulator.updateGPData();
-    if (this.plotter.plotType == 'gpPerSecond') {
+    if (this.plotter.plotType === 'gpPerSecond') {
       this.updatePlotData();
     }
     this.updateZoneInfoCard();
@@ -2189,7 +2184,7 @@ class McsApp {
    */
   updatePlotForSlayerXP() {
     this.simulator.updateSlayerXP();
-    if (this.plotter.plotType == 'slayerXpPerSecond') {
+    if (this.plotter.plotType === 'slayerXpPerSecond') {
       this.updatePlotData();
     }
     this.updateZoneInfoCard();
@@ -2199,7 +2194,7 @@ class McsApp {
    */
   updatePlotForSignetChance() {
     this.simulator.updateSignetChance();
-    if (this.plotter.plotType == 'signetChance') {
+    if (this.plotter.plotType === 'signetChance') {
       this.updatePlotData();
     }
     this.updateZoneInfoCard();
@@ -2330,13 +2325,13 @@ class McsApp {
     // Update dropdowns to proper value
     for (let i = 0; i < this.gearSelected.length; i++) {
       for (let j = 0; j < this.gearSubsets[i].length; j++) {
-        if (this.gearSubsets[i][j].itemID == this.gearSelected[i]) {
+        if (this.gearSubsets[i][j].itemID === this.gearSelected[i]) {
           this.gearSelectCard.dropDowns[i].selectedIndex = j;
           break;
         }
       }
       // Do check for weapon type
-      if (i == CONSTANTS.equipmentSlot.Weapon) {
+      if (i === CONSTANTS.equipmentSlot.Weapon) {
         if (items[gearID].isTwoHanded) {
           this.gearSelectCard.dropDowns[CONSTANTS.equipmentSlot.Shield].selectedIndex = 0;
           this.gearSelected[CONSTANTS.equipmentSlot.Shield] = 0;
@@ -2407,7 +2402,7 @@ class McsApp {
    * @return {string} The name of an item
    */
   getItemName(itemID) {
-    if (itemID == 0) {
+    if (itemID === 0) {
       return 'None';
     } else {
       return this.replaceApostrophe(items[itemID].name);
@@ -2612,7 +2607,7 @@ class McsPlotter {
       newSect.className = 'mcsXAxisSection';
       newSect.style.width = `${100 * this.barBottomLength[i] / totBars}%`;
       newSect.style.right = `${100 * botLength / totBars}%`;
-      if (i == 0) {
+      if (i === 0) {
         newSect.style.borderLeftStyle = 'solid';
       }
       this.barBottomBrackets.push(newSect);
@@ -2700,7 +2695,7 @@ class McsPlotter {
       let lastMonster = -1;
       const displayData = [];
       dungeon.monsters.forEach((monster) => {
-        if (monster != lastMonster) {
+        if (monster !== lastMonster) {
           lastMonster = monster;
           displayData.push({
             monsterID: lastMonster,
@@ -2745,7 +2740,7 @@ class McsPlotter {
     let divPower;
     let closestRatio;
     let divDecimals = 1;
-    if (barMax != 0) {
+    if (barMax !== 0) {
       const divRatio = barMax / Math.pow(10, Math.floor(Math.log10(barMax)) + 1);
       if (divRatio >= 0.5) {
         closestRatio = 0.5;
@@ -2822,7 +2817,7 @@ class McsPlotter {
       } else {
         this.bars[i].className = 'mcsBar mcsBarCantEnter';
       }
-      if (this.parent.barSelected && this.parent.selectedBar == i) {
+      if (this.parent.barSelected && this.parent.selectedBar === i) {
         this.parent.setBarHighlight(i);
       }
     }
@@ -3320,7 +3315,7 @@ class McsSimulator {
       let currentIndex = -1;
       const condensedArray = [];
       dungeon.monsters.forEach((monster) => {
-        if (monster == lastMonster) {
+        if (monster === lastMonster) {
           condensedArray[currentIndex].quantity++;
         } else {
           lastMonster = monster;
@@ -3458,18 +3453,18 @@ class McsSimulator {
     for (let i = 0; i < this.parent.slotKeys.length; i++) {
       const itemID = this.parent.gearSelected[i];
       let curItem;
-      if (itemID == 0) {
+      if (itemID === 0) {
         continue;
       } else {
         curItem = items[itemID];
       }
       this.equipStats.strengthBonus += (curItem.strengthBonus) ? curItem.strengthBonus : 0;
-      if (curItem.attackBonus != undefined) {
+      if (curItem.attackBonus !== undefined) {
         for (let j = 0; j < 3; j++) {
           this.equipStats.attackBonus[j] += curItem.attackBonus[j];
         }
       }
-      if (!(i == CONSTANTS.equipmentSlot.Weapon && curItem.isAmmo)) {
+      if (!(i === CONSTANTS.equipmentSlot.Weapon && curItem.isAmmo)) {
         this.equipStats.rangedAttackBonus += (curItem.rangedAttackBonus) ? curItem.rangedAttackBonus : 0;
         this.equipStats.rangedStrengthBonus += (curItem.rangedStrengthBonus) ? curItem.rangedStrengthBonus : 0;
         this.equipStats.rangedDefenceBonus += (curItem.rangedDefenceBonus) ? curItem.rangedDefenceBonus : 0;
@@ -3495,7 +3490,7 @@ class McsSimulator {
       if (((curItem.defenceLevelRequired) ? curItem.defenceLevelRequired : 1) > this.equipStats.defenceLevelRequired) {
         this.equipStats.defenceLevelRequired = curItem.defenceLevelRequired;
       }
-      if (i == CONSTANTS.equipmentSlot.Weapon) {
+      if (i === CONSTANTS.equipmentSlot.Weapon) {
         this.equipStats.attackSpeed = (curItem.attackSpeed) ? curItem.attackSpeed : 4000;
       }
       if (curItem.increasedMinAirSpellDmg !== undefined) this.equipStats.increasedMinSpellDmg[CONSTANTS.spellType.Air] += curItem.increasedMinAirSpellDmg;
@@ -3510,16 +3505,17 @@ class McsSimulator {
   computeCombatStats() {
     // ['Attack','Strength','Defence','Ranged','Magic']
     this.combatStats.attackSpeed = 4000;
+    this.combatStats.minHit = 0;
     let attackStyleBonus = 1;
     let meleeDefenceBonus = 1;
     const weaponID = this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon];
     if ((items[weaponID].type === 'Ranged Weapon') || items[weaponID].isRanged) {
       // Ranged
       this.combatStats.attackType = CONSTANTS.attackType.Ranged;
-      if (this.attackStyle.Ranged == 0) {
+      if (this.attackStyle.Ranged === 0) {
         attackStyleBonus += 3;
         this.combatStats.attackSpeed = this.equipStats.attackSpeed;
-      } else if (this.attackStyle.Ranged == 1) {
+      } else if (this.attackStyle.Ranged === 1) {
         this.combatStats.attackSpeed = this.equipStats.attackSpeed - 400;
       } else {
         meleeDefenceBonus += 3;
@@ -3544,7 +3540,6 @@ class McsSimulator {
         }
       } else {
         this.combatStats.maxHit = ANCIENT[this.spells.ancient.selectedID].maxHit * numberMultiplier;
-        this.combatStats.minHit = 0;
       }
       // Minimum Hit
       this.combatStats.attackSpeed = this.equipStats.attackSpeed;
@@ -3782,27 +3777,27 @@ class McsSimulator {
       startingGP: 50000000,
       levels: Object.assign({}, this.playerLevels), // Shallow copy of player levels
       activeItems: {
-        Hitpoints_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Hitpoints_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
-        Ranged_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Ranged_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
-        Magic_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Magic_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
-        Prayer_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Prayer_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
-        Firemaking_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Firemaking_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape),
-        Cape_of_Arrow_Preservation: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Cape_of_Arrow_Preservation),
+        Hitpoints_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Hitpoints_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape),
+        Ranged_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Ranged_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape),
+        Magic_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Magic_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape),
+        Prayer_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Prayer_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape),
+        Firemaking_Skillcape: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Firemaking_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape),
+        Cape_of_Arrow_Preservation: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Cape_of_Arrow_Preservation),
 
-        Gold_Ruby_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Ruby_Ring), // Regen Boost
-        Gold_Diamond_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Diamond_Ring), // Flee Combat
-        Gold_Emerald_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Emerald_Ring), // XP Boost
-        Gold_Sapphire_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Sapphire_Ring), // Reflect
+        Gold_Ruby_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Gold_Ruby_Ring), // Regen Boost
+        Gold_Diamond_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Gold_Diamond_Ring), // Flee Combat
+        Gold_Emerald_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Gold_Emerald_Ring), // XP Boost
+        Gold_Sapphire_Ring: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Gold_Sapphire_Ring), // Reflect
 
-        Fighter_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Fighter_Amulet), // Attack stun
-        Warlock_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Warlock_Amulet && this.combatStats.attackType == 2), // Magic Healing
-        Guardian_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Guardian_Amulet), // Damage reduction on getting hit
-        Deadeye_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Deadeye_Amulet && this.combatStats.attackType == 1), // Ranged criticals
+        Fighter_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] === CONSTANTS.item.Fighter_Amulet && this.combatStats.attackType === CONSTANTS.attackType.Melee), // Attack stun
+        Warlock_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] === CONSTANTS.item.Warlock_Amulet && this.combatStats.attackType === 2), // Magic Healing
+        Guardian_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] === CONSTANTS.item.Guardian_Amulet), // Damage reduction on getting hit
+        Deadeye_Amulet: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] === CONSTANTS.item.Deadeye_Amulet && this.combatStats.attackType === 1), // Ranged criticals
 
-        Confetti_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Confetti_Crossbow),
-        Stormsnap: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Stormsnap),
-        Slayer_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Slayer_Crossbow),
-        Big_Ron: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] == CONSTANTS.item.Big_Ron),
+        Confetti_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] === CONSTANTS.item.Confetti_Crossbow),
+        Stormsnap: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] === CONSTANTS.item.Stormsnap),
+        Slayer_Crossbow: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] === CONSTANTS.item.Slayer_Crossbow),
+        Big_Ron: (this.parent.gearSelected[CONSTANTS.equipmentSlot.Weapon] === CONSTANTS.item.Big_Ron),
       },
       prayerPointsPerAttack: 0,
       prayerPointsPerEnemy: 0,
@@ -3855,10 +3850,10 @@ class McsSimulator {
       playerStats.xpBonus = 0.07;
     }
     this.currentSim.canTopazDrop = false;
-    if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Gold_Topaz_Ring) {
+    if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Gold_Topaz_Ring) {
       this.currentSim.gpBonus = 1.15;
       this.currentSim.canTopazDrop = true;
-    } else if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] == CONSTANTS.item.Aorpheats_Signet_Ring) {
+    } else if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Ring] === CONSTANTS.item.Aorpheats_Signet_Ring) {
       this.currentSim.gpBonus = 2;
     } else {
       this.currentSim.gpBonus = 1;
@@ -3868,7 +3863,7 @@ class McsSimulator {
     if (this.petOwned[20]) this.currentSim.lootBonus += 0.01;
     this.currentSim.slayerXPBonus = this.equipStats.slayerXPBonus;
     this.currentSim.herbConvertChance = this.herbloreBonus.luckyHerb / 100;
-    this.currentSim.doBonesAutoBury = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] == CONSTANTS.item.Bone_Necklace);
+    this.currentSim.doBonesAutoBury = (this.parent.gearSelected[CONSTANTS.equipmentSlot.Amulet] === CONSTANTS.item.Bone_Necklace);
     // Compute prayer point usage and xp gain
     const hasPrayerCape = playerStats.activeItems.Prayer_Skillcape;
     for (let i = 0; i < PRAYER.length; i++) {
@@ -3876,15 +3871,15 @@ class McsSimulator {
         // Point Usage
         if (hasPrayerCape) {
           let attQty = Math.floor(PRAYER[i].pointsPerPlayer / 2);
-          if (attQty == 0 && PRAYER[i].pointsPerPlayer != 0) {
+          if (attQty === 0 && PRAYER[i].pointsPerPlayer !== 0) {
             attQty = 1;
           }
           let enemyQty = Math.floor(PRAYER[i].pointsPerEnemy / 2);
-          if (enemyQty == 0 && PRAYER[i].pointsPerEnemy != 0) {
+          if (enemyQty === 0 && PRAYER[i].pointsPerEnemy !== 0) {
             enemyQty = 1;
           }
           let healQty = Math.floor(PRAYER[i].pointsPerRegen / 2);
-          if (healQty == 0 && PRAYER[i].pointsPerRegen != 0) {
+          if (healQty === 0 && PRAYER[i].pointsPerRegen !== 0) {
             healQty = 1;
           }
           playerStats.prayerPointsPerAttack += attQty;
@@ -4190,7 +4185,7 @@ class McsSimulator {
     if (this.currentSim.playerStats.activeItems.Stormsnap || this.currentSim.playerStats.activeItems.Slayer_Crossbow) {
       let attackStyleBonus = 1;
       // Ranged
-      if (this.attackStyle.Ranged == 0) {
+      if (this.attackStyle.Ranged === 0) {
         attackStyleBonus += 3;
       }
       let rangedStrengthBonus = this.currentSim.equipStats.rangedStrengthBonus;
@@ -4199,7 +4194,7 @@ class McsSimulator {
         rangedStrengthBonus += Math.floor(110 + (1 + (MONSTERS[monsterID].magicLevel * 6) / 33));
         rangedAttackBonus += Math.floor(102 * (1 + (MONSTERS[monsterID].magicLevel * 6) / 5500));
       }
-      if (this.currentSim.playerStats.activeItems.Slayer_Crossbow && (MONSTERS[monsterID].slayerXP != undefined || this.currentSim.isSlayerTask)) {
+      if (this.currentSim.playerStats.activeItems.Slayer_Crossbow && (MONSTERS[monsterID].slayerXP !== undefined || this.currentSim.isSlayerTask)) {
         rangedStrengthBonus = Math.floor(rangedStrengthBonus * items[CONSTANTS.item.Slayer_Crossbow].slayerStrengthMultiplier);
       }
       const effectiveAttackLevel = Math.floor(this.currentSim.playerStats.levels.Ranged + 8 + attackStyleBonus);
@@ -4273,9 +4268,9 @@ class McsSimulator {
   */
   calculateAccuracy(attacker, target) {
     let targetDefRoll = 0;
-    if (attacker.attackType == 0) {
+    if (attacker.attackType === 0) {
       targetDefRoll = target.maxDefRoll;
-    } else if (attacker.attackType == 1) {
+    } else if (attacker.attackType === 1) {
       targetDefRoll = target.maxRngDefRoll;
     } else {
       targetDefRoll = target.maxMagDefRoll;
@@ -4327,8 +4322,8 @@ class McsSimulator {
     } else {
       const dungeonID = this.parent.viewedDungeonID;
       // Special keys that multiply by quantity
-      const qtyMultiplier = keyValue == 'killTimeS';
-      const isSignet = keyValue == 'signetChance';
+      const qtyMultiplier = keyValue === 'killTimeS';
+      const isSignet = keyValue === 'signetChance';
       // 'xpPerSecond', 'hpxpPerSecond', 'prayerXpPerSecond', 'slayerXpPerSecond', 'xpPerHit', 'hpPerSecond', 'ppConsumedPerSecond', 'dmgPerSecond', 'killTimeS', 'avgHitDmg', 'gpPerKill', 'gpPerSecond', 'herbloreXPPerSecond', 'signetChance'
       this.condensedDungeonMonsters[dungeonID].forEach((monster) => {
         if (!isSignet) {
@@ -4419,8 +4414,8 @@ class McsSimulator {
             if (this.exportName) exportString += this.parent.getMonsterName(monster.id) + colDel;
             for (let j = 0; j < this.parent.plotTypeDropdownValues.length; j++) {
               if (this.exportDataType[j]) {
-                const dataMultiplier = (this.parent.plotTypeDropdownValues[j] == 'killTimeS') ? monster.quantity : 1;
-                if (this.parent.plotTypeDropdownValues[j] == 'signetChance') {
+                const dataMultiplier = (this.parent.plotTypeDropdownValues[j] === 'killTimeS') ? monster.quantity : 1;
+                if (this.parent.plotTypeDropdownValues[j] === 'signetChance') {
                   exportString += '0';
                 } else {
                   exportString += (this.monsterSimData[monster.id].simSuccess) ? this.monsterSimData[monster.id][this.parent.plotTypeDropdownValues[j]] * ((this.parent.plotTypeIsTime[j]) ? this.timeMultiplier : 1) * dataMultiplier : 0;
@@ -4451,20 +4446,20 @@ class McsSimulator {
     }
     for (let i = 0; i < slayerAreas.length; i++) {
       let canEnter = true;
-      if (slayerAreas[i].slayerLevel != undefined && this.playerLevels.Slayer < slayerAreas[i].slayerLevel) {
+      if (slayerAreas[i].slayerLevel !== undefined && this.playerLevels.Slayer < slayerAreas[i].slayerLevel) {
         canEnter = false;
       }
-      if (slayerAreas[i].slayerItem != 0) {
+      if (slayerAreas[i].slayerItem !== 0) {
         let gearFound = false;
         for (let j = 0; j < this.parent.gearSelected.length; j++) {
-          if (this.parent.gearSelected[j] == slayerAreas[i].slayerItem) {
+          if (this.parent.gearSelected[j] === slayerAreas[i].slayerItem) {
             gearFound = true;
           }
         }
         if (!gearFound) {
           canEnter = false;
         }
-        if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Slayer_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] == CONSTANTS.item.Max_Skillcape) {
+        if (this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Slayer_Skillcape || this.parent.gearSelected[CONSTANTS.equipmentSlot.Cape] === CONSTANTS.item.Max_Skillcape) {
           canEnter = true;
         }
       }
@@ -4492,7 +4487,7 @@ class McsSimulator {
   * @return {number}
   */
   computeLootChance(monsterID) {
-    return ((MONSTERS[monsterID].lootChance != undefined) ? MONSTERS[monsterID].lootChance / 100 : 1);
+    return ((MONSTERS[monsterID].lootChance !== undefined) ? MONSTERS[monsterID].lootChance / 100 : 1);
   }
   /**
   * Computes the value of a monsters drop table respecting the loot sell settings
@@ -4501,10 +4496,10 @@ class McsSimulator {
   */
   computeDropTableValue(monsterID) {
     // lootTable[x][0]: Item ID, [x][1]: Weight [x][2]: Max Qty
-    if (MONSTERS[monsterID].lootTable && this.sellLoot != 'None') {
+    if (MONSTERS[monsterID].lootTable && this.sellLoot !== 'None') {
       let gpWeight = 0;
       let totWeight = 0;
-      if (this.sellLoot == 'All') {
+      if (this.sellLoot === 'All') {
         MONSTERS[monsterID].lootTable.forEach((x) => {
           const itemID = x[0];
           let avgQty = (x[2] + 1) / 2;
@@ -4721,7 +4716,7 @@ class McsSimulator {
   */
   setLootListToSaleList() {
     this.saleList.forEach((item) => {
-      if (item.lootlistID != -1) {
+      if (item.lootlistID !== -1) {
         this.lootList[item.lootlistID].sell = item.sell;
       }
     });
@@ -4784,13 +4779,13 @@ class McsSimulator {
   * @return {number}
   */
   computeChestOpenValue(chestID) {
-    if (this.sellLoot != 'None') {
+    if (this.sellLoot !== 'None') {
       let gpWeight = 0;
       let totWeight = 0;
       let avgQty;
-      if (this.sellLoot == 'All') {
+      if (this.sellLoot === 'All') {
         for (let i = 0; i < items[chestID].dropTable.length; i++) {
-          if ((items[chestID].dropQty != undefined) && (items[chestID].dropQty[i] != undefined)) {
+          if ((items[chestID].dropQty !== undefined) && (items[chestID].dropQty[i] !== undefined)) {
             avgQty = (items[chestID].dropQty[i] + 1) / 2;
           } else {
             avgQty = 1;
@@ -4859,12 +4854,12 @@ class McsSimulator {
   */
   computeDungeonValue(dungeonID) {
     let dungeonValue = 0;
-    if (this.sellLoot != 'None') {
+    if (this.sellLoot !== 'None') {
       DUNGEONS[dungeonID].rewards.forEach((reward) => {
         if (items[reward].canOpen) {
           dungeonValue += this.computeChestOpenValue(reward) * this.currentSim.lootBonus;
         } else {
-          if (this.sellLoot == 'All') {
+          if (this.sellLoot === 'All') {
             dungeonValue += items[reward].sellsFor;
           } else {
             dungeonValue += ((this.shouldSell(reward)) ? items[reward].sellsFor : 0);
@@ -4998,7 +4993,7 @@ class McsSimulator {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
             let monsterXP = 0;
-            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
+            monsterXP += Math.floor(((MONSTERS[monster].slayerXP !== undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
             if (this.isSlayerTask) {
               monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
@@ -5012,7 +5007,7 @@ class McsSimulator {
         area.monsters.forEach((monster) => {
           if (this.monsterSimData[monster].simSuccess) {
             let monsterXP = 0;
-            monsterXP += Math.floor(((MONSTERS[monster].slayerXP != undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
+            monsterXP += Math.floor(((MONSTERS[monster].slayerXP !== undefined) ? MONSTERS[monster].slayerXP : 0) * (1 + this.currentSim.slayerXPBonus / 100));
             if (this.isSlayerTask) {
               monsterXP += Math.floor(MONSTERS[monster].hitpoints * (1 + this.currentSim.slayerXPBonus / 100));
             }
@@ -5088,10 +5083,9 @@ class McsSimulator {
   updatePetChance() {
     const xpSkills = ['Hitpoints', 'Prayer'];
     const attackType = this.currentSim.playerStats.attackType;
-    const attackStyle = this.currentSim.attackStyle[attackType];
     switch (attackType) {
       case CONSTANTS.attackType.Melee:
-        switch (attackStyle) {
+        switch (this.currentSim.attackStyle.Melee) {
           case 0:
             xpSkills.push('Attack');
             break;
@@ -5105,15 +5099,15 @@ class McsSimulator {
         break;
       case CONSTANTS.attackType.Ranged:
         xpSkills.push('Ranged');
-        if (attackStyle === 2) xpSkills.push('Defence');
+        if (this.currentSim.attackStyle.Ranged === 2) xpSkills.push('Defence');
         break;
       case CONSTANTS.attackType.Magic:
         xpSkills.push('Magic');
-        if (attackStyle === 1) xpSkills.push('Defence');
+        if (this.currentSim.attackStyle.Magic === 1) xpSkills.push('Defence');
         break;
     }
     if (xpSkills.includes(this.petSkill)) {
-      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill];
+      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill] + 1;
       this.monsterSimData.forEach((simResult)=>{
         if (!simResult.simSuccess) {
           simResult.petChance = 0;
@@ -5144,7 +5138,7 @@ class McsSimulator {
       });
     } else if (this.petSkill === 'Slayer' && this.currentSim.isSlayerTask) {
       // Slayer pet is currently only rolled once for the players attack speed per kill
-      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill];
+      const petSkillLevel = this.currentSim.virtualLevels[this.petSkill] + 1;
       const computeForArea = (area)=>{
         area.monsters.forEach((mID)=>{
           const simResult = this.monsterSimData[mID];
@@ -5495,7 +5489,7 @@ class McsCard {
       outputID = `MCS ${labelText} Output`;
     }
     const newCCContainer = this.createCCContainer(height);
-    if (imageSrc && imageSrc != '') {
+    if (imageSrc && imageSrc !== '') {
       newCCContainer.appendChild(this.createImage(imageSrc, height));
     }
     const newLabel = this.createLabel(labelText, outputID, setLabelID);
@@ -5565,7 +5559,7 @@ class McsCard {
    */
   addRadio(labelText, height, radioName, radioLabels, radioCallbacks, initialRadio, imageSrc) {
     const newCCContainer = this.createCCContainer(height);
-    if (imageSrc && imageSrc != '') {
+    if (imageSrc && imageSrc !== '') {
       newCCContainer.appendChild(this.createImage(imageSrc, height));
     }
     newCCContainer.appendChild(this.createLabel(labelText, ''));
@@ -5576,7 +5570,7 @@ class McsCard {
     newCCContainer.appendChild(radioContainer);
     // Create Radio elements with labels
     for (let i = 0; i < radioLabels.length; i++) {
-      radioContainer.appendChild(this.createRadio(radioName, radioLabels[i], `MCS ${labelText} Radio ${radioLabels[i]}`, initialRadio == i, radioCallbacks[i]));
+      radioContainer.appendChild(this.createRadio(radioName, radioLabels[i], `MCS ${labelText} Radio ${radioLabels[i]}`, initialRadio === i, radioCallbacks[i]));
     }
     this.container.appendChild(newCCContainer);
   }
@@ -5763,17 +5757,17 @@ function mcsFormatNum(number, digits) {
 // Define the message listeners from the content script
 window.addEventListener('message', (event) => {
   // We only accept messages from ourselves
-  if (event.source != window) {
+  if (event.source !== window) {
     return;
   }
-  if (event.data.type && (event.data.type == 'MCS_FROM_CONTENT')) {
+  if (event.data.type && (event.data.type === 'MCS_FROM_CONTENT')) {
     // console.log('Message recieved from content script');
     switch (event.data.action) {
       case 'RECIEVE_URLS':
         // console.log('Loading sim with provided URLS');
         let tryLoad = true;
         let wrongVersion = false;
-        if (gameVersion != 'Alpha v0.16') {
+        if (gameVersion !== 'Alpha v0.16.1') {
           wrongVersion = true;
           tryLoad = window.confirm('Melvor Combat Simulator\nA different game version was detected. Loading the combat sim may cause unexpected behaviour or result in inaccurate simulation results.\n Try loading it anyways?');
         }
@@ -5781,9 +5775,9 @@ window.addEventListener('message', (event) => {
           try {
             melvorCombatSim = new McsApp(event.data.urls);
             if (wrongVersion) {
-              console.log('Melvor Combat Sim v0.10.0 Loaded, but simulation results may be inaccurate.');
+              console.log('Melvor Combat Sim v0.10.1 Loaded, but simulation results may be inaccurate.');
             } else {
-              console.log('Melvor Combat Sim v0.10.0 Loaded');
+              console.log('Melvor Combat Sim v0.10.1 Loaded');
             }
           } catch (error) {
             console.warn('Melvor Combat Sim was not properly loaded due to the following error:');

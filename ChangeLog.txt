@@ -1,3 +1,15 @@
+v0.10.1:
+Melvor Combat Sim has been updated for game version Alpha v0.16.1
+Change: Made ancient magick that guarantee hits only work when the player has > 20000 accuracy rating to match game change.
+Change: Made fighter amulet only work when you are using melee attacks, and adjusted Proc. threshold to 70% of Max Hit to match game change.
+Change: Adjusted how minimum hit works to match game change.
+Fix: Fixed switching from Alt. Magic page to simulator would get Alt. Magic stuck
+Fix: Fixed Import button importing levels that are one higher
+Fix: Fixed Pet Calculation to use your (virtual level + 1) instead of (virtual level) to match game code
+Fix: Fixed increased minimum hit not being reset when calculating combat stats.
+Fix: Fixed pet chance not working for Attack/Strength and Defence.
+Fix: Ancient MAgicks typo in spells menu
+
 v0.10.0:
 Melvor Combat Sim has been updated for game version Alpha v0.16
 New: The user interface has been overhauled significantly

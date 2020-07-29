@@ -1,4 +1,4 @@
-/*  Melvor Combat Simulator v0.10.0: Adds a combat simulator to Melvor Idle
+/*  Melvor Combat Simulator v0.10.1: Adds a combat simulator to Melvor Idle
 
     Copyright (C) <2020>  <Coolrox95>
 
@@ -181,6 +181,9 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   if (playerStats.specialData.setDamage) playerStats.specialData.setDamage *= numberMultiplier;
   // Multiply player max hit
   playerStats.maxHit = Math.floor(playerStats.maxHit * damageModifier);
+  // Determine if player always hits for maxHit
+  const alwaysMaxHit = playerStats.minHit + 1 >= playerStats.maxHit;
+  const damageRollRange = playerStats.maxHit - playerStats.minHit;
   // Start Monte Carlo simulation
   let enemyKills = 0;
   let xpToAdd = 0;
@@ -318,11 +321,15 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
       stats.petRolls[slowedSpeed] = 0;
     }
   });
+  // Adjust ancient magick forcehit
+  if (playerStats.usingAncient && playerStats.specialData.forceHit) {
+    playerStats.specialData.forceHit = playerStats.maxAttackRoll > 20000;
+  }
   // var enemyReflectDamage = 0; //Damage caused by reflect
   // Start simulation for each trial
   while (enemyKills < Ntrials && simSuccess) {
     // Check Cancellation every 250th trial
-    if (enemyKills % 250 == 0 && await cancelCheck()) {
+    if (enemyKills % 250 === 0 && await cancelCheck()) {
       return simResult;
     }
     // Reset Timers and statuses
@@ -397,7 +404,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
       if (enemy.isActing) timeStep = Math.min(timeStep, enemy.actionTimer);
       if (enemy.isAttacking) timeStep = Math.min(timeStep, enemy.attackTimer);
       if (enemy.isBleeding) timeStep = Math.min(timeStep, enemy.bleedTimer);
-      if (timeStep == 0) {
+      if (timeStep === 0) {
         throw Error('Error: Timestep zero.');
       }
       // Subtract from timers and perform their actions if necessary
@@ -492,11 +499,12 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
               else if (playerStats.specialData.stormsnap) damageToEnemy = (6 + 6 * playerStats.levels.Magic) * damageModifier;
               else {
-                damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
-                if (playerStats.minHit !== 0) {
-                  damageToEnemy += playerStats.minHit;
-                  damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit * playerStats.specialData.damageMultiplier);
+                if (alwaysMaxHit) {
+                  damageToEnemy = playerStats.maxHit;
+                } else {
+                  damageToEnemy = Math.ceil(Math.random() * damageRollRange) + playerStats.minHit;
                 }
+                damageToEnemy *= playerStats.specialData.damageMultiplier;
               }
               if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
               if (playerStats.activeItems.Deadeye_Amulet) {
@@ -533,7 +541,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
                 canStun = playerStats.specialData.canStun;
               }
               if (canStun) stunTurns = playerStats.specialData.stunTurns;
-              if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
+              if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.70) {
                 canStun = true;
                 stunTurns = 1;
               }
@@ -582,10 +590,10 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             if (attackHits) {
               stats.petRolls[player.currentSpeed]++;
               // Calculate attack Damage
-              damageToEnemy = Math.floor(Math.random() * playerStats.maxHit + 1);
-              if (playerStats.minHit !== 0) {
-                damageToEnemy += playerStats.minHit;
-                damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit);
+              if (alwaysMaxHit) {
+                damageToEnemy = playerStats.maxHit;
+              } else {
+                damageToEnemy = Math.ceil(Math.random() * damageRollRange) + playerStats.minHit;
               }
               if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
               if (playerStats.activeItems.Deadeye_Amulet) {
@@ -596,7 +604,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
               if (enemy.hitpoints < damageToEnemy) damageToEnemy = enemy.hitpoints;
               enemy.hitpoints -= Math.floor(damageToEnemy);
               if (enemy.reflectMelee > 0) stats.damageTaken += enemy.reflectMelee * numberMultiplier;
-              if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
+              if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.70) {
                 canStun = true;
                 stunTurns = 1;
               }
@@ -700,11 +708,12 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
           else if (playerStats.specialData.maxHit) damageToEnemy = playerStats.maxHit * playerStats.specialData.damageMultiplier;
           else if (playerStats.specialData.stormsnap) damageToEnemy = (6 + 6 * playerStats.levels.Magic) * damageModifier;
           else {
-            damageToEnemy = Math.floor((Math.random() * playerStats.maxHit + 1) * playerStats.specialData.damageMultiplier);
-            if (playerStats.minHit !== 0) {
-              damageToEnemy += playerStats.minHit;
-              damageToEnemy = Math.min(damageToEnemy, playerStats.maxHit * playerStats.specialData.damageMultiplier);
+            if (alwaysMaxHit) {
+              damageToEnemy = playerStats.maxHit;
+            } else {
+              damageToEnemy = Math.ceil(Math.random() * damageRollRange) + playerStats.minHit;
             }
+            damageToEnemy *= playerStats.specialData.damageMultiplier;
           }
           if (enemy.isCursed && enemy.curse.type === 'Anguish') damageToEnemy *= enemy.curse.damageMult;
           if (playerStats.activeItems.Deadeye_Amulet) {
@@ -742,7 +751,7 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
             canStun = playerStats.specialData.canStun;
           }
           if (canStun) stunTurns = playerStats.specialData.stunTurns;
-          if (playerStats.activeItems.Fighter_Amulet && !playerStats.usingAncient && damageToEnemy >= playerStats.maxHit * 0.75) {
+          if (playerStats.activeItems.Fighter_Amulet && damageToEnemy >= playerStats.maxHit * 0.70) {
             canStun = true;
             stunTurns = 1;
           }
@@ -1212,9 +1221,9 @@ async function simulateMonster(enemyStats, playerStats, Ntrials, Nhitmax) {
   */
 function calculateAccuracy(attacker, target) {
   let targetDefRoll = 0;
-  if (attacker.attackType == 0) {
+  if (attacker.attackType === 0) {
     targetDefRoll = target.maxDefRoll;
-  } else if (attacker.attackType == 1) {
+  } else if (attacker.attackType === 1) {
     targetDefRoll = target.maxRngDefRoll;
   } else {
     targetDefRoll = target.maxMagDefRoll;
