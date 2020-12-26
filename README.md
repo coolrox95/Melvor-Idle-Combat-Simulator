@@ -1,3 +1,5 @@
+# Notice
+This project is no longer being maintained. For a more up to date project please see [Melvor Idle Combat Simulator Reloaded](https://github.com/visua0/Melvor-Idle-Combat-Simulator-Reloaded).
 # Melvor-Idle-Combat-Simulator v0.10.1
 A browser extension for the game [Melvor Idle](http://www.melvoridle.com/).  
 This extension was built for version: Alpha v0.16.1 of Melvor Idle.
